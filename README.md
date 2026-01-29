@@ -5,7 +5,7 @@
 * **Nama**: Muhammad Pasha Prabasakti & Arsya Briliant Perdana
 * **Instansi/Perusahaan**: *PT Delameta Bilano*
 * **Bidang**: *Rekayasa Perangkat Lunak(RPL)*
-* **Periode PKL**: *Januari 2025 – April 2025*
+* **Periode PKL**: *Januari 2026 – April 2026*
 
 ---
 
