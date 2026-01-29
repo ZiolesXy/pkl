@@ -1,0 +1,102 @@
+package handlers
+
+import (
+	"main/database"
+	"main/models"
+	"main/request"
+	"main/respons"
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+)
+
+func CreateRole(c *gin.Context) {
+	var req request.BarangPost
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest,
+		request.NewJsonResponse("Invalid request", err.Error()))
+		return
+	}
+
+	role := models.Role{
+		Name: req.Name,
+	}
+
+	if err := database.DB.Create(&role).Error; err != nil {
+		c.JSON(http.StatusInternalServerError,
+		request.NewJsonResponse("Failed created role", nil))
+		return
+	}
+
+	c.JSON(http.StatusCreated,
+	request.NewJsonResponse("Role created", respons.Barang{
+		ID: role.ID,
+		Name: role.Name,
+	}))
+}
+
+func GetRole(c *gin.Context) {
+	var roles []models.Role
+
+	if err := database.DB.Find(&roles).Error; err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			respons.NewJsonResponse("Failed get roles", nil),
+		)
+		return
+	}
+
+	roleResponses := []respons.Role{}
+
+	for _, role := range roles {
+		roleResponses = append(roleResponses, respons.Role{
+			ID: role.ID,
+			Name: role.Name,
+		})
+	}
+
+	c.JSON(
+		http.StatusOK,
+		respons.NewJsonResponse("Succes", roleResponses),
+	)
+}
+
+func UpdateRole(c *gin.Context) {
+	id := c.Param("id")
+
+	var role models.Role
+
+	if err := database.DB.First(&role, id).Error; err != nil {
+		c.JSON(404, gin.H{"Error": "Role tidak ditemukan"})
+		return
+	}
+
+	if err := c.ShouldBindJSON(&role); err != nil {
+		c.JSON(400, gin.H{"Error": err.Error()})
+		return
+	}
+
+	if err := database.DB.Save(&role).Error; err != nil {
+		c.JSON(400, gin.H{"Error": err.Error()})
+		return
+	}
+	c.JSON(200, role)
+}
+
+func DelRole(c *gin.Context) {
+	id := c.Param("id")
+	var role models.Role
+
+	if err := database.DB.First(&role, id).Error; err != nil {
+		c.JSON(404, gin.H{"Error": "User tidak ditemukan"})
+		return
+	}
+
+	
+	if erro := database.DB.Delete(&role).Error; erro != nil {
+		c.JSON(400, gin.H{"Error": erro.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"Messege" : "User berhasil dihapus"})
+}
