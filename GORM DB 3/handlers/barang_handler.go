@@ -60,23 +60,36 @@ func GetBarangs(c *gin.Context) {
 
 func UpdateBarang(c *gin.Context) {
 	id := c.Param("id")
-	var barang models.Barang
 
+	var barang models.Barang
 	if err := database.DB.First(&barang, id).Error; err != nil {
-		c.JSON(400, gin.H{"Error": "Barang tidak ditemukan"})
+		c.JSON(http.StatusNotFound,
+		request.NewJsonResponse("Barang not found", nil))
 		return
 	}
 
-	if err := c.ShouldBindJSON(&barang); err != nil {
-		c.JSON(404, gin.H{"Error": err.Error()})
+	var req request.BarangPut
+	if err := c.ShouldBindJSON(&req); err != nil{
+		c.JSON(http.StatusBadRequest,
+		request.NewJsonResponse("Error", err))
 		return
+	}
+
+	if req.Name != nil {
+		barang.Name = *req.Name
 	}
 
 	if err := database.DB.Save(&barang).Error; err != nil {
-		c.JSON(400, gin.H{"Error": err.Error()})
+		c.JSON(http.StatusBadRequest,
+		request.NewJsonResponse("Error", err.Error()))
 		return
 	}
-	c.JSON(200, barang)
+
+	c.JSON(http.StatusOK,
+	request.NewJsonResponse("Barang updated", respons.Barang{
+		ID: barang.ID,
+		Name: barang.Name,
+	}))
 }
 
 func DelBarang(c *gin.Context) {

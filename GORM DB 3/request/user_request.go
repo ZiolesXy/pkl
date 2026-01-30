@@ -7,5 +7,5 @@ type UserPost struct {
 
 type UserPut struct {
 	Name *string `json:"name"`
-	RoleID *uint `json:"role_id"`
+	RoleID *uint `json:"role_id,omitempty"`
 }

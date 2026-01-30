@@ -62,26 +62,36 @@ func GetRole(c *gin.Context) {
 	)
 }
 
-func UpdateRole(c *gin.Context) {
+func UpdateRole(c *gin.Context)  {
 	id := c.Param("id")
 
 	var role models.Role
-
 	if err := database.DB.First(&role, id).Error; err != nil {
-		c.JSON(404, gin.H{"Error": "Role tidak ditemukan"})
+		c.JSON(http.StatusNotFound,
+		request.NewJsonResponse("Role not found", nil))
 		return
 	}
 
-	if err := c.ShouldBindJSON(&role); err != nil {
-		c.JSON(400, gin.H{"Error": err.Error()})
+	var req request.RolePut
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, request.NewJsonResponse("Error", nil))
 		return
+	}
+
+	if req.Name != nil {
+		role.Name = *req.Name
 	}
 
 	if err := database.DB.Save(&role).Error; err != nil {
-		c.JSON(400, gin.H{"Error": err.Error()})
+		c.JSON(http.StatusBadRequest, request.NewJsonResponse("Error", nil))
 		return
 	}
-	c.JSON(200, role)
+
+	c.JSON(http.StatusOK,
+	request.NewJsonResponse("Role update", respons.Role{
+		ID: role.ID,
+		Name: role.Name,
+	}))
 }
 
 func DelRole(c *gin.Context) {
