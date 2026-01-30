@@ -222,3 +222,32 @@ func DelBarang(c *gin.Context) {
 	}
 	c.JSON(200, gin.H{"messege": "Barang berhasil dihapus"})
 }
+
+func AssignBarang(c *gin.Context) {
+	userID := c.Param("id")
+
+	var user models.User
+	var barang models.Barang
+	
+	if err := database.DB.First(&user, userID).Error; err != nil {
+		c.JSON(400, gin.H{"Error": err.Error()})
+		return
+	}
+
+	if err := c.ShouldBindJSON(&barang); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"Error": err.Error()})
+		return
+	}
+
+	if err := database.DB.First(&barang, barang.ID).Error; err != nil{
+		c.JSON(400, gin.H{"Error": err.Error()})
+		return
+	}
+
+	if err := database.DB.Model(&user).Association("Barangs").Append(&barang); err != nil{
+		c.JSON(400, gin.H{"Error": err.Error})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"Messege": "Barang berhasil di assign"})
+}

@@ -42,7 +42,8 @@ func main() {
 	r.PUT("/barang/:id", handlers.UpdateBarang)
 	r.DELETE("/barang/:id", handlers.DelBarang)
 
-	r.POST("/users/:id/barangs", handlers.AssignBarang)
-	r.DELETE("/users/:id/barangs/:barang_id", handlers.RemoveBarang)
+	r.GET("/users/barangs", handlers.GetUserBarangs)
+	r.POST("/user/:user_id/barang/:barang_id", handlers.AssignBarang)
+	r.DELETE("/user/:id/barang/:barang_id", handlers.RemoveBarang)
 	r.Run(":8080")
 }
