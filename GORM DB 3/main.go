@@ -6,6 +6,7 @@ import (
 	"main/models"
 	"main/trash"
 	"github.com/gin-gonic/gin"
+	"fmt"
 )
 
 func main() {
@@ -45,4 +46,6 @@ func main() {
 	r.POST("/users/:id/barangs", handlers.AssignBarang)
 	r.DELETE("/users/:id/barangs/:barang_id", handlers.RemoveBarang)
 	r.Run(":8080")
+
+	fmt.Println("Test")
 }
