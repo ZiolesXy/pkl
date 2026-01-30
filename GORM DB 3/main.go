@@ -43,6 +43,8 @@ func main() {
 	r.PUT("/barang/:id", handlers.UpdateBarang)
 	r.DELETE("/barang/:id", handlers.DelBarang)
 
+	fmt.Println("Ambs")
+
 	r.POST("/users/:id/barangs", handlers.AssignBarang)
 	r.DELETE("/users/:id/barangs/:barang_id", handlers.RemoveBarang)
 	r.Run(":8080")
