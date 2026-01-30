@@ -41,6 +41,8 @@ func RunSeed(c *gin.Context) {
     namaUser := []string{
         "Pasha", "Amrl", "Siti", "Budi", "Dewi",
         "Eko", "Farhan", "Gita", "Hadi", "Indah",
+        "Amba", "grace", "Furina", "Hutao", "Acheron",
+        "Zephyro", "Jing yuan", "Feixiao", "Vylan",
     }
     
     var users []models.User
@@ -73,7 +75,7 @@ func RunSeed(c *gin.Context) {
     }
 
     // Respon Tunggal
-    c.JSON(200, gin.H{"message": "Seed data (5 Role, 10 User, 20 Barang Asli) berhasil!"})
+    c.JSON(200, gin.H{"message": "Seed data (5 Role, 18 User, 20 Barang Asli) berhasil!"})
 }
 
 func ClearData(c *gin.Context) {
