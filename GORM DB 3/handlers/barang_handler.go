@@ -35,7 +35,7 @@ func CreateBarang(c *gin.Context) {
 func GetBarangs(c *gin.Context) {
 	var barangs []models.Barang
 
-	if err := database.DB.Find(&barangs).Error; err != nil {
+	if err := database.DB.Order("id ASC").Find(&barangs).Error; err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
 			respons.NewJsonResponse("Failed get barangs", nil),
@@ -94,16 +94,13 @@ func UpdateBarang(c *gin.Context) {
 
 func DelBarang(c *gin.Context) {
 	id := c.Param("id")
-	var barang models.Barang
 
-	if err := database.DB.First(&barang, id).Error; err != nil {
-		c.JSON(404, gin.H{"Error": "Barang tidak ditemukan"})
+	if err := database.DB.Delete(&models.Barang{}, id).Error; err != nil {
+		c.JSON(http.StatusNotFound,
+			request.NewJsonResponse("Barang not found", nil))
 		return
 	}
 
-	if err := database.DB.Delete(&barang).Error; err != nil{
-		c.JSON(400, gin.H{"Error": err.Error()})
-		return
-	}
-	c.JSON(200, gin.H{"messege": "Barang berhasil dihapus"})
+	c.JSON(http.StatusOK,
+		request.NewJsonResponse("Barang deleted", nil))
 }

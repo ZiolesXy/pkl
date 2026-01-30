@@ -39,7 +39,7 @@ func CreateRole(c *gin.Context) {
 func GetRole(c *gin.Context) {
 	var roles []models.Role
 
-	if err := database.DB.Find(&roles).Error; err != nil {
+	if err := database.DB.Order("id ASC").Find(&roles).Error; err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
 			respons.NewJsonResponse("Failed get roles", nil),
@@ -96,17 +96,13 @@ func UpdateRole(c *gin.Context)  {
 
 func DelRole(c *gin.Context) {
 	id := c.Param("id")
-	var role models.Role
 
-	if err := database.DB.First(&role, id).Error; err != nil {
-		c.JSON(404, gin.H{"Error": "User tidak ditemukan"})
+	if err := database.DB.Delete(&models.Role{}, id).Error; err != nil {
+		c.JSON(http.StatusNotFound,
+			request.NewJsonResponse("Role not found", nil))
 		return
 	}
 
-	
-	if erro := database.DB.Delete(&role).Error; erro != nil {
-		c.JSON(400, gin.H{"Error": erro.Error()})
-		return
-	}
-	c.JSON(200, gin.H{"Messege" : "User berhasil dihapus"})
+	c.JSON(http.StatusOK,
+		request.NewJsonResponse("Role deleted", nil))
 }

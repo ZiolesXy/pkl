@@ -118,6 +118,7 @@ func GetUsers(c *gin.Context) {
 	if err := database.DB.
 		Preload("Role").
 		Preload("Barangs").
+		Order("id ASC").
 		Find(&users).Error; err != nil {
 
 		c.JSON(
@@ -252,21 +253,13 @@ func UpdateUsers(c *gin.Context) {
 
 func DelUser(c *gin.Context) {
 	id := c.Param("id")
-	var user models.User
 
-	if err := database.DB.First(&user, id).Error; err != nil {
-		c.JSON(404, gin.H{"Error": "User tidak ditemukan"})
+	if err := database.DB.Delete(&models.User{}, id).Error; err != nil {
+		c.JSON(http.StatusNotFound,
+			request.NewJsonResponse("User not found", nil))
 		return
 	}
 
-	if err := database.DB.Model(&user).Association("Barangs").Clear(); err != nil{
-		c.JSON(400, gin.H{"Error": err})
-		return
-	}
-
-	if err := database.DB.Delete(&user).Error; err != nil {
-		c.JSON(400, gin.H{"Error": err.Error()})
-		return
-	}
-	c.JSON(200, gin.H{"Messege" : "User berhasil dihapus"})
+	c.JSON(http.StatusOK,
+		request.NewJsonResponse("User deleted", nil))
 }
