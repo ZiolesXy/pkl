@@ -168,3 +168,57 @@ func UpdateBarang(c *gin.Context) {
 	}
 	c.JSON(200, barang)
 }
+
+func DelUser(c *gin.Context) {
+	id := c.Param("id")
+	var user models.User
+
+	if err := database.DB.First(&user, id).Error; err != nil {
+		c.JSON(404, gin.H{"Error": "User tidak ditemukan"})
+		return
+	}
+
+	if err := database.DB.Model(&user).Association("Barangs").Clear(); err != nil{
+		c.JSON(400, gin.H{"Error": err})
+		return
+	}
+
+	if err := database.DB.Delete(&user).Error; err != nil {
+		c.JSON(400, gin.H{"Error": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"Messege" : "User berhasil dihapus"})
+}
+
+func DelRole(c *gin.Context) {
+	id := c.Param("id")
+	var role models.Role
+
+	if err := database.DB.First(&role, id).Error; err != nil {
+		c.JSON(404, gin.H{"Error": "User tidak ditemukan"})
+		return
+	}
+
+	
+	if erro := database.DB.Delete(&role).Error; erro != nil {
+		c.JSON(400, gin.H{"Error": erro.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"Messege" : "User berhasil dihapus"})
+}
+
+func DelBarang(c *gin.Context) {
+	id := c.Param("id")
+	var barang models.Barang
+
+	if err := database.DB.First(&barang, id).Error; err != nil {
+		c.JSON(404, gin.H{"Error": "Barang tidak ditemukan"})
+		return
+	}
+
+	if err := database.DB.Delete(&barang).Error; err != nil{
+		c.JSON(400, gin.H{"Error": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"messege": "Barang berhasil dihapus"})
+}
