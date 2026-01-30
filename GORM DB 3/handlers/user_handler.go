@@ -148,7 +148,6 @@ func GetUsers(c *gin.Context) {
 			ID:      user.ID,
 			Name:    user.Name,
 			Role:    roleResp,
-			Barangs: barangResp,
 		})
 	}
 
@@ -191,7 +190,6 @@ func GetUserByID(c *gin.Context) {
 		ID: user.ID,
 		Name: user.Name,
 		Role: roleResp,
-		Barangs: barangResp,
 	}
 
 	c.JSON(
@@ -200,25 +198,56 @@ func GetUserByID(c *gin.Context) {
 }
 
 func UpdateUsers(c *gin.Context) {
-	id := c.Param("id")
+    id := c.Param("id")
 
-	var user models.User
+    var user models.User
+    if err := database.DB.Preload("Role").First(&user, id).Error; err != nil {
+        c.JSON(http.StatusNotFound, request.NewJsonResponse("User not found", nil))
+        return
+    }
 
-	if err := database.DB.First(&user, id).Error; err != nil {
-		c.JSON(404, gin.H{"Error": "User tidak ditemukan"})
-		return
-	}
+    var req request.UserPut
+    if err := c.ShouldBindJSON(&req); err != nil {
+        c.JSON(http.StatusBadRequest, request.NewJsonResponse("Invalid request", err.Error()))
+        return
+    }
 
-	if err := c.ShouldBindJSON(&user); err != nil {
-		c.JSON(400, gin.H{"Error": err.Error()})
-		return
-	}
+    if req.Name != nil {
+        if len(*req.Name) < 3 {
+            c.JSON(http.StatusBadRequest, request.NewJsonResponse("Name too short", nil))
+            return
+        }
+        user.Name = *req.Name
+    }
 
-	if err := database.DB.Save(&user).Error; err != nil {
-		c.JSON(400, gin.H{"Error": err.Error()})
-		return
-	}
-	c.JSON(200, user)
+    if req.RoleID != nil {
+        var role models.Role
+        if err := database.DB.First(&role, *req.RoleID).Error; err != nil {
+            c.JSON(http.StatusBadRequest, request.NewJsonResponse("Role not found", nil))
+            return
+        }
+        user.RoleID = *req.RoleID
+        user.Role = role
+    }
+
+    if err := database.DB.Save(&user).Error; err != nil {
+        c.JSON(http.StatusInternalServerError, request.NewJsonResponse("Error", err.Error()))
+        return
+    }
+
+    userResponse := respons.User{
+        ID:   user.ID,
+        Name: user.Name,
+    }
+
+    if user.Role.ID != 0 {
+        userResponse.Role = respons.Role{
+            ID:   user.Role.ID,
+            Name: user.Role.Name,
+        }
+    }
+
+    c.JSON(http.StatusOK, request.NewJsonResponse("User update", userResponse))
 }
 
 func DelUser(c *gin.Context) {

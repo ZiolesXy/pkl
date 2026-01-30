@@ -103,3 +103,68 @@ func CreateRole(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, role)
 }
+
+func UpdateUsers(c *gin.Context) {
+	id := c.Param("id")
+
+	var user models.User
+
+	if err := database.DB.First(&user, id).Error; err != nil {
+		c.JSON(404, gin.H{"Error": "User tidak ditemukan"})
+		return
+	}
+
+	if err := c.ShouldBindJSON(&user); err != nil {
+		c.JSON(400, gin.H{"Error": err.Error()})
+		return
+	}
+
+	if err := database.DB.Save(&user).Error; err != nil {
+		c.JSON(400, gin.H{"Error": err.Error()})
+		return
+	}
+	c.JSON(200, user)
+}
+
+func UpdateRole(c *gin.Context) {
+	id := c.Param("id")
+
+	var role models.Role
+
+	if err := database.DB.First(&role, id).Error; err != nil {
+		c.JSON(404, gin.H{"Error": "Role tidak ditemukan"})
+		return
+	}
+
+	if err := c.ShouldBindJSON(&role); err != nil {
+		c.JSON(400, gin.H{"Error": err.Error()})
+		return
+	}
+
+	if err := database.DB.Save(&role).Error; err != nil {
+		c.JSON(400, gin.H{"Error": err.Error()})
+		return
+	}
+	c.JSON(200, role)
+}
+
+func UpdateBarang(c *gin.Context) {
+	id := c.Param("id")
+	var barang models.Barang
+
+	if err := database.DB.First(&barang, id).Error; err != nil {
+		c.JSON(400, gin.H{"Error": "Barang tidak ditemukan"})
+		return
+	}
+
+	if err := c.ShouldBindJSON(&barang); err != nil {
+		c.JSON(404, gin.H{"Error": err.Error()})
+		return
+	}
+
+	if err := database.DB.Save(&barang).Error; err != nil {
+		c.JSON(400, gin.H{"Error": err.Error()})
+		return
+	}
+	c.JSON(200, barang)
+}
