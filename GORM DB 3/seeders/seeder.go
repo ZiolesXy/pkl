@@ -44,9 +44,9 @@ func RunSeed(c *gin.Context) {
     // 3. Seed Users (10 User)
     namaUser := []string{
         "Pasha", "Amrl", "Siti", "Budi", "Dewi",
-        // "Eko", "Farhan", "Gita", "Hadi", "Indah",
-        // "Amba", "grace", "Furina", "Hutao", "Acheron",
-        // "Zephyro", "Jing yuan", "Feixiao", "Vylan",
+        "Eko", "Farhan", "Gita", "Hadi", "Indah",
+        "Async", "grace", "Furina", "Hutao", "Acheron",
+        "Zephyro", "Jing yuan", "Feixiao", "Cyrene", "Vylan",
     }
     
     var users []models.User
@@ -65,7 +65,7 @@ func RunSeed(c *gin.Context) {
     for i := range users {
         var barangUntukUser []models.Barang
         
-        // Mengambil 10 barang untuk setiap user secara bergantian
+        // Mengambil 5 barang untuk setiap user secara bergantian
         for j := 0; j < 5; j++ {
             idx := (i + j) % len(barangs)
             barangUntukUser = append(barangUntukUser, barangs[idx])

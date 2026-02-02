@@ -4,7 +4,6 @@ import (
 	"main/database"
 	"main/handlers"
 	"main/models"
-	"main/trash"
 	"net/http"
 	"github.com/gin-gonic/gin"
 )
@@ -43,9 +42,7 @@ func main() {
 	r.Use(corsMiddleware())
 	r.POST("/dummy", handlers.RunSeeder)
 	r.DELETE("/reset", handlers.ClearSeeder)
-	
-	r.GET("/usert", trash.GetUsers)
-	r.GET("/usert/:id", trash.GetUserByID)
+	r.GET("/", handlers.GetUserBarangs)
 
 	r.POST("/roles", handlers.CreateRole)
 	r.GET("/roles", handlers.GetRole)
