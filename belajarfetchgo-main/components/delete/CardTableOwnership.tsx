@@ -1,0 +1,53 @@
+import { getOwnership } from "@/lib/api/ownership"
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import DeleteButton from "../DeleteButton"
+
+async function CardTableOwnership() {
+  const ownership = await getOwnership()
+
+  return (
+    <Card className="w-full h-105">
+      <CardHeader className="border-b">
+        <CardTitle>Ownership</CardTitle>
+      </CardHeader>
+      <CardContent className="h-85 overflow-hidden">
+        <div className="h-full w-full overflow-auto">
+        <Table className="w-full table-fixed">
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-32">Barang ID</TableHead>
+              <TableHead className="w-32">User ID</TableHead>
+              <TableHead className="w-28">Action</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {ownership.map((o, idx) => (
+              <TableRow key={`${o.user_id}-${o.barang_id}-${idx}`}>
+                <TableCell className="font-medium">{o.barang_id}</TableCell>
+                <TableCell>{o.user_id}</TableCell>
+                <TableCell>
+                  <DeleteButton 
+                  type="ownership"
+                  userId={o.user_id}
+                  barangId={o.barang_id}
+                  label={`${o.user_id}-${o.barang_id}-${idx}`}/>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+export default CardTableOwnership

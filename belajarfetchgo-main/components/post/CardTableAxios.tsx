@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import getUsers from '@/lib/api/users-native'
 import {
   Table,
@@ -10,17 +10,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { PaginationControls } from "./Pagination"
+import { PostButton } from "../PostUserButton"
 
-async function CardTable(){
+async function PostCardTableAxios() {
   const users = await getUsers()
+ 
   return (
-    <Card className="w-full h-full">
-      <CardHeader className='border-b'>
+    <Card className="w-full h-105">
+      <CardHeader className='border-b flex justify-between'>
         <CardTitle>List of Users</CardTitle>
+        <PostButton />
       </CardHeader>
-      <CardContent className="flex-1 overflow-hidden">
-        <div className="w-full overflow-x-auto">
+      <CardContent className="h-85 overflow-hidden">
+        <div className="h-full w-full overflow-auto">
           <Table className='min-w-full text-lg table-fixed'>
             <TableHeader>
               <TableRow>
@@ -66,16 +68,17 @@ async function CardTable(){
                         )}
                       </div>
                     </TableCell>
+                    
                   </TableRow>
                 )
               })}
             </TableBody>
-          </Table>  
+          </Table>
         </div>
       </CardContent>
     </Card>
-      
+
   )
 }
 
-export default CardTable
+export default PostCardTableAxios  
