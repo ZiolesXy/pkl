@@ -1,8 +1,12 @@
 package seeders
 
 import (
+	"fmt"
 	"main/database"
 	"main/models"
+	"main/respons"
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -40,9 +44,9 @@ func RunSeed(c *gin.Context) {
     // 3. Seed Users (10 User)
     namaUser := []string{
         "Pasha", "Amrl", "Siti", "Budi", "Dewi",
-        "Eko", "Farhan", "Gita", "Hadi", "Indah",
-        "Amba", "grace", "Furina", "Hutao", "Acheron",
-        "Zephyro", "Jing yuan", "Feixiao", "Vylan",
+        // "Eko", "Farhan", "Gita", "Hadi", "Indah",
+        // "Amba", "grace", "Furina", "Hutao", "Acheron",
+        // "Zephyro", "Jing yuan", "Feixiao", "Vylan",
     }
     
     var users []models.User
@@ -62,7 +66,7 @@ func RunSeed(c *gin.Context) {
         var barangUntukUser []models.Barang
         
         // Mengambil 10 barang untuk setiap user secara bergantian
-        for j := 0; j < 10; j++ {
+        for j := 0; j < 5; j++ {
             idx := (i + j) % len(barangs)
             barangUntukUser = append(barangUntukUser, barangs[idx])
         }
@@ -74,43 +78,14 @@ func RunSeed(c *gin.Context) {
         }
     }
 
-    // Respon Tunggal
-    c.JSON(200, gin.H{"message": "Seed data (5 Role, 18 User, 20 Barang Asli) berhasil!"})
-}
+    totalUser := len(namaUser)
+    totalBarang := len(namaBarang)
+    totalRole := len(roles)
 
-func ClearData(c *gin.Context) {
-	var users []models.User
-	if err := database.DB.Find(&users).Error; err != nil {
-		c.JSON(400, gin.H{"Error": err.Error()})
-		return
-	}
+    messege := fmt.Sprintf("Seed data (%d User, %d Barang, %d Role berhasil)", totalUser, totalBarang, totalRole)
 
-	for _, user := range users {
-		if err := database.DB.Model(&user).Association("Barangs").Clear(); err != nil {
-			c.JSON(400, gin.H{"Error1": err.Error()})
-			return
-		}
-		if err := database.DB.Unscoped().Delete(&user).Error; err != nil {
-			c.JSON(400, gin.H{"Error2": err.Error()})
-			return
-		}
-		// if err := database.DB.Unscoped().Delete(&models.Role{}).Error; err != nil {
-		// 	c.JSON(400, gin.H{"Error3": err.Error()})
-		// 	return
-		// }
-	}
-
-	// if err := database.DB.Unscoped().Delete(&models.User{}).Error; err != nil {
-	// 	c.JSON(400, gin.H{"Error2": err.Error()})
-	// 	return
-	// }
-
-	// if err := database.DB.Unscoped().Delete(&models.Role{}).Error; err != nil {
-	// 	c.JSON(400, gin.H{"Error3": err.Error()})
-	// 	return
-	// }
-
-	// c.JSON(200, gin.H{
-	// 	"messege": "All table data cleared",
-	// })
+    c.JSON(
+        http.StatusOK,
+        respons.NewJsonResponse("Succes", messege),
+    )
 }

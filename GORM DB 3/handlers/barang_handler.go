@@ -58,6 +58,38 @@ func GetBarangs(c *gin.Context) {
 	)
 }
 
+func GetBarangByID(c *gin.Context) {
+	id := c.Param("id")
+
+	var barang models.Barang
+
+	if err := database.DB.Preload("Users").First(&barang, id).Error; err != nil {
+		c.JSON(
+			http.StatusNotFound,
+			respons.NewJsonResponse("Barang not found", nil),
+		)
+		return
+	}
+
+	userResps := []respons.User{}
+	for _, user := range barang.Users {
+		userResps = append(userResps, respons.User{
+			ID: user.ID,
+			Name: user.Name,
+		})
+	}
+
+	barangResp := respons.Barang {
+		ID: barang.ID,
+		Name: barang.Name,
+	}
+
+	c.JSON(
+		http.StatusOK,
+		respons.NewJsonResponse("Succes", barangResp),
+	)
+}
+
 func UpdateBarang(c *gin.Context) {
 	id := c.Param("id")
 
