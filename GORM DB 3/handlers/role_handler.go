@@ -62,6 +62,26 @@ func GetRole(c *gin.Context) {
 	)
 }
 
+func GetRoleByID(c *gin.Context) {
+	id := c.Param("id")
+	var role models.Role
+
+	if err := database.DB.First(&role, id).Order("id ASC").Error; err != nil{
+		c.JSON(
+			404,
+			respons.NewJsonResponse("Role not found", nil),
+		)
+		return
+	}
+
+	roleResp := respons.Role{
+		ID: role.ID,
+		Name: role.Name,
+	}
+
+	c.JSON(http.StatusOK, respons.NewJsonResponse("Succes", roleResp))
+}
+
 func UpdateRole(c *gin.Context)  {
 	id := c.Param("id")
 

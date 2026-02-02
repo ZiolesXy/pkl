@@ -46,6 +46,7 @@ func main() {
 
 	r.POST("/roles", handlers.CreateRole)
 	r.GET("/roles", handlers.GetRole)
+	r.GET("/role/:id", handlers.GetRoleByID)
 	r.PUT("/role/:id", handlers.UpdateRole)
 	r.DELETE("/role/:id", handlers.DelRole)
 
