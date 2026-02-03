@@ -8,7 +8,7 @@ function Sidebar() {
             group: 'General',
             items: [
                 {
-                    link: '/',
+                    link: '/dashboard',
                     icon: <User />,
                     text: 'Dashboard'
                 },

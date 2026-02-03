@@ -19,7 +19,7 @@ export default function DeleteButton(props: DeleteButtonProps) {
   const router = useRouter()
 
   const handleDelete = () => {
-    if (!confirm("Yakin ingin menghapus data ini?")) return
+    if (!confirm("Sawit lu Aman?")) return
 
     startTransition(async () => {
       try {
@@ -37,7 +37,7 @@ export default function DeleteButton(props: DeleteButtonProps) {
     <Button
       onClick={handleDelete}
       disabled={isPending}
-      style={{ color: "red" }}
+      variant="outline"
     >
       {props.label ?? "Delete"}
     </Button>
