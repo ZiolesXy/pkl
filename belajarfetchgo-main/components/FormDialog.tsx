@@ -17,7 +17,7 @@ import { Field, FieldGroup } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
-export type DialogFieldType = "text" | "number" | "password"
+export type DialogFieldType = "text" | "number"
 
 export type DialogField = {
   name: string

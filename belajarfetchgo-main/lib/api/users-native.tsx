@@ -11,7 +11,7 @@ function extractUsers(payload: any) {
 }
 
 async function getUsers() {
-  const res = await fetch("http:///172.16.17.67:8080/users/barangs", {
+  const res = await fetch("http://172.16.17.123:8080/users/barangs", {
     cache: "no-store",
   })
 
