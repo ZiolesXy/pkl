@@ -14,6 +14,7 @@ func RunSeed(c *gin.Context) {
     // 1. Seed Roles (5 Role)
     roles := []models.Role{
         {Name: "Admin"},
+        {Name: "User"},
         {Name: "Manager"},
         {Name: "Staff IT"},
         {Name: "Sales"},
