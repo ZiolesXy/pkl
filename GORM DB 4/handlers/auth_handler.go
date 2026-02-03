@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 func Register(c *gin.Context) {
@@ -75,10 +76,59 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	token, _ := helpers.GenerateJWT(user)
+	accessToken, _ := helpers.GenerateAccessToken(user)
+	refreshToken, _ := helpers.GenerateRefreshToken(user)
 
 	c.JSON(
 		200,
-		respons.NewJsonResponse("token", token),
+		respons.NewJsonResponse("Login berhasil", respons.TokenResponse{
+			AccessToken: accessToken,
+			RefreshToken: refreshToken,
+		}),
 	)
+}
+
+func RefreshToken(c *gin.Context) {
+	var body struct {
+		RefreshToken string `json:"refresh_token"`
+	}
+
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(400, respons.NewJsonResponse("Request tidak valid", nil))
+		return
+	}
+
+	token, err := jwt.Parse(body.RefreshToken, func(t *jwt.Token) (interface{}, error) {
+		return helpers.REFRESH_SECRET, nil
+	})
+
+	if err != nil || !token.Valid {
+		c.JSON(401, respons.NewJsonResponse("Refresh token tidak valid", nil))
+		return
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		c.JSON(401, respons.NewJsonResponse("Invalid token claims", nil))
+		return
+	}
+
+	var user models.User
+	if err := database.DB.First(&user, claims["user_id"]).Error; err != nil {
+		c.JSON(404, respons.NewJsonResponse("User tidak ditemukan", nil))
+		return
+	}
+
+	newAccess, err := helpers.GenerateAccessToken(user)
+	if err != nil {
+		c.JSON(500, respons.NewJsonResponse("Gagal membuat access token", nil))
+		return
+	}
+
+	c.JSON(200, respons.NewJsonResponse(
+		"Access token berhasil diperbarui",
+		respons.RefreshTokenResponse{
+			AccessToken: newAccess,
+		},
+	))
 }

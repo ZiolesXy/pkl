@@ -139,6 +139,7 @@ func GetUserByID(c *gin.Context) {
 	userResp := respons.User{
 		ID:   user.ID,
 		Name: user.Name,
+		Email: user.Email,
 		Role: roleResp,
 	}
 
@@ -170,6 +171,10 @@ func UpdateUsers(c *gin.Context) {
 		user.Name = *req.Name
 	}
 
+	if req.Email != nil {
+		user.Email = *req.Email
+	}
+
 	if req.RoleID != nil {
 		var role models.Role
 		if err := database.DB.First(&role, *req.RoleID).Error; err != nil {
@@ -188,6 +193,7 @@ func UpdateUsers(c *gin.Context) {
 	userResponse := respons.User{
 		ID:   user.ID,
 		Name: user.Name,
+		Email: user.Email,
 	}
 
 	if user.Role.ID != 0 {

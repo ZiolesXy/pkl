@@ -39,6 +39,7 @@ func GetUserBarangs(c *gin.Context) {
 		userResponses = append(userResponses, respons.UserWithBarang{
 			ID: user.ID,
 			Name: user.Name,
+			Email: user.Email,
 			Role: roleResp,
 			Barangs: barangResp,
 		})

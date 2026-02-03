@@ -8,14 +8,24 @@ import (
 
 func OnlyAdmin() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		role := c.GetFloat64("role")
-		if role != 1 {
+		roleValue, exists := c.Get("role")
+		if !exists {
+			c.AbortWithStatusJSON(
+				401,
+				respons.NewJsonResponse("Unauthorized", nil),
+			)
+			return
+		}
+
+		role, ok := roleValue.(float64)
+		if !ok || role != 1 {
 			c.AbortWithStatusJSON(
 				403,
 				respons.NewJsonResponse("Forbidden", nil),
 			)
 			return
 		}
+
 		c.Next()
 	}
 }

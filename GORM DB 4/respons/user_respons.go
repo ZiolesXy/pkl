@@ -3,7 +3,7 @@ package respons
 type User struct {
 	ID uint `json:"id"`
 	Name string `json:"name"`
-	Email string `json:"email"`
+	Email string `json:"email,omitempty"`
 	Password string `json:"-"`
 	Role Role `json:"role,omitempty"`
 }
