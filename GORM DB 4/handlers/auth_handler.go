@@ -7,6 +7,7 @@ import (
 	"main/request"
 	"main/respons"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -65,10 +66,12 @@ func Login(c *gin.Context) {
 	var user models.User
 	if err := database.DB.Where("email = ?", req.Email).First(&user).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, request.NewJsonResponse("Error", err.Error()))
+		return
 	}
 
 	if user.ID == 0 {
 		c.JSON(401, respons.NewJsonResponse("User not found", nil))
+		return
 	}
 
 	if err := helpers.CheckPassword(user.Password, req.Password); err != nil {
@@ -78,6 +81,16 @@ func Login(c *gin.Context) {
 
 	accessToken, _ := helpers.GenerateAccessToken(user)
 	refreshToken, _ := helpers.GenerateRefreshToken(user)
+
+	if err := database.DB.Create(&models.RefreshToken{
+		UserID: user.ID,
+		Token: refreshToken,
+		ExpiredAt: time.Now().Add(7 * 24 * time.Hour),
+	}).Error; err != nil {
+		c.JSON(http.StatusInternalServerError,
+		respons.NewJsonResponse("Error", err.Error()))
+		return
+	}
 
 	c.JSON(
 		200,
@@ -101,6 +114,12 @@ func RefreshToken(c *gin.Context) {
 	token, err := jwt.Parse(body.RefreshToken, func(t *jwt.Token) (interface{}, error) {
 		return helpers.REFRESH_SECRET, nil
 	})
+
+	var stored models.RefreshToken
+	if err := database.DB.Where("token = ? AND revoked = false", body.RefreshToken).First(&stored).Error; err != nil {
+		c.JSON(401, respons.NewJsonResponse("Refresh token sudah logout / tidak valid", nil))
+		return
+	}
 
 	if err != nil || !token.Valid {
 		c.JSON(401, respons.NewJsonResponse("Refresh token tidak valid", nil))
@@ -131,4 +150,22 @@ func RefreshToken(c *gin.Context) {
 			AccessToken: newAccess,
 		},
 	))
+}
+
+func Logout(c *gin.Context) {
+	refreshToken := c.GetHeader("X-Refresh-Token")
+
+	if refreshToken == "" {
+		c.JSON(400, respons.NewJsonResponse("Refresh token tidak ditemukan", nil))
+		return
+	}
+
+	if err := database.DB.Model(&models.RefreshToken{}).Where("token = ?", refreshToken).Update("revoked", true).Error; err != nil {
+		c.JSON(500,
+		respons.NewJsonResponse("Gagal logout", nil))
+		return
+	}	
+
+	c.JSON(200,
+	respons.NewJsonResponse("Logout berhasil", nil))
 }

@@ -36,6 +36,7 @@ func main() {
 		&models.Role{},
 		&models.User{},
 		&models.Barang{},
+		&models.RefreshToken{},
 	)
 
 	r := gin.Default()
@@ -45,6 +46,7 @@ func main() {
 	r.POST("/register", handlers.Register)
 	r.POST("/login", handlers.Login)
 	r.POST("/refresh-token", handlers.RefreshToken)
+	r.POST("/logout", handlers.Logout)
 
 	r.POST("/dummy", handlers.RunSeeder)
 
