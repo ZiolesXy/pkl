@@ -3,7 +3,9 @@ package trash
 import (
 	"main/database"
 	"main/models"
+	"main/respons"
 	"net/http"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -250,6 +252,23 @@ func AssignBarang(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"Messege": "Barang berhasil di assign"})
+}
+
+func GetUserBarangPivot (c *gin.Context) {
+	var results []map[string]interface{}
+
+	if err := database.DB.Table("user_barangs").Select("user_id, barang_id").Order("user_id ASC").Find(&results).Error; err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			respons.NewJsonResponse("Failed to fetch pivot data", err.Error()),
+		)
+		return
+	}
+
+	c.JSON(
+		http.StatusOK,
+		respons.NewJsonResponse("Succes", results),
+	)
 }
 
 func ClearData(c *gin.Context) {
