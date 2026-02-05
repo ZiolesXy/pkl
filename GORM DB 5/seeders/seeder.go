@@ -19,8 +19,8 @@ func RunSeed(c *gin.Context) {
 	========================= */
 
 	roleNames := []string{
-		"Admin",
 		"User",
+		"Admin",
 		"Manager",
 		"Staff IT",
 		"Sales",

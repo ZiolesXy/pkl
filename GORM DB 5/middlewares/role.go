@@ -17,8 +17,8 @@ func OnlyAdmin() gin.HandlerFunc {
 			return
 		}
 
-		role, ok := roleValue.(float64)
-		if !ok || role != 1 {
+		role, ok := roleValue.(string)
+		if !ok || role != "Admin" {
 			c.AbortWithStatusJSON(
 				403,
 				respons.NewJsonResponse("Forbidden", nil),
