@@ -1,9 +1,9 @@
 package middlewares
 
 import (
-	"errors"
 	"main/helpers"
 	"main/respons"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -11,70 +11,48 @@ import (
 
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		tokenString := c.GetHeader("Authorization")
-
-		if tokenString == "" {
+		authHeader := c.GetHeader("Authorization")
+		if authHeader == "" {
 			c.AbortWithStatusJSON(
 				401,
-				respons.NewJsonResponse("No token provided", nil),
+				respons.NewJsonResponse("No token provide", nil),
 			)
 			return
 		}
 
+		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+
 		token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
-			// ✅ pastikan algoritma HMAC
 			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, jwt.ErrSignatureInvalid
 			}
 			return helpers.ACCESS_SECRET, nil
 		})
 
-		// 🔥 BEDAKAN ERROR JWT
-		if err != nil {
-			if errors.Is(err, jwt.ErrTokenExpired) {
-				c.AbortWithStatusJSON(
-					401,
-					respons.NewJsonResponse("Token expired", nil),
-				)
-				return
-			}
-
-			c.AbortWithStatusJSON(
-				401,
-				respons.NewJsonResponse("Invalid token", nil),
-			)
-			return
-		}
-
-		if !token.Valid {
-			c.AbortWithStatusJSON(
-				401,
-				respons.NewJsonResponse("Invalid token", nil),
-			)
+		if err != nil || !token.Valid {
+			c.AbortWithStatusJSON(401,
+				respons.NewJsonResponse("Invalid token", nil))
 			return
 		}
 
 		claims, ok := token.Claims.(jwt.MapClaims)
 		if !ok {
-			c.AbortWithStatusJSON(
-				401,
-				respons.NewJsonResponse("Invalid token claims", nil),
-			)
+			c.AbortWithStatusJSON(401,
+				respons.NewJsonResponse("Invalid token claims", nil))
 			return
 		}
 
-		// ✅ pastikan token access
 		if claims["type"] != "access" {
-			c.AbortWithStatusJSON(
-				401,
-				respons.NewJsonResponse("Invalid token type", nil),
-			)
+			c.AbortWithStatusJSON(401,
+				respons.NewJsonResponse("Invalid token type", nil))
 			return
 		}
 
-		// ✅ simpan data ke context
-		c.Set("user_id", claims["user_id"])
-		c.Set("role", claims["role"])
+		userID := uint(claims["user_id"].(float64))
+		role := claims["role"].(string)
+
+		c.Set("user_id", userID)
+		c.Set("role", role)
 
 		c.Next()
 	}

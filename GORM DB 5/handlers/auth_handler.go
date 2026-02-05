@@ -123,7 +123,7 @@ func RefreshToken(c *gin.Context) {
 	})
 
 	var stored models.RefreshToken
-	if err := database.DB.Where("token = ? AND revoked = false", body.RefreshToken).First(&stored).Error; err != nil {
+	if err := database.DB.Where("token = ? ", body.RefreshToken).First(&stored).Error; err != nil {
 		c.JSON(401, respons.NewJsonResponse("Refresh token sudah logout / tidak valid", nil))
 		return
 	}
