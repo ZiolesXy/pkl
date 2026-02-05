@@ -2,7 +2,6 @@ package middlewares
 
 import (
 	"main/respons"
-
 	"github.com/gin-gonic/gin"
 )
 

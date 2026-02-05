@@ -13,8 +13,8 @@ var REFRESH_SECRET = []byte("REFRESH_SECRET_KEY")
 func GenerateAccessToken(user models.User) (string, error) {
 	claims := jwt.MapClaims{
 		"user_id": user.ID,
-		"role": user.RoleID,
-		"exp": time.Now().Add(15 * time.Minute).Unix(),
+		"role": user.Role.Name,
+		"exp": time.Now().Add(1 * time.Minute).Unix(),
 		"type": "access",
 	}
 
