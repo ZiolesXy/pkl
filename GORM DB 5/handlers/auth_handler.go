@@ -64,8 +64,11 @@ func Login(c *gin.Context) {
 	c.ShouldBindJSON(&req)
 
 	var user models.User
-	if err := database.DB.Where("email = ?", req.Email).First(&user).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, request.NewJsonResponse("Error", err.Error()))
+	if err := database.DB.Preload("Role").Where("email = ?", req.Email).First(&user).Error; err != nil{
+		c.JSON(
+			401,
+			respons.NewJsonResponse("Email not found", nil),
+		)
 		return
 	}
 
@@ -100,6 +103,7 @@ func Login(c *gin.Context) {
 		respons.NewJsonResponse("Login berhasil", respons.TokenResponse{
 			AccessToken: accessToken,
 			RefreshToken: refreshToken,
+			Role: user.Role.Name,
 		}),
 	)
 }
@@ -159,16 +163,35 @@ func Logout(c *gin.Context) {
 	refreshToken := c.GetHeader("X-Refresh-Token")
 
 	if refreshToken == "" {
-		c.JSON(400, respons.NewJsonResponse("Refresh token tidak ditemukan", nil))
+		c.JSON(
+			400,
+			respons.NewJsonResponse("Refresh token not found", nil),
+		)
 		return
 	}
 
-	if err := database.DB.Model(&models.RefreshToken{}).Where("token = ?", refreshToken).Update("revoked", true).Error; err != nil {
-		c.JSON(500,
-		respons.NewJsonResponse("Gagal logout", nil))
-		return
-	}	
+	result := database.DB.
+		Where("token = ?", refreshToken).
+		Delete(&models.RefreshToken{})
 
-	c.JSON(200,
-	respons.NewJsonResponse("Logout berhasil", nil))
+	if result.Error != nil {
+		c.JSON(
+			500,
+			respons.NewJsonResponse("Failed logout", nil),
+		)
+		return
+	}
+
+	if result.RowsAffected == 0 {
+		c.JSON(
+			401,
+			respons.NewJsonResponse("Refresh token not valid", nil),
+		)
+		return
+	}
+
+	c.JSON(
+		http.StatusOK,
+		respons.NewJsonResponse("Logout Success", nil),
+	)
 }
