@@ -123,7 +123,8 @@ func RefreshToken(c *gin.Context) {
 	})
 
 	var stored models.RefreshToken
-	if err := database.DB.Where("token = ? ", body.RefreshToken).First(&stored).Error; err != nil {
+	now := time.Now()
+	if err := database.DB.Where("token = ? AND expired_at > ?", body.RefreshToken, now).First(&stored).Error; err != nil {
 		c.JSON(401, respons.NewJsonResponse("Refresh token sudah logout / tidak valid", nil))
 		return
 	}
@@ -140,7 +141,7 @@ func RefreshToken(c *gin.Context) {
 	}
 
 	var user models.User
-	if err := database.DB.First(&user, claims["user_id"]).Error; err != nil {
+	if err := database.DB.Preload("Role").First(&user, claims["user_id"]).Error; err != nil {
 		c.JSON(404, respons.NewJsonResponse("User tidak ditemukan", nil))
 		return
 	}
@@ -155,6 +156,7 @@ func RefreshToken(c *gin.Context) {
 		"Access token berhasil diperbarui",
 		respons.RefreshTokenResponse{
 			AccessToken: newAccess,
+			Role: user.Role.Name,
 		},
 	))
 }

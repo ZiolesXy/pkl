@@ -8,4 +8,5 @@ type TokenResponse struct {
 
 type RefreshTokenResponse struct {
 	AccessToken string `json:"access_token"`
+	Role string `json:"role"`
 }
