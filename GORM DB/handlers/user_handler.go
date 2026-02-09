@@ -175,14 +175,10 @@ func GetProfile(c *gin.Context) {
 		return
 	}
 
-	userResp := respons.User{
+	userResp := respons.Profile{
 		ID: userID,
 		Name: user.Name,
 		Email: user.Email,
-		Role: respons.Role{
-			ID: user.Role.ID,
-			Name: user.Role.Name,
-		},
 	}
 
 	c.JSON(

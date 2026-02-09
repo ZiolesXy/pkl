@@ -8,6 +8,13 @@ type User struct {
 	Role Role `json:"role,omitempty"`
 }
 
+type Profile struct {
+	ID uint `json:"id"`
+	Name string `json:"name"`
+	Email string `json:"email,omitempty"`
+	Password string `json:"-"`
+}
+
 type UserWithBarang struct {
 	ID uint `json:"id"`
 	Name string `json:"name"`
