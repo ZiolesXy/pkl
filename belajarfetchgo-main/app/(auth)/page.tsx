@@ -1,4 +1,5 @@
 import { Zap } from "lucide-react"
+import Image from "next/image"
 
 import { LoginForm } from "@/components/login-form"
 
@@ -21,11 +22,8 @@ export default function LoginPage() {
         </div>
       </div>
       <div className="bg-muted relative hidden lg:block">
-        <img
-          src="/admin.jpg"
-          alt="Image"
-          className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
-        />
+        <Image src="/admin.jpg" alt="Image" className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale" width={1000} height={1000} />
+         
       </div>
     </div>
   )

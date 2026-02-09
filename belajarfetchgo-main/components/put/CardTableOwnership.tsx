@@ -1,46 +1,53 @@
-import { getOwnership } from "@/lib/api/ownership"
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/card"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { PostOwnershipButton } from "../PostOwnershipButton"
+import getOwnership from "@/lib/api/resources/ownership-native"
+import getUsers from "@/lib/api/resources/users-native"
+import getBarangs from "@/lib/api/resources/barangs-native"
+import { TableCell } from "@/components/ui/table"
+import TableCard from "../TableCard"
+import { buildIdNameLookups, getOwnershipDisplay } from "@/lib/ownership-lookup"
 
 async function PutCardTableOwnership() {
-  const ownership = await getOwnership()
+  const [ownership, users, barangs] = await Promise.all([
+    getOwnership(),
+    getUsers(),
+    getBarangs(),
+  ])
+
+  const lookups = buildIdNameLookups({
+    users: users as unknown[],
+    barangs: barangs as unknown[],
+  })
 
   return (
-    <Card className="w-full h-105">
-      <CardHeader className='border-b flex justify-between'>
-        <CardTitle>List of Ownership</CardTitle>
-      </CardHeader>
-      <CardContent className="h-85 overflow-hidden">
-        <div className="h-full w-full overflow-auto">
-          <Table className="w-full table-fixed">
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-32">Barang ID</TableHead>
-                <TableHead className="w-32">User ID</TableHead>
-                <TableHead className="w-28">Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {ownership.map((o, idx) => (
-                <TableRow key={`${o.user_id}-${o.barang_id}-${idx}`}>
-                  <TableCell className="font-medium">{o.barang_id}</TableCell>
-                  <TableCell>{o.user_id}</TableCell>
+    <TableCard
+      title="List of Ownership"
+      columns={[
+        { label: "Barang", className: "w-56" },
+        { label: "User", className: "w-56" },
+        { label: "Action", className: "w-28" },
+      ]}
+      items={ownership as unknown[]}
+      getRowKey={(o, idx) => {
+        const rec = (o ?? {}) as Record<string, unknown>
+        return `${String(rec.user_id ?? rec.user_name)}-${String(rec.barang_id ?? rec.barang_name)}-${idx}`
+      }}
+      renderRow={(o) => {
+        const display = getOwnershipDisplay({
+          row: o,
+          lookups: {
+            userNameById: lookups.userNameById,
+            barangNameById: lookups.barangNameById,
+          },
+        })
 
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      </CardContent>
-    </Card>
+        return (
+          <>
+            <TableCell className="truncate">{display.barangLabel}</TableCell>
+            <TableCell className="truncate">{display.userLabel}</TableCell>
+            <TableCell />
+          </>
+        )
+      }}
+    />
   )
 }
 

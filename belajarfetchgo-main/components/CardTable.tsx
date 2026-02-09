@@ -1,18 +1,32 @@
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
-import getUsers from '@/lib/api/users-native'
+import getUsers from '@/lib/api/resources/users-native'
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
-  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { PaginationControls } from "./Pagination"
 
 async function CardTable(){
+  type Barang = {
+  id: number
+  name: string
+}
+
+// type Role = {
+//   id: number
+//   name: string
+// }
+
+// type User = {
+//   id: number
+//   name: string
+//   role?: Role
+//   barangs?: Barang[]
+// }
+
   const users = await getUsers()
   return (
     <Card className="w-full h-full">
@@ -32,7 +46,7 @@ async function CardTable(){
             </TableHeader>
             <TableBody>
               {users.map((u: any, idx: number) => {
-                const barangNames: string[] = (u.barangs ?? []).map((b: any) => b.name).filter(Boolean)
+                const barangNames: string[] = (u.barangs ?? []).map((b: Barang) => b.name).filter(Boolean)
                 const preview = barangNames.slice(0, 2)
                 const rest = barangNames.slice(2)
 
