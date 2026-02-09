@@ -47,10 +47,10 @@ func RunSeed(c *gin.Context) {
 		"MacBook Pro M2", "Logitech MX Master 3", "Keychron K2 V2",
 		"Dell UltraSharp 27", "Epson L3210 Printer", "Sony WH-1000XM5",
 		"iPad Air 5", "Samsung Galaxy S23", "SteelSeries Mousepad",
-		// "ThinkPad X1 Carbon", "Wacom Intuos Pro", "Cisco Router ISR",
-		// "Ubiquiti UniFi AP", "GoPro Hero 11", "BenQ SW271 Monitor",
-		// "WD Black SN850 SSD", "Seagate IronWolf 4TB", "Asus ROG Strix VGA",
-		// "Corsair RM850 PSU", "Razer BlackWidow",
+		"ThinkPad X1 Carbon", "Wacom Intuos Pro", "Cisco Router ISR",
+		"Ubiquiti UniFi AP", "GoPro Hero 11", "BenQ SW271 Monitor",
+		"WD Black SN850 SSD", "Seagate IronWolf 4TB", "Asus ROG Strix VGA",
+		"Corsair RM850 PSU", "Razer BlackWidow",
 	}
 
 	var barangs []models.Barang
@@ -81,11 +81,11 @@ func RunSeed(c *gin.Context) {
 		{"Siti", "siti@test.com", "Manager"},
 		{"Budi", "budi@test.com", "Sales"},
 		{"Dewi", "dewi@test.com", "Staff IT"},
-		// {"Eko", "eko@test.com", "Inventory"},
-		// {"Farhan", "farhan@test.com", "User"},
-		// {"Gita", "gita@test.com", "User"},
-		// {"Hadi", "hadi@test.com", "User"},
-		// {"Indah", "indah@test.com", "User"},
+		{"Eko", "eko@test.com", "Inventory"},
+		{"Farhan", "farhan@test.com", "User"},
+		{"Gita", "gita@test.com", "User"},
+		{"Hadi", "hadi@test.com", "User"},
+		{"Indah", "indah@test.com", "User"},
 	}
 
 	var users []models.User

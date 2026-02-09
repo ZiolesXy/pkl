@@ -14,7 +14,7 @@ func GenerateAccessToken(user models.User) (string, error) {
 	claims := jwt.MapClaims{
 		"user_id": user.ID,
 		"role": user.Role.Name,
-		"exp": time.Now().Add(1 * time.Minute).Unix(),
+		"exp": time.Now().Add(15 * time.Minute).Unix(),
 		"type": "access",
 	}
 
