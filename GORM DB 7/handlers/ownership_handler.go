@@ -20,8 +20,32 @@ func GetUserBarangs(c *gin.Context) {
 		return
 	}
 
-	entries := respons.NewEntries(users)
+	userResponses := []respons.UserWithBarang{}
 
+	for _, user := range users {
+		barangResp := []respons.Barang{}
+		for _, barang := range user.Barangs {
+			barangResp = append(barangResp, respons.Barang{
+				ID:   barang.ID,
+				Name: barang.Name,
+			})
+		}
+
+		roleResp := respons.Role{
+			ID:   user.Role.ID,
+			Name: user.Role.Name,
+		}
+
+		userResponses = append(userResponses, respons.UserWithBarang{
+			ID:      user.ID,
+			Name:    user.Name,
+			Email:   user.Email,
+			Role:    roleResp,
+			Barangs: barangResp,
+		})
+	}
+
+	entries := respons.NewEntries(userResponses)
 	c.JSON(
 		http.StatusOK,
 		respons.NewJsonResponse("Succes", entries),
@@ -83,9 +107,7 @@ func GetUserBarangPivot(c *gin.Context) {
 		return
 	}
 
-	entries := respons.NewEntries(results)
-
-	c.JSON(http.StatusOK, respons.NewJsonResponse("Success", entries))
+	c.JSON(http.StatusOK, respons.NewJsonResponse("Success", results))
 }
 
 func AssignBarang(c *gin.Context) {
