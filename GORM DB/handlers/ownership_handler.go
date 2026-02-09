@@ -92,14 +92,18 @@ func GetUserBarangByID(c *gin.Context) {
 }
 
 func GetUserBarangPivot(c *gin.Context) {
-	var results []map[string]interface{}
+	var results []respons.OwnersipDTO
+	limit := 20
+	offset := 0
 
 	// Query builder GORM (Tanpa Exec)
 	query := database.DB.Table("user_barangs").
 		Select("users.name AS user_name, barangs.name AS barang_name").
 		Joins("JOIN users ON users.id = user_barangs.user_id").
 		Joins("JOIN barangs ON barangs.id = user_barangs.barang_id").
-		Order("users.name ASC")
+		Order("users.name ASC").
+		Limit(limit).
+		Offset(offset)
 
 	// Eksekusi query dan masukkan hasilnya ke slice results
 	if err := query.Scan(&results).Error; err != nil {

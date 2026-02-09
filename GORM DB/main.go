@@ -62,6 +62,7 @@ func main() {
 	auth.Use(middlewares.AuthMiddleware())
 	{
 		r.GET("/", handlers.GetUserBarangs)
+		auth.GET("/me", handlers.GetProfile)
 		auth.GET("/profile/:id", handlers.GetUserByID)
 
 		auth.GET("/users", handlers.GetUsers)

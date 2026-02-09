@@ -5,8 +5,10 @@ import (
 	"main/database"
 	"main/helpers"
 	"main/models"
+	"main/request"
 	"main/respons"
 	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -383,4 +385,43 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		c.Next()
 	}
+}
+
+func CreateUser1(c *gin.Context) {
+	var req request.UserPost
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest,
+			request.NewJsonResponse("Invalid request", err.Error()))
+		return
+	}
+
+	var role models.Role
+	if err := database.DB.First(&role, req.RoleID).Error; err != nil {
+		c.JSON(http.StatusBadRequest,
+			request.NewJsonResponse("Role not found", nil))
+		return
+	}
+
+	user := models.User{
+		Name:   req.Name,
+		RoleID: req.RoleID,
+		Role:   role,
+	}
+
+	if err := database.DB.Preload("Roles").Create(&user).Error; err != nil {
+		c.JSON(http.StatusInternalServerError,
+			request.NewJsonResponse("Failed Create user", nil))
+		return
+	}
+
+	c.JSON(http.StatusCreated,
+		request.NewJsonResponse("User created", respons.User{
+			ID:   user.ID,
+			Name: user.Name,
+			Role: respons.Role{
+				ID:   user.Role.ID,
+				Name: user.Role.Name,
+			},
+		}))
 }
