@@ -1,8 +1,7 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
 import FormDialog from "@/components/FormDialog"
-import { postJson } from "@/lib/api/post"
+import { postJson } from "@/lib/api/resources/post"
 
 export function PostButton() {
   return (

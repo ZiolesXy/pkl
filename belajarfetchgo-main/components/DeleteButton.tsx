@@ -1,6 +1,6 @@
 "use client"
 
-import { deleteResource } from "@/lib/api/delete"
+import { deleteResource } from "@/lib/api/resources/delete"
 import { useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "./ui/button"
@@ -9,6 +9,8 @@ interface DeleteButtonProps {
   type: "user" | "barang" | "role" | "ownership"
   userId?: number
   barangId?: number
+  userName?: string
+  barangName?: string
   roleId?: number
   label?: string
   onSuccess?: () => void

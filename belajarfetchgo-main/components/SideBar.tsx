@@ -1,7 +1,8 @@
-import { Bell, CircleFadingArrowUp, HatGlasses, Inbox, Logs, ReceiptText, Settings, Trash, Upload, User } from "lucide-react"
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from "./ui/command"
+import { CircleFadingArrowUp, HatGlasses, Logs, Settings, Trash, Upload, User } from "lucide-react"
+import { Command, CommandGroup,  CommandItem, CommandList, CommandSeparator } from "./ui/command"
 import UserItem from "./UserItem"
 import Link from "next/link"
+import LogoutButton from "./Log-out"
 function Sidebar() {
     const menuList = [
         {
@@ -75,7 +76,11 @@ function Sidebar() {
                     </CommandList>
                 </Command>
             </div>
-            <div>Settings</div>
+            <div className="grid grid-cols-1 gap-5">
+                Settings
+                <LogoutButton />
+            </div>
+           
         </div>
     )
 }

@@ -1,16 +1,13 @@
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
-import getUsers from '@/lib/api/users-native'
+import getUsers from '@/lib/api/resources/users-native'
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
-  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { PostButton } from "../PostUserButton"
 import PutButton from "../PutButton"
 
 async function PutCardTableAxios() {

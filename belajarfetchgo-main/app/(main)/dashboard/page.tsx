@@ -1,11 +1,7 @@
 import { ChartLineStep } from "@/components/LineChart"
 import { ChartBarLabelCustom} from "@/components/BarChart"
 import CardTable from "@/components/CardTable"
-export default async function UsersPage({
-  searchParams,
-}: {
-  searchParams?: Record<string, string | undefined>
-}) {
+export default async function UsersPage() {
 
   return (
     <>

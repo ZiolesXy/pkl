@@ -11,7 +11,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { putData } from "@/lib/api/put";
+import { putData } from "@/lib/api/resources/put";
 
 type PutButtonProps = {
   id: number | string;
