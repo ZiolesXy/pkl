@@ -6,8 +6,8 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-var ACCESS_SECRET = []byte("ACCESS_SECRET_KEY")
-var REFRESH_SECRET = []byte("REFRESH_SECRET_KEY")
+var ACCESS_SECRET = []byte("PENGENDALI_PETIR")
+var REFRESH_SECRET = []byte("PKL_DELAMETA")
 
 func GenerateAccessToken(user models.User) (string, error) {
 	claims := jwt.MapClaims{

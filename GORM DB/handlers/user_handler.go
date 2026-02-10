@@ -2,15 +2,11 @@ package handlers
 
 import (
 	"main/database"
-	"main/helpers"
 	"main/models"
 	"main/request"
 	"main/respons"
 	"net/http"
-	"strings"
-
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 )
 
 func GetUsers(c *gin.Context) {
@@ -103,71 +99,19 @@ func GetUserByID(c *gin.Context) {
 }
 
 func GetProfile(c *gin.Context) {
-	authHeader := c.GetHeader("Authorization")
-	if authHeader == "" {
+	userIDAny, exists := c.Get("user_id")
+	if !exists {
 		c.JSON(
 			http.StatusUnauthorized,
-			respons.NewJsonResponse("Authorization header missing", nil),
+			respons.NewJsonResponse("Unauthorized", nil),
 		)
 		return
 	}
 
-	parts := strings.Split(authHeader, " ")
-	if len(parts) != 2 || parts[0] != "Bearer" {
-		c.JSON(
-			http.StatusUnauthorized,
-			respons.NewJsonResponse("Invalid authorization format", nil),
-		)
-		return
-	}
-
-	tokenString := parts[1]
-
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, jwt.ErrSignatureInvalid
-		}
-		return helpers.ACCESS_SECRET, nil
-	})
-
-	if err != nil || !token.Valid {
-		c.JSON(
-			http.StatusUnauthorized,
-			respons.NewJsonResponse("Invalid or expired token", nil),
-		)
-		return
-	}
-
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
-		c.JSON(
-			http.StatusUnauthorized,
-			respons.NewJsonResponse("Invalid token claims", nil),
-		)
-		return
-	}
-
-	if claims["type"] != "access" {
-		c.JSON(
-			http.StatusUnauthorized,
-			respons.NewJsonResponse("Invalid token type", nil),
-		)
-		return
-	}
-
-	userIDFloat, ok := claims["user_id"].(float64)
-	if !ok {
-		c.JSON(
-			http.StatusUnauthorized,
-			respons.NewJsonResponse("Invalid user id", nil),
-		)
-		return
-	}
-
-	userID := uint(userIDFloat)
-
+	userID := userIDAny.(uint)
 	var user models.User
-	if err := database.DB.Preload("Role").Preload("Barangs").First(&user, userID).Error; err != nil {
+
+	if err := database.DB.First(&user, userID).Error; err != nil {
 		c.JSON(
 			http.StatusNotFound,
 			respons.NewJsonResponse("User not found", nil),
@@ -176,7 +120,7 @@ func GetProfile(c *gin.Context) {
 	}
 
 	userResp := respons.Profile{
-		ID: userID,
+		ID: user.ID,
 		Name: user.Name,
 		Email: user.Email,
 	}
