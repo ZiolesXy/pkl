@@ -98,6 +98,8 @@ func main() {
 
 		admin.POST("/user/:user_id/barang/:barang_id", handlers.AssignBarang)
 		admin.DELETE("/user/:id/barang/:barang_id", handlers.RemoveBarang)
+
+		admin.DELETE("/logouts", handlers.LogoutAll)
 	}
 
 	r.Run(":8080")

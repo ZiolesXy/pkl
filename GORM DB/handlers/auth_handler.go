@@ -197,3 +197,41 @@ func Logout(c *gin.Context) {
 		respons.NewJsonResponse("Logout Success", nil),
 	)
 }
+
+func LogoutAll(c *gin.Context) {
+	rt := c.GetHeader("x-Refresh-Token")
+
+	if rt == "" {
+		c.JSON(
+			http.StatusBadRequest,
+			respons.NewJsonResponse("Refresh token not found", nil),
+		)
+		return
+	}
+
+	var current models.RefreshToken
+	if err := database.DB.Where("token = ?", rt).First(&current).Error; err != nil {
+		c.JSON(
+			http.StatusUnauthorized,
+			respons.NewJsonResponse("Refresh token not valid", nil),
+		)
+		return
+	}
+
+	result := database.DB.Where("user_id = ? AND token <> ?", current.UserID, rt).Delete(&models.RefreshToken{})
+
+	if result.Error != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			respons.NewJsonResponse("Failed logout", nil),
+		)
+		return
+	}
+
+	c.JSON(
+		http.StatusOK,
+		respons.NewJsonResponse("Logout all succes", gin.H{
+			"deleted_sessions": result.RowsAffected,
+		}),
+	)
+}
