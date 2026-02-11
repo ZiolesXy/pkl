@@ -5,6 +5,7 @@ import (
 	"foca-store/handlers"
 	"foca-store/middleware"
 	"foca-store/models"
+	"foca-store/seeder"
 
 	"github.com/gin-gonic/gin"
 )
@@ -12,6 +13,7 @@ import (
 func main() {
 	database.Connect()
 	database.DB.AutoMigrate(
+		&models.Role{},
 		&models.User{},
 		&models.Product{},
 		&models.Cart{},
@@ -21,6 +23,7 @@ func main() {
 	)
 
 	r := gin.Default()
+	r.POST("/seed", seeder.RunSeed)
 	r.POST("/register", handlers.Register)
 	r.POST("/login", handlers.Login)
 
