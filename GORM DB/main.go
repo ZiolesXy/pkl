@@ -14,7 +14,7 @@ func corsMiddleware() gin.HandlerFunc {
     return func(c *gin.Context) {
         origin := c.GetHeader("Origin")
         
-        if origin == "http://localhost:3000" {
+        if origin == "http://localhost:3001" {
             c.Header("Access-Control-Allow-Origin", origin)
             c.Header("Vary", "Origin")
             c.Header("Access-Control-Allow-Credentials", "true") 
