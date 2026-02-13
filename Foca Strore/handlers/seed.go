@@ -39,3 +39,18 @@ func SeedHandler(db *gorm.DB) gin.HandlerFunc {
 		response.SuccessResponse(c, "Database seeded successfully", nil)
 	}
 }
+
+
+func SeedBasicRoleHandler(db *gorm.DB) gin.HandlerFunc {
+    return func(c *gin.Context) {
+        // Panggil fungsi seeder kamu
+        err := seeders.SeedBasicRole(db)
+
+        if err != nil {
+            response.ErrorResponse(c, http.StatusInternalServerError, "Gagal seeding")
+            return
+        }
+
+        response.SuccessResponse(c, "User Admin seeded successfully", nil)
+    }
+}

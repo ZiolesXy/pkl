@@ -6,6 +6,7 @@ import (
 	"voca-store/models"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 func SeedRoles(db *gorm.DB) error {
@@ -24,6 +25,17 @@ func SeedRoles(db *gorm.DB) error {
 		}
 	}
 	return nil
+}
+
+func SeedBasicRole(db *gorm.DB) error {
+    roles := []models.Role{
+        {Name: "Admin"},
+        {Name: "User"},
+    }
+
+    // Menggunakan Clause OnConflict agar jika nama sudah ada, dia tidak error/duplikat
+    // Ini jauh lebih efisien daripada melakukan loop + query manual
+    return db.Clauses(clause.OnConflict{DoNothing: true}).Create(&roles).Error
 }
 
 func SeedAdmin(db *gorm.DB) error {

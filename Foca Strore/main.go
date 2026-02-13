@@ -5,13 +5,14 @@ import (
 	"log"
 	"os"
 
-	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
 	"voca-store/database"
 	"voca-store/handlers"
 	"voca-store/helper"
 	"voca-store/middleware"
 	"voca-store/models"
+
+	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 )
 
 func main() {
@@ -77,6 +78,7 @@ func main() {
 
 	// Seeder endpoint
 	r.GET("/seed", handlers.SeedHandler(db))
+	r.GET("/rolesc", handlers.SeedBasicRoleHandler(db))
 
 	// Start server
 	port := os.Getenv("PORT")
