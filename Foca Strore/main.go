@@ -42,6 +42,7 @@ func main() {
 		&models.Cart{},
 		&models.CartItem{},
 		&models.Checkout{},
+		&models.CheckoutItem{},
 	); err != nil {
 		log.Fatalf("Failed to migrate database: %v", err)
 	}
@@ -85,7 +86,8 @@ func main() {
 			admin.PUT("/products/:id", handlers.UpdateProduct(db))
 			admin.DELETE("/products/:id", handlers.DeleteProduct(db))
 			admin.GET("/products", handlers.GetAllProducts(db))
-			admin.PUT("/checkout/:id/status", handlers.UpdateCheckoutStatus(db))
+			admin.PATCH("/checkout/:id/approve", handlers.ApproveCheckout(db))
+			admin.PATCH("/checkout/:id/reject", handlers.RejectCheckout(db))
 		}
 	}
 

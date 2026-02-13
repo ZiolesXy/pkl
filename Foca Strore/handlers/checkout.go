@@ -1,131 +1,202 @@
 package handlers
 
 import (
-	"errors"
 	"net/http"
-	// "time"
 	"voca-store/models"
 	"voca-store/request"
 	"voca-store/response"
+
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
 func Checkout(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		userID, exists := c.Get("user_id")
-		if !exists {
-			response.ErrorResponse(c, http.StatusUnauthorized, "User not authenticated")
+
+		userIDRaw, exist := c.Get("user_id")
+		if !exist {
+			response.ErrorResponse(c, http.StatusUnauthorized, "unauthorized")
+			return
+		}
+		userID := userIDRaw.(uint)
+
+		var req request.CheckoutRequest
+		if err := c.ShouldBindJSON(&req); err != nil {
+			response.ErrorResponse(c, http.StatusBadRequest, err.Error())
 			return
 		}
 
-		// Get user's cart with items
+		tx := db.Begin()
+
 		var cart models.Cart
-		if err := db.Preload("Items.Product").Where("user_id = ?", userID).First(&cart).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				response.ErrorResponse(c, http.StatusNotFound, "Cart not found")
-				return
-			}
-			response.ErrorResponse(c, http.StatusInternalServerError, "Failed to fetch cart")
+		if err := tx.Where("user_id = ?", userID).
+			First(&cart).Error; err != nil {
+
+			tx.Rollback()
+			response.ErrorResponse(c, http.StatusNotFound, "cart not found")
 			return
 		}
 
-		if len(cart.Items) == 0 {
-			response.ErrorResponse(c, http.StatusBadRequest, "Cart is empty")
+		var items []models.CartItem
+		if err := tx.Preload("Product").
+			Where("cart_id = ? AND id IN ?", cart.ID, req.CartItemIDs).
+			Find(&items).Error; err != nil {
+
+			tx.Rollback()
+			response.ErrorResponse(c, http.StatusInternalServerError, "failed fetch items")
 			return
 		}
 
-		// Calculate total price and check stock
+		if len(items) != len(req.CartItemIDs) {
+			tx.Rollback()
+			response.ErrorResponse(c, http.StatusBadRequest, "invalid cart items")
+			return
+		}
+
 		totalPrice := 0.0
-		for _, item := range cart.Items {
-			if item.Product == nil {
-				response.ErrorResponse(c, http.StatusBadRequest, "Product not found in cart item")
-				return
-			}
+
+		for _, item := range items {
+
 			if item.Product.Stock < item.Quantity {
-				response.ErrorResponse(c, http.StatusBadRequest, 
-					"Insufficient stock for product: " + item.Product.Name)
+				tx.Rollback()
+				response.ErrorResponse(c, http.StatusBadRequest, "insufficient stock for "+item.Product.Name)
 				return
 			}
+
+			if err := tx.Model(&models.Product{}).
+				Where("id = ?", item.ProductID).
+				Update("stock", gorm.Expr("stock - ?", item.Quantity)).Error; err != nil {
+
+				tx.Rollback()
+				response.ErrorResponse(c, http.StatusInternalServerError, "failed update stock")
+				return
+			}
+
 			totalPrice += item.Product.Price * float64(item.Quantity)
 		}
 
-		// Create checkout record
 		checkout := models.Checkout{
-			UserID:     userID.(uint),
+			UserID:     userID,
 			TotalPrice: totalPrice,
 			Status:     "pending",
 		}
 
-		if err := db.Create(&checkout).Error; err != nil {
-			response.ErrorResponse(c, http.StatusInternalServerError, "Failed to create checkout")
+		if err := tx.Create(&checkout).Error; err != nil {
+			tx.Rollback()
+			response.ErrorResponse(c, http.StatusInternalServerError, "failed create checkout")
 			return
 		}
 
-		// Clear cart items
-		if err := db.Where("cart_id = ?", cart.ID).Delete(&models.CartItem{}).Error; err != nil {
-			// Rollback checkout if failed to clear cart
-			db.Delete(&checkout)
-			response.ErrorResponse(c, http.StatusInternalServerError, "Failed to clear cart")
+		for _, item := range items {
+			checkoutItem := models.CheckoutItem{
+				CheckoutID: checkout.ID,
+				ProductID:  item.ProductID,
+				Quantity:   item.Quantity,
+				Price:      item.Product.Price,
+			}
+
+			if err := tx.Create(&checkoutItem).Error; err != nil {
+				tx.Rollback()
+				response.ErrorResponse(c, http.StatusInternalServerError, "failed create checkout item")
+				return
+			}
+		}
+
+		tx.Where("id IN ?", req.CartItemIDs).
+			Delete(&models.CartItem{})
+
+		if err := tx.Commit().Error; err != nil {
+			response.ErrorResponse(c, http.StatusInternalServerError, "transaction failed")
 			return
 		}
 
-		// Build checkout response
-		checkoutResp := response.BuildCheckoutResponse(
-			checkout.ID,
-			checkout.UserID,
-			"",
-			checkout.TotalPrice,
-			checkout.Status,
-			checkout.CreatedAt,
-			checkout.UpdatedAt,
-		)
+		// 🔥 Reload with relations
+		var result models.Checkout
+		db.Preload("Items").
+			Preload("Items.Product").
+			First(&result, checkout.ID)
 
-		response.SuccessResponse(c, "Checkout successful", checkoutResp)
+		response.SuccessResponse(c, "Checkout created", result)
 	}
 }
 
-func UpdateCheckoutStatus(db *gorm.DB) gin.HandlerFunc {
+func ApproveCheckout(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var req request.UpdateCheckoutStatusRequest
-		if err := c.ShouldBindJSON(&req); err != nil {
-			response.ErrorResponse(c, http.StatusBadRequest, "Invalid request body")
-			return
-		}
 
-		checkoutID := c.Param("id")
+		id := c.Param("id")
+
 		var checkout models.Checkout
-		if err := db.First(&checkout, checkoutID).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				response.ErrorResponse(c, http.StatusNotFound, "Checkout not found")
-			} else {
-				response.ErrorResponse(c, http.StatusInternalServerError, "Failed to fetch checkout")
+		if err := db.Preload("Items").
+			Preload("Items.Product").
+			First(&checkout, id).Error; err != nil {
+
+			response.ErrorResponse(c, http.StatusNotFound, "checkout not found")
+			return
+		}
+
+		if checkout.Status != "pending" {
+			response.ErrorResponse(c, http.StatusBadRequest, "invalid status")
+			return
+		}
+
+		checkout.Status = "approved"
+
+		if err := db.Save(&checkout).Error; err != nil {
+			response.ErrorResponse(c, http.StatusInternalServerError, "failed update status")
+			return
+		}
+
+		response.SuccessResponse(c, "Checkout approved", checkout)
+	}
+}
+
+func RejectCheckout(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+
+		id := c.Param("id")
+
+		tx := db.Begin()
+
+		var checkout models.Checkout
+		if err := tx.Preload("Items").
+			Preload("Items.Product").
+			First(&checkout, id).Error; err != nil {
+
+			tx.Rollback()
+			response.ErrorResponse(c, http.StatusNotFound, "checkout not found")
+			return
+		}
+
+		if checkout.Status != "pending" {
+			tx.Rollback()
+			response.ErrorResponse(c, http.StatusBadRequest, "invalid status")
+			return
+		}
+
+		for _, item := range checkout.Items {
+			if err := tx.Model(&models.Product{}).
+				Where("id = ?", item.ProductID).
+				Update("stock", gorm.Expr("stock + ?", item.Quantity)).Error; err != nil {
+
+				tx.Rollback()
+				response.ErrorResponse(c, http.StatusInternalServerError, "failed restore stock")
+				return
 			}
+		}
+
+		checkout.Status = "rejected"
+
+		if err := tx.Save(&checkout).Error; err != nil {
+			tx.Rollback()
+			response.ErrorResponse(c, http.StatusInternalServerError, "failed update status")
 			return
 		}
 
-		if err := db.Model(&checkout).Update("status", req.Status).Error; err != nil {
-			response.ErrorResponse(c, http.StatusInternalServerError, "Failed to update checkout status")
+		if err := tx.Commit().Error; err != nil {
+			response.ErrorResponse(c, http.StatusInternalServerError, "transaction failed")
 			return
 		}
 
-		// Reload checkout
-		if err := db.First(&checkout, checkout.ID).Error; err != nil {
-			response.ErrorResponse(c, http.StatusInternalServerError, "Failed to reload checkout")
-			return
-		}
-
-		// Build checkout response
-		checkoutResp := response.BuildCheckoutResponse(
-			checkout.ID,
-			checkout.UserID,
-			"",
-			checkout.TotalPrice,
-			checkout.Status,
-			checkout.CreatedAt,
-			checkout.UpdatedAt,
-		)
-
-		response.SuccessResponse(c, "Checkout status updated successfully", checkoutResp)
+		response.SuccessResponse(c, "Checkout rejected", checkout)
 	}
 }

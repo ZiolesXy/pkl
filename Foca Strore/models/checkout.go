@@ -8,6 +8,7 @@ type Checkout struct {
 	User       *User      `gorm:"foreignKey:UserID"`
 	TotalPrice float64   `gorm:"not null"`
 	Status     string    `gorm:"not null;type:varchar(20);default:'pending'"`
+	Items []CheckoutItem
 	CreatedAt  time.Time 
 	UpdatedAt  time.Time
 }
