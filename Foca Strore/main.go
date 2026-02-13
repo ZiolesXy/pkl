@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"voca-store/database"
 	"voca-store/handlers"
@@ -11,6 +12,7 @@ import (
 	"voca-store/middleware"
 	"voca-store/models"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 )
@@ -47,6 +49,15 @@ func main() {
 	// Setup Gin router
 	r := gin.Default()
 
+	//cors set
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:3000"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		AllowCredentials: true,
+		MaxAge: 12 * time.Hour,
+	}))
+
 	// Public routes
 	authHandler := handlers.NewAuthHandler(db)
 	r.POST("/register", authHandler.Register)
@@ -59,6 +70,8 @@ func main() {
 	protected.Use(middleware.JWTAuth(db))
 	{
 		// User routes
+		protected.GET("/profile", handlers.GetProfile(db))
+		protected.PUT("/profile", handlers.UpdateProfile(db))
 		protected.GET("/cart", handlers.ViewCart(db))
 		protected.POST("/cart/items", handlers.AddToCart(db))
 		protected.DELETE("/cart/items/:id", handlers.RemoveCartItem(db))

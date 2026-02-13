@@ -7,14 +7,16 @@ import (
 )
 
 type User struct {
-	ID        uint   `gorm:"primaryKey"`
-	Name      string `gorm:"not null"`
-	Email     string `gorm:"unique;not null"`
-	Password  string `gorm:"not null"`
-	RoleID    uint   `gorm:"not null"`
-	Role      Role
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	DeletedAt gorm.DeletedAt
-	Checkouts []Checkout `gorm:"foreignKey:userID"`
+	ID                   uint   `gorm:"primaryKey"`
+	Name                 string `gorm:"not null"`
+	Email                string `gorm:"unique;not null"`
+	Password             string `gorm:"not null"`
+	ProfileImageURL      string `gorm:"type:text"`
+	ProfileImagePublicID string `gorm:"type:text"`
+	RoleID               uint   `gorm:"not null"`
+	Role                 Role
+	CreatedAt            time.Time
+	UpdatedAt            time.Time
+	DeletedAt            gorm.DeletedAt
+	Checkouts            []Checkout `gorm:"foreignKey:userID"`
 }
