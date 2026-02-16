@@ -146,7 +146,7 @@ func CreateProduct(db *gorm.DB) gin.HandlerFunc {
 				Name:        req.Name,
 				Description: req.Description,
 				ImageURL:    imageURL,
-				ImagePublicID: imagePublicID, // ✅ INI YANG DIPERBAIKI
+				ImagePublicID: imagePublicID,
 				Price:       req.Price,
 				Stock:       req.Stock,
 			}
