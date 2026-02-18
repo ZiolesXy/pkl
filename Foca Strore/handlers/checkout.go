@@ -206,3 +206,25 @@ func RejectCheckout(db *gorm.DB) gin.HandlerFunc {
 		response.SuccessResponse(c, "Checkout rejected", res)
 	}
 }
+
+func GetCheckout(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// status := c.Query("status")
+
+		var checkouts []models.Checkout
+
+		query := db.
+			Preload("User").
+			Preload("Items").
+			Preload("Items.Product").
+			Order("created_at DESC")
+
+		if err := query.Find(&checkouts).Error; err != nil {
+			response.ErrorResponse(c, http.StatusInternalServerError, "failed to fetch checkout")
+			return
+		}
+
+		res := response.BuildCheckOutListResponse(checkouts)
+		response.SuccessListResponse(c, "checkout list fetched", res)
+	}
+}

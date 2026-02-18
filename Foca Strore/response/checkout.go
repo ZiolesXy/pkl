@@ -22,6 +22,10 @@ type CheckoutDetailResponse struct {
 	UpdatedAt  time.Time
 }
 
+type CheckoutListResponse struct {
+	Entries []CheckoutDetailResponse `json:"entries"`
+}
+
 func BuildCheckoutDetailResponse(checkout models.Checkout) CheckoutDetailResponse {
 	var items []CheckoutItemResponse
 
@@ -49,5 +53,17 @@ func BuildCheckoutDetailResponse(checkout models.Checkout) CheckoutDetailRespons
 		Items: items,
 		CreatedAt: checkout.CreatedAt,
 		UpdatedAt: checkout.UpdatedAt,
+	}
+}
+
+func BuildCheckOutListResponse(checkouts []models.Checkout) CheckoutListResponse{
+	var response []CheckoutDetailResponse
+
+	for _, checkout := range checkouts {
+		response = append(response, BuildCheckoutDetailResponse(checkout))
+	}
+
+	return CheckoutListResponse{
+		Entries: response,
 	}
 }
