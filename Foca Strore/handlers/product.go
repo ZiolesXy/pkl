@@ -87,7 +87,11 @@ func CreateProduct(db *gorm.DB) gin.HandlerFunc {
 				imagePublicID = uploadResult.PublicID // ✅ SIMPAN PUBLIC ID
 			}
 
-			slug := helper.GenerateSlug(name)
+			slug, err := helper.GenerateUniqueSlug(db, name)
+			if err != nil {
+				response.ErrorResponse(c, http.StatusInternalServerError, "failed to generate slug")
+				return
+			}
 			product := models.Product{
 				Name:          name,
 				Slug:          slug,
@@ -143,7 +147,11 @@ func CreateProduct(db *gorm.DB) gin.HandlerFunc {
 				}
 			}
 
-			slug := helper.GenerateSlug(req.Name)
+			slug, err := helper.GenerateUniqueSlug(db, req.Name)
+			if err != nil {
+				response.ErrorResponse(c, http.StatusInternalServerError, "Failed to generate slug")
+				return
+			}
 			product := models.Product{
 				Name:          req.Name,
 				Slug:          slug,
@@ -205,7 +213,13 @@ func UpdateProduct(db *gorm.DB) gin.HandlerFunc {
 			// Handle multipart form data
 			if name := c.PostForm("name"); name != "" {
 				updates["name"] = name
-				updates["slug"] = helper.GenerateSlug(name)
+
+				slug, err := helper.GenerateUniqueSlug(db, name)
+				if err != nil {
+					response.ErrorResponse(c, http.StatusInternalServerError, "Failed to generate slug")
+					return
+				}
+				updates["slug"] = slug
 			}
 			if description := c.PostForm("description"); description != "" {
 				updates["description"] = description

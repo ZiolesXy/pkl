@@ -1,8 +1,12 @@
 package helper
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
+	"voca-store/models"
+
+	"gorm.io/gorm"
 )
 
 func GenerateSlug(input string) string {
@@ -18,4 +22,30 @@ func GenerateSlug(input string) string {
 	slug = strings.Trim(slug, "-")
 
 	return slug
+}
+
+func GenerateUniqueSlug(db *gorm.DB, name string) (string, error) {
+	baseSlug := GenerateSlug(name)
+	slug := baseSlug
+	counter := 1
+
+	for {
+		var count int64
+		err := db.Model(&models.Product{}).
+			Where("slug = ?", slug).
+			Count(&count).Error
+		
+		if err != nil {
+			return "", err
+		}
+
+		if count == 0 {
+			break
+		}
+
+		slug = fmt.Sprintf("%s-%d", baseSlug, counter)
+		counter++
+	}
+
+	return slug, nil
 }
