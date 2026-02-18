@@ -3,8 +3,6 @@ package handlers
 import (
 	"errors"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 	"net/http"
 	"os"
 	"strings"
@@ -12,6 +10,8 @@ import (
 	"voca-store/models"
 	"voca-store/request"
 	"voca-store/response"
+	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 func CreateProduct(db *gorm.DB) gin.HandlerFunc {
@@ -19,19 +19,19 @@ func CreateProduct(db *gorm.DB) gin.HandlerFunc {
 		// Check if it's multipart form using strings.HasPrefix
 		contentType := c.GetHeader("Content-Type")
 		isMultipart := strings.HasPrefix(contentType, "multipart/form-data")
-
+		
 		if isMultipart {
 			// Handle multipart form data
 			name := c.PostForm("name")
 			description := c.PostForm("description")
 			priceStr := c.PostForm("price")
 			stockStr := c.PostForm("stock")
-
+			
 			if name == "" {
 				response.ErrorResponse(c, http.StatusBadRequest, "Name is required")
 				return
 			}
-
+			
 			// Parse price
 			var price float64
 			if priceStr != "" {
@@ -41,7 +41,7 @@ func CreateProduct(db *gorm.DB) gin.HandlerFunc {
 					return
 				}
 			}
-
+			
 			// Parse stock
 			var stock int
 			if stockStr != "" {
@@ -51,7 +51,7 @@ func CreateProduct(db *gorm.DB) gin.HandlerFunc {
 					return
 				}
 			}
-
+			
 			// Handle file upload
 			var imageURL, imagePublicID string
 			file, err := c.FormFile("image")
@@ -62,7 +62,7 @@ func CreateProduct(db *gorm.DB) gin.HandlerFunc {
 					response.ErrorResponse(c, http.StatusInternalServerError, "Failed to save uploaded file")
 					return
 				}
-
+				
 				// Upload to Cloudinary
 				uploadResult, err := helper.UploadImageFromFile(tempPath, "products")
 				if err != nil {
@@ -70,10 +70,10 @@ func CreateProduct(db *gorm.DB) gin.HandlerFunc {
 					response.ErrorResponse(c, http.StatusInternalServerError, "Failed to upload image")
 					return
 				}
-
+				
 				imageURL = uploadResult.SecureURL
 				imagePublicID = uploadResult.PublicID // ✅ SIMPAN PUBLIC ID
-
+				
 				// Clean up temp file
 				os.Remove(tempPath)
 			} else if c.PostForm("image_url") != "" {
@@ -87,15 +87,14 @@ func CreateProduct(db *gorm.DB) gin.HandlerFunc {
 				imagePublicID = uploadResult.PublicID // ✅ SIMPAN PUBLIC ID
 			}
 
-			slug := helper.GenerateSlug(name)
+			// Create product with ImagePublicID
 			product := models.Product{
-				Name:          name,
-				Slug:          slug,
-				Description:   description,
-				ImageURL:      imageURL,
+				Name:        name,
+				Description: description,
+				ImageURL:    imageURL,
 				ImagePublicID: imagePublicID, // ✅ INI YANG DIPERBAIKI
-				Price:         price,
-				Stock:         stock,
+				Price:       price,
+				Stock:       stock,
 			}
 
 			if err := db.Create(&product).Error; err != nil {
@@ -107,7 +106,6 @@ func CreateProduct(db *gorm.DB) gin.HandlerFunc {
 			productResp := response.BuildProductResponse(
 				product.ID,
 				product.Name,
-				product.Slug,
 				product.Description,
 				product.ImageURL,
 				product.Price,
@@ -125,6 +123,12 @@ func CreateProduct(db *gorm.DB) gin.HandlerFunc {
 				return
 			}
 
+			var category models.Category
+			if err := db.First(&category, req.CategoryID).Error; err != nil {
+				response.ErrorResponse(c, http.StatusBadRequest, "invalid category id")
+				return
+			}
+			
 			// If imageURL is provided and is a URL, upload to Cloudinary
 			var imageURL, imagePublicID string
 			if req.ImageURL != "" {
@@ -143,15 +147,14 @@ func CreateProduct(db *gorm.DB) gin.HandlerFunc {
 				}
 			}
 
-			slug := helper.GenerateSlug(req.Name)
+			// Create product with ImagePublicID
 			product := models.Product{
-				Name:          req.Name,
-				Slug:          slug,
-				Description:   req.Description,
-				ImageURL:      imageURL,
+				Name:        req.Name,
+				Description: req.Description,
+				ImageURL:    imageURL,
 				ImagePublicID: imagePublicID,
-				Price:         req.Price,
-				Stock:         req.Stock,
+				Price:       req.Price,
+				Stock:       req.Stock,
 			}
 
 			if err := db.Create(&product).Error; err != nil {
@@ -163,7 +166,6 @@ func CreateProduct(db *gorm.DB) gin.HandlerFunc {
 			productResp := response.BuildProductResponse(
 				product.ID,
 				product.Name,
-				product.Slug,
 				product.Description,
 				product.ImageURL,
 				product.Price,
@@ -197,15 +199,14 @@ func UpdateProduct(db *gorm.DB) gin.HandlerFunc {
 		// Handle multipart form for image upload
 		contentType := c.GetHeader("Content-Type")
 		isMultipart := strings.HasPrefix(contentType, "multipart/form-data")
-
+		
 		var newImagePublicID string
 		updates := make(map[string]interface{})
-
+		
 		if isMultipart {
 			// Handle multipart form data
 			if name := c.PostForm("name"); name != "" {
 				updates["name"] = name
-				updates["slug"] = helper.GenerateSlug(name)
 			}
 			if description := c.PostForm("description"); description != "" {
 				updates["description"] = description
@@ -228,7 +229,7 @@ func UpdateProduct(db *gorm.DB) gin.HandlerFunc {
 				}
 				updates["stock"] = stock
 			}
-
+			
 			// Handle file upload
 			file, err := c.FormFile("image")
 			if err == nil && file != nil {
@@ -238,7 +239,7 @@ func UpdateProduct(db *gorm.DB) gin.HandlerFunc {
 					response.ErrorResponse(c, http.StatusInternalServerError, "Failed to save uploaded file")
 					return
 				}
-
+				
 				// Upload to Cloudinary
 				uploadResult, err := helper.UploadImageFromFile(tempPath, "products")
 				if err != nil {
@@ -246,11 +247,11 @@ func UpdateProduct(db *gorm.DB) gin.HandlerFunc {
 					response.ErrorResponse(c, http.StatusInternalServerError, "Failed to upload image")
 					return
 				}
-
+				
 				updates["image_url"] = uploadResult.SecureURL
 				updates["image_public_id"] = uploadResult.PublicID
 				newImagePublicID = uploadResult.PublicID
-
+				
 				// Clean up temp file
 				os.Remove(tempPath)
 			} else if c.PostForm("image_url") != "" {
@@ -274,7 +275,6 @@ func UpdateProduct(db *gorm.DB) gin.HandlerFunc {
 
 			if req.Name != nil {
 				updates["name"] = *req.Name
-				updates["slug"] = helper.GenerateSlug(*req.Name)
 			}
 			if req.Description != nil {
 				updates["description"] = *req.Description
@@ -285,7 +285,7 @@ func UpdateProduct(db *gorm.DB) gin.HandlerFunc {
 			if req.Stock != nil {
 				updates["stock"] = *req.Stock
 			}
-
+			
 			// Handle image URL update
 			if req.ImageURL != nil && *req.ImageURL != "" {
 				// Upload from URL
@@ -350,7 +350,6 @@ func UpdateProduct(db *gorm.DB) gin.HandlerFunc {
 		productResp := response.BuildProductResponse(
 			product.ID,
 			product.Name,
-			product.Slug,
 			product.Description,
 			product.ImageURL,
 			product.Price,
@@ -394,31 +393,30 @@ func DeleteProduct(db *gorm.DB) gin.HandlerFunc {
 
 func GetProducts(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		slug := c.Param("slug")
-		var product models.Product
-
-		if err := db.Where("slug = ?", slug).First(&product).Error; err != nil {
-			if err == gorm.ErrRecordNotFound {
-				response.ErrorResponse(c, http.StatusNotFound, "product not found")
-				return
-			}
-			response.ErrorResponse(c, http.StatusInternalServerError, "failed to fetch product")
+		var products []models.Product
+		if err := db.Order("id ASC").Find(&products).Error; err != nil {
+			response.ErrorResponse(c, http.StatusInternalServerError, "Failed to fetch products")
 			return
 		}
 
-		productResp := response.BuildProductResponse(
-			product.ID,
-			product.Name,
-			product.Slug,
-			product.Description,
-			product.ImageURL,
-			product.Price,
-			product.Stock,
-			product.CreatedAt,
-			product.UpdatedAt,
-		)
+		// Build product responses
+		var productResponses []response.ProductResponse
+		for _, p := range products {
+			productResp := response.BuildProductResponse(
+				p.ID,
+				p.Name,
+				p.Description,
+				p.ImageURL,
+				p.Price,
+				p.Stock,
+				p.CreatedAt,
+				p.UpdatedAt,
+			)
+			productResponses = append(productResponses, productResp)
+		}
 
-		response.SuccessResponse(c, "product retrivied succesfully", productResp)
+		productListResp := response.BuildProductListResponse(productResponses)
+		response.SuccessListResponse(c, "Products retrieved successfully", productListResp)
 	}
 }
 
@@ -431,7 +429,20 @@ func GetAllProducts(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		// Build product responses
-		productResponses := response.BuildProductListResponse(products)
+		var productResponses []response.ProductResponse
+		for _, p := range products {
+			productResp := response.BuildProductResponse(
+				p.ID,
+				p.Name,
+				p.Description,
+				p.ImageURL,
+				p.Price,
+				p.Stock,
+				p.CreatedAt,
+				p.UpdatedAt,
+			)
+			productResponses = append(productResponses, productResp)
+		}
 		response.SuccessListResponse(c, "Products retrieved successfully", productResponses)
 	}
 }

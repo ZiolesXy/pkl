@@ -1,10 +1,19 @@
 package response
 
-import "time"
+import (
+	"time"
+	"voca-store/models"
+)
+
+type ProductMiniResponse struct {
+	ID uint `json:"id"`
+	Name string `json:"name"`
+}
 
 type ProductResponse struct {
 	ID          uint      `json:"id"`
 	Name        string    `json:"name"`
+	Slug        string    `json:"slug"`
 	Description string    `json:"description,omitempty"`
 	ImageURL    string    `json:"image_url,omitempty"`
 	Price       float64   `json:"price"`
@@ -17,10 +26,11 @@ type ProductListResponse struct {
 	Entries []ProductResponse `json:"entries"`
 }
 
-func BuildProductResponse(id uint, name, description, imageURL string, price float64, stock int, createdAt, updatedAt time.Time) ProductResponse {
+func BuildProductResponse(id uint, name, slug, description, imageURL string, price float64, stock int, createdAt, updatedAt time.Time) ProductResponse {
 	return ProductResponse{
 		ID:          id,
 		Name:        name,
+		Slug:        slug,
 		Description: description,
 		ImageURL:    imageURL,
 		Price:       price,
@@ -30,8 +40,24 @@ func BuildProductResponse(id uint, name, description, imageURL string, price flo
 	}
 }
 
-func BuildProductListResponse(products []ProductResponse) ProductListResponse {
+func BuildProductListResponse(products []models.Product) ProductListResponse {
+	var responses []ProductResponse
+
+	for _, p := range products {
+		responses = append(responses, ProductResponse{
+			ID:          p.ID,
+			Name:        p.Name,
+			Slug:        p.Slug,
+			Description: p.Description,
+			ImageURL:    p.ImageURL,
+			Price:       p.Price,
+			Stock:       p.Stock,
+			CreatedAt:   p.CreatedAt,
+			UpdatedAt:   p.UpdatedAt,
+		})
+	}
+
 	return ProductListResponse{
-		Entries: products,
+		Entries: responses,
 	}
 }

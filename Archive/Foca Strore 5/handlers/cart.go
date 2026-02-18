@@ -48,7 +48,6 @@ func ViewCart(db *gorm.DB) gin.HandlerFunc {
 			productResp := response.BuildProductResponse(
 				item.Product.ID,
 				item.Product.Name,
-				item.Product.Slug,
 				item.Product.Description,
 				item.Product.ImageURL,
 				item.Product.Price,

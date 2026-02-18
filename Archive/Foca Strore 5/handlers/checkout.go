@@ -112,13 +112,11 @@ func Checkout(db *gorm.DB) gin.HandlerFunc {
 
 		// 🔥 Reload with relations
 		var result models.Checkout
-		db.Preload("User").
-			Preload("Items").
+		db.Preload("Items").
 			Preload("Items.Product").
 			First(&result, checkout.ID)
 
-		res := response.BuildCheckoutDetailResponse(result)
-		response.SuccessResponse(c, "Checkout created", res)
+		response.SuccessResponse(c, "Checkout created", result)
 	}
 }
 
@@ -128,8 +126,7 @@ func ApproveCheckout(db *gorm.DB) gin.HandlerFunc {
 		id := c.Param("id")
 
 		var checkout models.Checkout
-		if err := db.Preload("User").
-			Preload("Items").
+		if err := db.Preload("Items").
 			Preload("Items.Product").
 			First(&checkout, id).Error; err != nil {
 
@@ -149,8 +146,7 @@ func ApproveCheckout(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		res := response.BuildCheckoutDetailResponse(checkout)
-		response.SuccessResponse(c, "Checkout approved", res)
+		response.SuccessResponse(c, "Checkout approved", checkout)
 	}
 }
 
@@ -162,8 +158,7 @@ func RejectCheckout(db *gorm.DB) gin.HandlerFunc {
 		tx := db.Begin()
 
 		var checkout models.Checkout
-		if err := tx.Preload("User").
-			Preload("Items").
+		if err := tx.Preload("Items").
 			Preload("Items.Product").
 			First(&checkout, id).Error; err != nil {
 
@@ -202,7 +197,6 @@ func RejectCheckout(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		res := response.BuildCheckoutDetailResponse(checkout)
-		response.SuccessResponse(c, "Checkout rejected", res)
+		response.SuccessResponse(c, "Checkout rejected", checkout)
 	}
 }

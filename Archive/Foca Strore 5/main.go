@@ -38,6 +38,7 @@ func main() {
 	if err := db.AutoMigrate(
 		&models.Role{},
 		&models.User{},
+		&models.Category{},
 		&models.Product{},
 		&models.Cart{},
 		&models.CartItem{},
@@ -74,7 +75,6 @@ func main() {
 		protected.GET("/profile", handlers.GetProfile(db))
 		protected.PUT("/profile", handlers.UpdateProfile(db))
 		protected.GET("/products", handlers.GetAllProducts(db))
-		protected.GET("/product/:slug", handlers.GetProducts(db))
 		protected.GET("/cart", handlers.ViewCart(db))
 		protected.POST("/cart/items", handlers.AddToCart(db))
 		protected.DELETE("/cart/items/:id", handlers.RemoveCartItem(db))
