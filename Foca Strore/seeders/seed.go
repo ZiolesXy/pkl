@@ -2,6 +2,10 @@ package seeders
 
 import (
 	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 	"voca-store/helper"
 	"voca-store/models"
 
@@ -188,24 +192,6 @@ func SeedProducts(db *gorm.DB) error {
 		},
 	}
 
-	// products := []models.Product{
-	// 	{Name: "Laptop High-End", Description: "Performance tinggi dengan RAM 16GB dan SSD 512GB", Price: 15000000, Stock: 10, ImageURL: ""},
-	// 	{Name: "Smartphone Pro", Description: "Penyimpanan 128GB dengan layar AMOLED 120Hz", Price: 5000000, Stock: 25, ImageURL: ""},
-	// 	{Name: "Wireless Headphones", Description: "Noise-cancelling dengan daya tahan baterai 30 jam", Price: 1500000, Stock: 50, ImageURL: ""},
-	// 	{Name: "Gaming Mouse RGB", Description: "Mouse ergonomis dengan sensor optik presisi tinggi", Price: 300000, Stock: 100, ImageURL: defaultImg},
-	// 	{Name: "Mechanical Keyboard", Description: "Keyboard tactile dengan backlight RGB kustom", Price: 800000, Stock: 75, ImageURL: ""},
-	// 	{Name: "Monitor 4K", Description: "Layar tajam 27 inci untuk kebutuhan desain grafis", Price: 4500000, Stock: 15, ImageURL: ""},
-	// 	{Name: "Webcam Full HD", Description: "Kamera jernih untuk meeting dan streaming", Price: 600000, Stock: 40, ImageURL: ""},
-	// 	{Name: "External Hard Drive", Description: "Kapasitas 1TB untuk backup data aman Anda", Price: 900000, Stock: 30, ImageURL: ""},
-	// 	{Name: "Power Bank 20k", Description: "Kapasitas besar 20.000mAh dengan fast charging", Price: 400000, Stock: 60, ImageURL: ""},
-	// 	{Name: "USB-C Hub Multiport", Description: "Adaptor serbaguna untuk konektivitas maksimal", Price: 350000, Stock: 85, ImageURL: ""},
-	// 	{Name: "Bluetooth Speaker Mini", Description: "Speaker portable dengan suara jernih", Price: 700000, Stock: 45, ImageURL: ""},
-	// 	{Name: "Tablet 10 Inch", Description: "Tablet ringan untuk hiburan dan produktivitas", Price: 3500000, Stock: 20, ImageURL: ""},
-	// 	{Name: "Smartwatch Series X", Description: "Jam pintar dengan fitur kesehatan lengkap", Price: 2500000, Stock: 35, ImageURL: ""},
-	// 	{Name: "Router WiFi 6", Description: "Kecepatan tinggi untuk kebutuhan internet rumah", Price: 1200000, Stock: 28, ImageURL: ""},
-	// 	{Name: "Portable SSD 1TB", Description: "Penyimpanan eksternal super cepat", Price: 1800000, Stock: 22, ImageURL: ""},
-	// }
-
 	for _, p := range products {
 		var existingProduct models.Product
 		slug := helper.GenerateSlug(p.Name)
@@ -224,6 +210,66 @@ func SeedProducts(db *gorm.DB) error {
 				return err
 			}
 		}
+	}
+
+	return nil
+}
+
+func SeedProductsFromAssets(db *gorm.DB) error {
+
+	assetDir := "AssetPrivate"
+
+	files, err := os.ReadDir(assetDir)
+	if err != nil {
+		return err
+	}
+
+	for _, file := range files {
+
+		if file.IsDir() {
+			continue
+		}
+
+		filePath := filepath.Join(assetDir, file.Name())
+
+		// ambil nama tanpa extension
+		name := strings.TrimSuffix(file.Name(), filepath.Ext(file.Name()))
+
+		// cek apakah sudah ada
+		var count int64
+		db.Model(&models.Product{}).
+			Where("name = ?", name).
+			Count(&count)
+
+		if count > 0 {
+			fmt.Println("Product already exists:", name)
+			continue
+		}
+
+		// upload ke Cloudinary
+		uploadResult, err := helper.UploadImageFromFile(filePath, "products")
+
+		if err != nil {
+			fmt.Println("Upload failed:", err)
+			continue
+		}
+
+		product := models.Product{
+			Name:          name,
+			Slug:          helper.GenerateSlug(name),
+			Description:   name,
+			ImageURL:      uploadResult.SecureURL,
+			ImagePublicID: uploadResult.PublicID,
+			Price:         1000000,
+			Stock:         10,
+		}
+
+		if err := db.Create(&product).Error; err != nil {
+			fmt.Println("DB insert failed:", err)
+			continue
+		}
+
+		fmt.Println("Seeded:", name)
 	}
 
 	return nil

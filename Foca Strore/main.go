@@ -95,6 +95,7 @@ func main() {
 	// Seeder endpoint
 	seed := r.Group("/seed")
 	{
+		seed.GET("/assets", handlers.SeedProductsFromAssetsHandler(db))
 		seed.GET("/roles", handlers.SeedRoleHandler(db))
 		seed.GET("/admin", handlers.SeedAdminHandler(db))
 		seed.GET("/users", handlers.SeedUsersHandler(db))

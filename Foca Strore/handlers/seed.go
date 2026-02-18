@@ -10,8 +10,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// ================= ROLE =================
-
 func SeedRoleHandler(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
@@ -23,8 +21,6 @@ func SeedRoleHandler(db *gorm.DB) gin.HandlerFunc {
 		response.SuccessResponse(c, "Roles seeded successfully", nil)
 	}
 }
-
-// ================= ADMIN =================
 
 func SeedAdminHandler(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -38,8 +34,6 @@ func SeedAdminHandler(db *gorm.DB) gin.HandlerFunc {
 	}
 }
 
-// ================= USERS =================
-
 func SeedUsersHandler(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
@@ -51,8 +45,6 @@ func SeedUsersHandler(db *gorm.DB) gin.HandlerFunc {
 		response.SuccessResponse(c, "Users seeded successfully", nil)
 	}
 }
-
-// ================= PRODUCTS =================
 
 func SeedProductsHandler(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -66,7 +58,30 @@ func SeedProductsHandler(db *gorm.DB) gin.HandlerFunc {
 	}
 }
 
-// ================= ALL =================
+func SeedProductsFromAssetsHandler(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+
+		err := seeders.SeedProductsFromAssets(db)
+
+		if err != nil {
+
+			response.ErrorResponse(
+				c,
+				http.StatusInternalServerError,
+				"Failed to seed products",
+			)
+
+			return
+		}
+
+		response.SuccessResponse(
+			c,
+			"Products seeded from assets successfully",
+			nil,
+		)
+	}
+}
+
 
 func SeedAllHandler(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -86,10 +101,10 @@ func SeedAllHandler(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		if err := seeders.SeedProducts(db); err != nil {
-			response.ErrorResponse(c, http.StatusInternalServerError, "Failed to seed products")
-			return
-		}
+		// if err := seeders.SeedProducts(db); err != nil {
+		// 	response.ErrorResponse(c, http.StatusInternalServerError, "Failed to seed products")
+		// 	return
+		// }
 
 		response.SuccessResponse(c, "All data seeded successfully", nil)
 	}
