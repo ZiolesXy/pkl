@@ -2,55 +2,95 @@ package handlers
 
 import (
 	"net/http"
-	// "voca-store/database"
-	// "voca-store/models"
+
 	"voca-store/response"
 	"voca-store/seeders"
+
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
-func SeedHandler(db *gorm.DB) gin.HandlerFunc {
+// ================= ROLE =================
+
+func SeedRoleHandler(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// // Seed roles
-		// if err := seeders.SeedRoles(db); err != nil {
-		// 	response.ErrorResponse(c, http.StatusInternalServerError, "Failed to seed roles")
-		// 	return
-		// }
 
-		// // Seed admin
-		// if err := seeders.SeedAdmin(db); err != nil {
-		// 	response.ErrorResponse(c, http.StatusInternalServerError, "Failed to seed admin")
-		// 	return
-		// }
+		if err := seeders.SeedRoles(db); err != nil {
+			response.ErrorResponse(c, http.StatusInternalServerError, "Failed to seed roles")
+			return
+		}
 
-		// // Seed users
-		// if err := seeders.SeedUsers(db); err != nil {
-		// 	response.ErrorResponse(c, http.StatusInternalServerError, "Failed to seed users")
-		// 	return
-		// }
+		response.SuccessResponse(c, "Roles seeded successfully", nil)
+	}
+}
 
-		// Seed products
+// ================= ADMIN =================
+
+func SeedAdminHandler(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+
+		if err := seeders.SeedAdmin(db); err != nil {
+			response.ErrorResponse(c, http.StatusInternalServerError, "Failed to seed admin")
+			return
+		}
+
+		response.SuccessResponse(c, "Admin seeded successfully", nil)
+	}
+}
+
+// ================= USERS =================
+
+func SeedUsersHandler(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+
+		if err := seeders.SeedUsers(db); err != nil {
+			response.ErrorResponse(c, http.StatusInternalServerError, "Failed to seed users")
+			return
+		}
+
+		response.SuccessResponse(c, "Users seeded successfully", nil)
+	}
+}
+
+// ================= PRODUCTS =================
+
+func SeedProductsHandler(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+
 		if err := seeders.SeedProducts(db); err != nil {
 			response.ErrorResponse(c, http.StatusInternalServerError, "Failed to seed products")
 			return
 		}
 
-		response.SuccessResponse(c, "Database seeded successfully", nil)
+		response.SuccessResponse(c, "Products seeded successfully", nil)
 	}
 }
 
+// ================= ALL =================
 
-func SeedBasicRoleHandler(db *gorm.DB) gin.HandlerFunc {
-    return func(c *gin.Context) {
-        // Panggil fungsi seeder kamu
-        err := seeders.SeedBasicRole(db)
+func SeedAllHandler(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
 
-        if err != nil {
-            response.ErrorResponse(c, http.StatusInternalServerError, "Gagal seeding")
-            return
-        }
+		if err := seeders.SeedRoles(db); err != nil {
+			response.ErrorResponse(c, http.StatusInternalServerError, "Failed to seed roles")
+			return
+		}
 
-        response.SuccessResponse(c, "User Admin seeded successfully", nil)
-    }
+		if err := seeders.SeedAdmin(db); err != nil {
+			response.ErrorResponse(c, http.StatusInternalServerError, "Failed to seed admin")
+			return
+		}
+
+		if err := seeders.SeedUsers(db); err != nil {
+			response.ErrorResponse(c, http.StatusInternalServerError, "Failed to seed users")
+			return
+		}
+
+		if err := seeders.SeedProducts(db); err != nil {
+			response.ErrorResponse(c, http.StatusInternalServerError, "Failed to seed products")
+			return
+		}
+
+		response.SuccessResponse(c, "All data seeded successfully", nil)
+	}
 }

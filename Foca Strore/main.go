@@ -56,7 +56,7 @@ func main() {
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		AllowCredentials: true,
-		MaxAge: 12 * time.Hour,
+		MaxAge:           12 * time.Hour,
 	}))
 
 	// Public routes
@@ -93,8 +93,14 @@ func main() {
 	}
 
 	// Seeder endpoint
-	r.GET("/seed", handlers.SeedHandler(db))
-	r.GET("/rolesc", handlers.SeedBasicRoleHandler(db))
+	seed := r.Group("/seed")
+	{
+		seed.GET("/roles", handlers.SeedRoleHandler(db))
+		seed.GET("/admin", handlers.SeedAdminHandler(db))
+		seed.GET("/users", handlers.SeedUsersHandler(db))
+		seed.GET("/products", handlers.SeedProductsHandler(db))
+		seed.GET("/all", handlers.SeedAllHandler(db))
+	}
 
 	// Start server
 	port := os.Getenv("PORT")
