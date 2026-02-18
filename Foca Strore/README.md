@@ -27,7 +27,7 @@ Aplikasi backend e-commerce sederhana menggunakan Golang, Gin, GORM, PostgreSQL,
 
 ```bash
 git clone <repository-url>
-cd ecommerce-app
+cd voca-store
 ```
 
 2. Install dependencies:
@@ -49,8 +49,12 @@ DB_HOST=localhost
 DB_PORT=5432
 DB_USER=postgres
 DB_PASSWORD=your_password
-DB_NAME=ecommerce_db
+DB_NAME=voca_store
 JWT_SECRET=your_super_secret_jwt_key_here_min_32_chars
+CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
+CLOUDINARY_API_KEY=your_cloudinary_api_key
+CLOUDINARY_API_SECRET=your_cloudinary_api_secret
+PORT=8080
 ```
 
 ---
@@ -60,7 +64,7 @@ JWT_SECRET=your_super_secret_jwt_key_here_min_32_chars
 1. Buat database PostgreSQL:
 
 ```sql
-CREATE DATABASE ecommerce_db;
+CREATE DATABASE voca_store;
 ```
 
 2. Pastikan user PostgreSQL memiliki akses ke database tersebut.
@@ -92,18 +96,34 @@ http://localhost:8080
 
 ## Seeder
 
-Untuk mengisi data awal (roles, admin, users, products), akses endpoint:
+Untuk mengisi data awal, terdapat beberapa endpoint seeding:
 
 ```bash
-GET http://localhost:8080/seed
+# Seed roles (Admin, User)
+GET http://localhost:8080/seed/roles
+
+# Seed admin user (email: admin@voca-store.com, password: admin123)
+GET http://localhost:8080/seed/admin
+
+# Seed sample users
+GET http://localhost:8080/seed/users
+
+# Seed sample products
+GET http://localhost:8080/seed/products
+
+# Seed products from assets folder
+GET http://localhost:8080/seed/assets
+
+# Seed all data (roles, admin, users)
+GET http://localhost:8080/seed/all
 ```
 
 Data yang di-seed:
 
-- Roles: Admin, User
-- 1 Admin (email: admin@ecommerce.com, password: admin123)
-- 3 Users (john@example.com, jane@example.com, bob@example.com, password: password123)
-- 5 Products
+- **Roles**: Admin, User
+- **Admin**: 1 admin (email: admin@voca-store.com, password: admin123)
+- **Users**: 3 sample users dengan password: password123
+- **Products**: 5 sample products (dapat ditambah melalui endpoint /seed/products atau /seed/assets)
 
 ---
 
@@ -117,28 +137,39 @@ Data yang di-seed:
 
 ### Products (Public)
 
-- `GET /products` - Lihat semua produk
+- `GET /products` - Lihat semua produk (public endpoint)
 
-### Cart (User Only)
+### User Profile (Protected)
+
+- `GET /api/profile` - Lihat profil user
+- `PUT /api/profile` - Update profil user
+
+### Products (Protected)
+
+- `GET /api/products` - Lihat semua produk (dengan detail lengkap)
+- `GET /api/product/:slug` - Lihat detail produk berdasarkan slug
+
+### Cart (Protected)
 
 - `GET /api/cart` - Lihat keranjang
 - `POST /api/cart/items` - Tambah item ke keranjang
 - `DELETE /api/cart/items/:id` - Hapus item dari keranjang
 
-### Checkout (User Only)
+### Checkout (Protected)
 
 - `POST /api/checkout` - Checkout keranjang
 
-### Products (Admin Only)
+### Products Management (Admin Only)
 
 - `POST /api/admin/products` - Buat produk baru
 - `PUT /api/admin/products/:id` - Update produk
 - `DELETE /api/admin/products/:id` - Hapus produk
-- `GET /api/admin/products` - Lihat semua produk
 
-### Checkout (Admin Only)
+### Checkout Management (Admin Only)
 
-- `PUT /api/admin/checkout/:id/status` - Update status checkout
+- `GET /api/admin/checkout` - Lihat semua checkout
+- `PATCH /api/admin/checkout/:id/approve` - Approve checkout
+- `PATCH /api/admin/checkout/:id/reject` - Reject checkout
 
 ---
 
@@ -226,7 +257,7 @@ curl -X POST http://localhost:8080/api/admin/products \
 ## Struktur Folder
 
 ```
-ecommerce-app/
+voca-store/
 ├── main.go
 ├── database/
 │   └── database.go
@@ -236,17 +267,25 @@ ecommerce-app/
 │   ├── product.go
 │   ├── cart.go
 │   ├── cart_item.go
-│   └── checkout.go
+│   ├── checkout.go
+│   └── checkout_item.go
 ├── request/
 │   ├── auth.go
 │   ├── product.go
 │   ├── cart.go
-│   └── checkout.go
+│   ├── checkout.go
+│   └── profile.go
 ├── response/
-│   └── response.go
+│   ├── response.go
+│   ├── auth.go
+│   ├── product.go
+│   ├── cart.go
+│   ├── checkout.go
+│   └── profile.go
 ├── handlers/
 │   ├── auth.go
 │   ├── product.go
+│   ├── profile.go
 │   ├── cart.go
 │   ├── checkout.go
 │   └── seed.go
@@ -254,9 +293,14 @@ ecommerce-app/
 │   ├── jwt.go
 │   └── admin.go
 ├── helper/
-│   └── jwt.go
+│   ├── jwt.go
+│   ├── cloudinary.go
+│   └── slug.go
 ├── seeders/
 │   └── seed.go
+├── trash/
+│   └── trash.go
+├── AssetPrivate/
 └── README.md
 ```
 
