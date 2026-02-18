@@ -138,6 +138,10 @@ func ApproveCheckout(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		if checkout.Status != "pending" {
+			if checkout.Status == "rejected" {
+				response.ErrorResponse(c, http.StatusBadRequest, "status already rejected cannot change")
+				return
+			}
 			response.ErrorResponse(c, http.StatusBadRequest, "invalid status")
 			return
 		}
