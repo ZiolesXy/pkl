@@ -23,15 +23,21 @@ func SeedRoles(db *gorm.DB) error {
 }
 
 func SeedCategories(db *gorm.DB) error {
+
 	categories := []models.Category{
 		{Name: "Laptop"},
 		{Name: "Smartphone"},
 		{Name: "Accessories"},
-		{Name: "Networking"},
+		{Name: "Makanan"},
+		{Name: "Minuman"},
+		{Name: "Pertanian"},
+		{Name: "Mainan"},
+		{Name: "Lainnya"},
 	}
 
 	return db.Clauses(clause.OnConflict{DoNothing: true}).Create(&categories).Error
 }
+
 
 func SeedAdmin(db *gorm.DB) error {
 	var adminRole models.Role
@@ -103,86 +109,131 @@ func SeedUsers(db *gorm.DB) error {
 
 func SeedProducts(db *gorm.DB) error {
 
-	defaultImg := "https://picsum.photos/seed/picsum/200/300"
+	defaultImg := "https://picsum.photos/seed/picsum/400/400"
 
-	var laptop, smartphone, accessories, networking models.Category
+	var laptop, smartphone, accessories, makanan, minuman, pertanian, mainan, lainnya models.Category
 
-	if err := db.Where("name = ?", "Laptop").First(&laptop).Error; err != nil {
-		return err
-	}
-	if err := db.Where("name = ?", "Smartphone").First(&smartphone).Error; err != nil {
-		return err
-	}
-	if err := db.Where("name = ?", "Accessories").First(&accessories).Error; err != nil {
-		return err
-	}
-	if err := db.Where("name = ?", "Networking").First(&networking).Error; err != nil {
-		return err
-	}
+	db.Where("name = ?", "Laptop").First(&laptop)
+	db.Where("name = ?", "Smartphone").First(&smartphone)
+	db.Where("name = ?", "Accessories").First(&accessories)
+	db.Where("name = ?", "Makanan").First(&makanan)
+	db.Where("name = ?", "Minuman").First(&minuman)
+	db.Where("name = ?", "Pertanian").First(&pertanian)
+	db.Where("name = ?", "Mainan").First(&mainan)
+	db.Where("name = ?", "Lainnya").First(&lainnya)
 
 	products := []models.Product{
 
-		// ================= LAPTOP (12) =================
-		{Name: "Apple MacBook Air M2", Description: "Chip Apple M2, 13-inch", Price: 18500000, Stock: 10, ImageURL: defaultImg, CategoryID: laptop.ID},
-		{Name: "Apple MacBook Pro M3 14-inch", Description: "Chip Apple M3 terbaru", Price: 32000000, Stock: 6, ImageURL: defaultImg, CategoryID: laptop.ID},
-		{Name: "ASUS ROG Zephyrus G14", Description: "Ryzen 9 RTX Series", Price: 25000000, Stock: 8, ImageURL: defaultImg, CategoryID: laptop.ID},
-		{Name: "ASUS TUF Gaming F15", Description: "Intel i7 RTX 4060", Price: 19000000, Stock: 10, ImageURL: defaultImg, CategoryID: laptop.ID},
-		{Name: "Lenovo Legion 5 Pro", Description: "Ryzen 7 RTX 4070", Price: 27000000, Stock: 5, ImageURL: defaultImg, CategoryID: laptop.ID},
-		{Name: "Lenovo IdeaPad Slim 5", Description: "Laptop tipis Ryzen 5", Price: 9500000, Stock: 15, ImageURL: defaultImg, CategoryID: laptop.ID},
-		{Name: "HP Spectre x360", Description: "Laptop premium convertible", Price: 22000000, Stock: 7, ImageURL: defaultImg, CategoryID: laptop.ID},
-		{Name: "HP Pavilion Gaming 15", Description: "Gaming entry RTX", Price: 15000000, Stock: 11, ImageURL: defaultImg, CategoryID: laptop.ID},
-		{Name: "Dell XPS 13", Description: "Ultrabook premium", Price: 24000000, Stock: 9, ImageURL: defaultImg, CategoryID: laptop.ID},
-		{Name: "Dell Inspiron 14", Description: "Laptop kerja harian", Price: 8500000, Stock: 14, ImageURL: defaultImg, CategoryID: laptop.ID},
-		{Name: "Acer Predator Helios 300", Description: "Gaming RTX Series", Price: 21000000, Stock: 6, ImageURL: defaultImg, CategoryID: laptop.ID},
-		{Name: "Acer Aspire 5", Description: "Laptop kerja ringan", Price: 7500000, Stock: 18, ImageURL: defaultImg, CategoryID: laptop.ID},
+// ================= LAPTOP =================
 
-		// ================= SMARTPHONE (12) =================
-		{Name: "Apple iPhone 15 Pro", Description: "Chip A17 Pro", Price: 21000000, Stock: 12, ImageURL: defaultImg, CategoryID: smartphone.ID},
-		{Name: "Apple iPhone 14", Description: "Chip A15 Bionic", Price: 13500000, Stock: 15, ImageURL: defaultImg, CategoryID: smartphone.ID},
-		{Name: "Samsung Galaxy S24 Ultra", Description: "Snapdragon 8 Gen 3", Price: 22000000, Stock: 10, ImageURL: defaultImg, CategoryID: smartphone.ID},
-		{Name: "Samsung Galaxy S23 FE", Description: "Flagship killer", Price: 9000000, Stock: 18, ImageURL: defaultImg, CategoryID: smartphone.ID},
-		{Name: "Xiaomi 14", Description: "Leica camera flagship", Price: 11000000, Stock: 20, ImageURL: defaultImg, CategoryID: smartphone.ID},
-		{Name: "Xiaomi Redmi Note 13 Pro", Description: "Midrange AMOLED", Price: 4500000, Stock: 25, ImageURL: defaultImg, CategoryID: smartphone.ID},
-		{Name: "OPPO Find X6 Pro", Description: "Kamera flagship", Price: 15000000, Stock: 8, ImageURL: defaultImg, CategoryID: smartphone.ID},
-		{Name: "OPPO Reno11", Description: "Stylish midrange", Price: 5500000, Stock: 17, ImageURL: defaultImg, CategoryID: smartphone.ID},
-		{Name: "Vivo X100 Pro", Description: "Zeiss camera system", Price: 14000000, Stock: 9, ImageURL: defaultImg, CategoryID: smartphone.ID},
-		{Name: "Realme GT 5 Pro", Description: "Snapdragon flagship", Price: 10000000, Stock: 13, ImageURL: defaultImg, CategoryID: smartphone.ID},
-		{Name: "Google Pixel 8", Description: "Tensor G3 chip", Price: 12000000, Stock: 7, ImageURL: defaultImg, CategoryID: smartphone.ID},
-		{Name: "Nothing Phone 2", Description: "Glyph interface", Price: 9500000, Stock: 11, ImageURL: defaultImg, CategoryID: smartphone.ID},
+{Name:"MacBook Air M2",Price:18500000,Stock:10,ImageURL:defaultImg,CategoryID:laptop.ID},
+{Name:"MacBook Pro M3",Price:32000000,Stock:10,ImageURL:defaultImg,CategoryID:laptop.ID},
+{Name:"ASUS ROG Zephyrus G14",Price:25000000,Stock:10,ImageURL:defaultImg,CategoryID:laptop.ID},
+{Name:"Lenovo Legion 5",Price:21000000,Stock:10,ImageURL:defaultImg,CategoryID:laptop.ID},
+{Name:"Acer Aspire 5",Price:7500000,Stock:10,ImageURL:defaultImg,CategoryID:laptop.ID},
+{Name:"HP Pavilion 14",Price:9000000,Stock:10,ImageURL:defaultImg,CategoryID:laptop.ID},
+{Name:"Dell XPS 13",Price:24000000,Stock:10,ImageURL:defaultImg,CategoryID:laptop.ID},
+{Name:"MSI Katana GF66",Price:17000000,Stock:10,ImageURL:defaultImg,CategoryID:laptop.ID},
+{Name:"ASUS Vivobook 15",Price:8000000,Stock:10,ImageURL:defaultImg,CategoryID:laptop.ID},
+{Name:"Lenovo IdeaPad 3",Price:6500000,Stock:10,ImageURL:defaultImg,CategoryID:laptop.ID},
 
-		// ================= ACCESSORIES (14) =================
-		{Name: "Logitech MX Master 3S", Description: "Mouse productivity", Price: 1500000, Stock: 30, ImageURL: defaultImg, CategoryID: accessories.ID},
-		{Name: "Logitech G Pro X Superlight", Description: "Mouse gaming wireless", Price: 1800000, Stock: 30, ImageURL: defaultImg, CategoryID: accessories.ID},
-		{Name: "Razer BlackWidow V4", Description: "Mechanical gaming keyboard", Price: 2500000, Stock: 20, ImageURL: defaultImg, CategoryID: accessories.ID},
-		{Name: "Keychron K2", Description: "Mechanical wireless keyboard", Price: 1400000, Stock: 25, ImageURL: defaultImg, CategoryID: accessories.ID},
-		{Name: "Sony WH-1000XM5", Description: "Noise cancelling headphone", Price: 5500000, Stock: 18, ImageURL: defaultImg, CategoryID: accessories.ID},
-		{Name: "Apple AirPods Pro 2", Description: "ANC true wireless", Price: 3800000, Stock: 22, ImageURL: defaultImg, CategoryID: accessories.ID},
-		{Name: "Samsung T7 SSD 1TB", Description: "Portable SSD", Price: 1900000, Stock: 22, ImageURL: defaultImg, CategoryID: accessories.ID},
-		{Name: "Seagate Expansion 2TB", Description: "External HDD", Price: 1200000, Stock: 26, ImageURL: defaultImg, CategoryID: accessories.ID},
-		{Name: "LG UltraFine 27UL850", Description: "4K IPS Monitor", Price: 6500000, Stock: 12, ImageURL: defaultImg, CategoryID: accessories.ID},
-		{Name: "Dell P2723QE", Description: "4K Office Monitor", Price: 7200000, Stock: 9, ImageURL: defaultImg, CategoryID: accessories.ID},
-		{Name: "Anker PowerCore 20000", Description: "Powerbank fast charging", Price: 800000, Stock: 35, ImageURL: defaultImg, CategoryID: accessories.ID},
-		{Name: "UGREEN USB-C Hub 7in1", Description: "USB-C multiport hub", Price: 600000, Stock: 28, ImageURL: defaultImg, CategoryID: accessories.ID},
-		{Name: "SteelSeries Arctis 7", Description: "Wireless gaming headset", Price: 2200000, Stock: 14, ImageURL: defaultImg, CategoryID: accessories.ID},
-		{Name: "HyperX Cloud II", Description: "Gaming headset", Price: 1500000, Stock: 19, ImageURL: defaultImg, CategoryID: accessories.ID},
+// ================= SMARTPHONE =================
 
-		// ================= NETWORKING (12) =================
-		{Name: "TP-Link Archer AX73", Description: "WiFi 6 Router", Price: 1800000, Stock: 20, ImageURL: defaultImg, CategoryID: networking.ID},
-		{Name: "TP-Link Deco X20", Description: "Mesh WiFi 6", Price: 2500000, Stock: 15, ImageURL: defaultImg, CategoryID: networking.ID},
-		{Name: "ASUS RT-AX88U", Description: "Gaming Router WiFi 6", Price: 4200000, Stock: 10, ImageURL: defaultImg, CategoryID: networking.ID},
-		{Name: "Xiaomi Router AX3000", Description: "WiFi 6 Router", Price: 900000, Stock: 28, ImageURL: defaultImg, CategoryID: networking.ID},
-		{Name: "MikroTik hAP ac3", Description: "Advanced router", Price: 1700000, Stock: 18, ImageURL: defaultImg, CategoryID: networking.ID},
-		{Name: "Netgear Nighthawk AX12", Description: "High performance router", Price: 5500000, Stock: 6, ImageURL: defaultImg, CategoryID: networking.ID},
-		{Name: "Ubiquiti UniFi AP AC Lite", Description: "Access point enterprise", Price: 1600000, Stock: 14, ImageURL: defaultImg, CategoryID: networking.ID},
-		{Name: "D-Link DIR-X5460", Description: "WiFi 6 Router", Price: 2300000, Stock: 12, ImageURL: defaultImg, CategoryID: networking.ID},
-		{Name: "Tenda AC23", Description: "Dual band router", Price: 650000, Stock: 30, ImageURL: defaultImg, CategoryID: networking.ID},
-		{Name: "Huawei AX3 Pro", Description: "WiFi 6 router", Price: 1200000, Stock: 17, ImageURL: defaultImg, CategoryID: networking.ID},
-		{Name: "Cisco RV340", Description: "Business VPN router", Price: 4800000, Stock: 5, ImageURL: defaultImg, CategoryID: networking.ID},
-		{Name: "Linksys MR9600", Description: "Mesh WiFi 6 router", Price: 3900000, Stock: 8, ImageURL: defaultImg, CategoryID: networking.ID},
-	}
+{Name:"iPhone 15 Pro",Price:21000000,Stock:10,ImageURL:defaultImg,CategoryID:smartphone.ID},
+{Name:"Samsung S24 Ultra",Price:22000000,Stock:10,ImageURL:defaultImg,CategoryID:smartphone.ID},
+{Name:"Xiaomi 14",Price:11000000,Stock:10,ImageURL:defaultImg,CategoryID:smartphone.ID},
+{Name:"Oppo Find X6",Price:15000000,Stock:10,ImageURL:defaultImg,CategoryID:smartphone.ID},
+{Name:"Vivo X100",Price:14000000,Stock:10,ImageURL:defaultImg,CategoryID:smartphone.ID},
+{Name:"Realme GT5",Price:9000000,Stock:10,ImageURL:defaultImg,CategoryID:smartphone.ID},
+{Name:"Samsung A54",Price:6000000,Stock:10,ImageURL:defaultImg,CategoryID:smartphone.ID},
+{Name:"iPhone 13",Price:11000000,Stock:10,ImageURL:defaultImg,CategoryID:smartphone.ID},
+{Name:"Redmi Note 13",Price:3500000,Stock:10,ImageURL:defaultImg,CategoryID:smartphone.ID},
+{Name:"Infinix Zero Ultra",Price:5000000,Stock:10,ImageURL:defaultImg,CategoryID:smartphone.ID},
+
+// ================= ACCESSORIES =================
+
+{Name:"Logitech MX Master 3",Price:1500000,Stock:10,ImageURL:defaultImg,CategoryID:accessories.ID},
+{Name:"Razer DeathAdder",Price:800000,Stock:10,ImageURL:defaultImg,CategoryID:accessories.ID},
+{Name:"Keychron K2",Price:1400000,Stock:10,ImageURL:defaultImg,CategoryID:accessories.ID},
+{Name:"Sony WH1000XM5",Price:5500000,Stock:10,ImageURL:defaultImg,CategoryID:accessories.ID},
+{Name:"AirPods Pro 2",Price:3800000,Stock:10,ImageURL:defaultImg,CategoryID:accessories.ID},
+{Name:"Samsung SSD T7",Price:1900000,Stock:10,ImageURL:defaultImg,CategoryID:accessories.ID},
+{Name:"Sandisk Flashdisk 128GB",Price:150000,Stock:10,ImageURL:defaultImg,CategoryID:accessories.ID},
+{Name:"Anker Powerbank",Price:600000,Stock:10,ImageURL:defaultImg,CategoryID:accessories.ID},
+{Name:"UGREEN USB Hub",Price:300000,Stock:10,ImageURL:defaultImg,CategoryID:accessories.ID},
+{Name:"HyperX Cloud II",Price:1200000,Stock:10,ImageURL:defaultImg,CategoryID:accessories.ID},
+
+// ================= MAKANAN =================
+
+{Name:"Indomie Goreng",Price:3500,Stock:100,ImageURL:defaultImg,CategoryID:makanan.ID},
+{Name:"Mie Sedaap",Price:3200,Stock:100,ImageURL:defaultImg,CategoryID:makanan.ID},
+{Name:"Beras Ramos 5kg",Price:75000,Stock:50,ImageURL:defaultImg,CategoryID:makanan.ID},
+{Name:"Chitato",Price:10000,Stock:80,ImageURL:defaultImg,CategoryID:makanan.ID},
+{Name:"SilverQueen",Price:15000,Stock:80,ImageURL:defaultImg,CategoryID:makanan.ID},
+{Name:"Tango Wafer",Price:12000,Stock:80,ImageURL:defaultImg,CategoryID:makanan.ID},
+{Name:"Roma Biscuit",Price:8000,Stock:80,ImageURL:defaultImg,CategoryID:makanan.ID},
+{Name:"Sarden ABC",Price:12000,Stock:80,ImageURL:defaultImg,CategoryID:makanan.ID},
+{Name:"Kornet Pronas",Price:25000,Stock:80,ImageURL:defaultImg,CategoryID:makanan.ID},
+{Name:"Nugget Fiesta",Price:45000,Stock:80,ImageURL:defaultImg,CategoryID:makanan.ID},
+
+// ================= MINUMAN =================
+
+{Name:"Aqua 600ml",Price:4000,Stock:100,ImageURL:defaultImg,CategoryID:minuman.ID},
+{Name:"Teh Botol Sosro",Price:5000,Stock:100,ImageURL:defaultImg,CategoryID:minuman.ID},
+{Name:"Coca Cola",Price:6000,Stock:100,ImageURL:defaultImg,CategoryID:minuman.ID},
+{Name:"Sprite",Price:6000,Stock:100,ImageURL:defaultImg,CategoryID:minuman.ID},
+{Name:"Fanta",Price:6000,Stock:100,ImageURL:defaultImg,CategoryID:minuman.ID},
+{Name:"Pocari Sweat",Price:7000,Stock:100,ImageURL:defaultImg,CategoryID:minuman.ID},
+{Name:"Ultra Milk",Price:7000,Stock:100,ImageURL:defaultImg,CategoryID:minuman.ID},
+{Name:"Good Day Coffee",Price:4000,Stock:100,ImageURL:defaultImg,CategoryID:minuman.ID},
+{Name:"Yakult",Price:9000,Stock:100,ImageURL:defaultImg,CategoryID:minuman.ID},
+{Name:"Floridina",Price:5000,Stock:100,ImageURL:defaultImg,CategoryID:minuman.ID},
+
+// ================= PERTANIAN =================
+
+{Name:"Bibit Padi",Price:50000,Stock:50,ImageURL:defaultImg,CategoryID:pertanian.ID},
+{Name:"Bibit Jagung",Price:40000,Stock:50,ImageURL:defaultImg,CategoryID:pertanian.ID},
+{Name:"Pupuk Urea",Price:120000,Stock:50,ImageURL:defaultImg,CategoryID:pertanian.ID},
+{Name:"Pupuk Kompos",Price:60000,Stock:50,ImageURL:defaultImg,CategoryID:pertanian.ID},
+{Name:"Cangkul",Price:80000,Stock:50,ImageURL:defaultImg,CategoryID:pertanian.ID},
+{Name:"Sekop",Price:70000,Stock:50,ImageURL:defaultImg,CategoryID:pertanian.ID},
+{Name:"Sprayer",Price:150000,Stock:50,ImageURL:defaultImg,CategoryID:pertanian.ID},
+{Name:"Polybag",Price:20000,Stock:50,ImageURL:defaultImg,CategoryID:pertanian.ID},
+{Name:"Bibit Cabai",Price:25000,Stock:50,ImageURL:defaultImg,CategoryID:pertanian.ID},
+{Name:"Bibit Tomat",Price:25000,Stock:50,ImageURL:defaultImg,CategoryID:pertanian.ID},
+
+// ================= MAINAN =================
+
+{Name:"Lego Classic",Price:350000,Stock:30,ImageURL:defaultImg,CategoryID:mainan.ID},
+{Name:"Hot Wheels",Price:50000,Stock:30,ImageURL:defaultImg,CategoryID:mainan.ID},
+{Name:"Rubik 3x3",Price:40000,Stock:30,ImageURL:defaultImg,CategoryID:mainan.ID},
+{Name:"Boneka Teddy",Price:80000,Stock:30,ImageURL:defaultImg,CategoryID:mainan.ID},
+{Name:"RC Car",Price:250000,Stock:30,ImageURL:defaultImg,CategoryID:mainan.ID},
+{Name:"Puzzle",Price:60000,Stock:30,ImageURL:defaultImg,CategoryID:mainan.ID},
+{Name:"UNO Card",Price:30000,Stock:30,ImageURL:defaultImg,CategoryID:mainan.ID},
+{Name:"Monopoly",Price:200000,Stock:30,ImageURL:defaultImg,CategoryID:mainan.ID},
+{Name:"Action Figure Naruto",Price:150000,Stock:30,ImageURL:defaultImg,CategoryID:mainan.ID},
+{Name:"Drone Mini",Price:500000,Stock:30,ImageURL:defaultImg,CategoryID:mainan.ID},
+
+// ================= LAINNYA =================
+
+{Name:"Kursi Plastik",Price:50000,Stock:30,ImageURL:defaultImg,CategoryID:lainnya.ID},
+{Name:"Meja Lipat",Price:150000,Stock:30,ImageURL:defaultImg,CategoryID:lainnya.ID},
+{Name:"Lampu LED",Price:40000,Stock:30,ImageURL:defaultImg,CategoryID:lainnya.ID},
+{Name:"Kipas Angin",Price:200000,Stock:30,ImageURL:defaultImg,CategoryID:lainnya.ID},
+{Name:"Jam Dinding",Price:70000,Stock:30,ImageURL:defaultImg,CategoryID:lainnya.ID},
+{Name:"Botol Minum",Price:60000,Stock:30,ImageURL:defaultImg,CategoryID:lainnya.ID},
+{Name:"Payung",Price:50000,Stock:30,ImageURL:defaultImg,CategoryID:lainnya.ID},
+{Name:"Tas Ransel",Price:200000,Stock:30,ImageURL:defaultImg,CategoryID:lainnya.ID},
+{Name:"Karpet",Price:150000,Stock:30,ImageURL:defaultImg,CategoryID:lainnya.ID},
+{Name:"Bantal",Price:80000,Stock:30,ImageURL:defaultImg,CategoryID:lainnya.ID},
+
+}
 
 	for _, p := range products {
+
 		var existing models.Product
+
 		slug := helper.GenerateSlug(p.Name)
 
 		if err := db.Where("slug = ?", slug).First(&existing).Error; err == nil {
@@ -190,15 +241,15 @@ func SeedProducts(db *gorm.DB) error {
 		}
 
 		p.Slug = slug
-		p.ImagePublicID = "manual_link"
+		p.ImagePublicID = "seed"
 
-		if err := db.Create(&p).Error; err != nil {
-			return err
-		}
+		db.Create(&p)
+
 	}
 
 	return nil
 }
+
 
 func SeedProductsFromAssets(db *gorm.DB) error {
 
