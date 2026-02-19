@@ -204,58 +204,99 @@ func SeedProductsFromAssets(db *gorm.DB) error {
 
 	assetDir := "AssetPrivate"
 
-	files, err := os.ReadDir(assetDir)
+	// category map
+	validCategories := map[string]string{
+		"laptop":      "Laptop",
+		"smartphone":  "Smartphone",
+		"accessories": "Accessories",
+		"networking":  "Networking",
+	}
+
+	// loop folder category
+	dirs, err := os.ReadDir(assetDir)
 	if err != nil {
 		return err
 	}
 
-	// default category = Accessories
-	var defaultCategory models.Category
-	if err := db.Where("name = ?", "Accessories").First(&defaultCategory).Error; err != nil {
-		return err
-	}
+	for _, dir := range dirs {
 
-	for _, file := range files {
-
-		if file.IsDir() {
+		if !dir.IsDir() {
 			continue
 		}
 
-		filePath := filepath.Join(assetDir, file.Name())
-		name := strings.TrimSuffix(file.Name(), filepath.Ext(file.Name()))
+		folderName := strings.ToLower(dir.Name())
 
-		var count int64
-		db.Model(&models.Product{}).
-			Where("name = ?", name).
-			Count(&count)
-
-		if count > 0 {
+		categoryName, ok := validCategories[folderName]
+		if !ok {
+			fmt.Println("Category not allowed:", folderName)
 			continue
 		}
 
-		uploadResult, err := helper.UploadImageFromFile(filePath, "products")
+		// find category in DB
+		var category models.Category
+		if err := db.Where("name = ?", categoryName).First(&category).Error; err != nil {
+			fmt.Println("Category not found:", categoryName)
+			continue
+		}
+
+		categoryPath := filepath.Join(assetDir, folderName)
+
+		files, err := os.ReadDir(categoryPath)
 		if err != nil {
-			fmt.Println("Upload failed:", err)
+			fmt.Println(err)
 			continue
 		}
 
-		product := models.Product{
-			Name:          name,
-			Slug:          helper.GenerateSlug(name),
-			Description:   name,
-			ImageURL:      uploadResult.SecureURL,
-			ImagePublicID: uploadResult.PublicID,
-			Price:         1000000,
-			Stock:         3200,
-			CategoryID:    defaultCategory.ID,
+		for _, file := range files {
+
+			if file.IsDir() {
+				continue
+			}
+
+			filePath := filepath.Join(categoryPath, file.Name())
+
+			name := strings.TrimSuffix(file.Name(), filepath.Ext(file.Name()))
+
+			var count int64
+
+			db.Model(&models.Product{}).
+				Where("name = ?", name).
+				Count(&count)
+
+			if count > 0 {
+				continue
+			}
+
+			uploadResult, err := helper.UploadImageFromFile(filePath, "products")
+
+			if err != nil {
+				fmt.Println("Upload failed:", err)
+				continue
+			}
+
+			product := models.Product{
+				Name:          name,
+				Slug:          helper.GenerateSlug(name),
+				Description:   name,
+				ImageURL:      uploadResult.SecureURL,
+				ImagePublicID: uploadResult.PublicID,
+				Price:         1000000,
+				Stock:         3200,
+				CategoryID:    category.ID,
+			}
+
+			if err := db.Create(&product).Error; err != nil {
+
+				fmt.Println("Insert failed:", err)
+
+				continue
+
+			}
+
+			fmt.Println("Seeded:", name, "Category:", categoryName)
+
 		}
 
-		if err := db.Create(&product).Error; err != nil {
-			fmt.Println("DB insert failed:", err)
-			continue
-		}
-
-		fmt.Println("Seeded:", name)
 	}
 
 	return nil
