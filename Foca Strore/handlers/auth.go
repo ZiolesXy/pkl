@@ -86,7 +86,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	var user models.User
 	if err := h.DB.Preload("Role").Where("email = ?", req.Email).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			response.ErrorResponse(c, http.StatusNotFound, "invalid email or password")
+			response.ErrorResponse(c, http.StatusBadRequest, "invalid email or password")
 		} else {
 			response.ErrorResponse(c, http.StatusInternalServerError, "database error")
 		}
@@ -94,7 +94,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	}
 
 	if err := helper.VerifyPassword(user.Password, req.Password); err != nil {
-		response.ErrorResponse(c, http.StatusNotFound, "invalid email or password")
+		response.ErrorResponse(c, http. StatusBadRequest, "invalid email or password")
 		return
 	}
 

@@ -26,24 +26,6 @@ func CreateProduct(db *gorm.DB) gin.HandlerFunc {
 			description := c.PostForm("description")
 			priceStr := c.PostForm("price")
 			stockStr := c.PostForm("stock")
-			categoryIDStr := c.PostForm("category_id")
-			if categoryIDStr == "" {
-				response.ErrorResponse(c, http.StatusBadRequest, "category is required")
-				return
-			}
-
-			var CategoryID uint
-			_, err := fmt.Sscanf(categoryIDStr, "%d", &CategoryID)
-			if err != nil {
-				response.ErrorResponse(c, http.StatusBadRequest, "invalid category_id")
-				return
-			}
-
-			var category models.Category
-			if err := db.First(&category, CategoryID).Error; err != nil {
-				response.ErrorResponse(c, http.StatusNotFound, "category not found")
-				return
-			}
 
 			if name == "" {
 				response.ErrorResponse(c, http.StatusBadRequest, "Name is required")
@@ -118,7 +100,6 @@ func CreateProduct(db *gorm.DB) gin.HandlerFunc {
 				ImagePublicID: imagePublicID, // ✅ INI YANG DIPERBAIKI
 				Price:         price,
 				Stock:         stock,
-				CategoryID:    CategoryID,
 			}
 
 			if err := db.Create(&product).Error; err != nil {
@@ -127,11 +108,17 @@ func CreateProduct(db *gorm.DB) gin.HandlerFunc {
 			}
 
 			// Build product response (without ImagePublicID)
-			if err := db.Preload("Category").First(&product, product.ID).Error; err != nil {
-				response.ErrorResponse(c, http.StatusBadRequest, err.Error())
-				return
-			}
-			productResp := response.BuildProductResponse(product)
+			productResp := response.BuildProductResponse(
+				product.ID,
+				product.Name,
+				product.Slug,
+				product.Description,
+				product.ImageURL,
+				product.Price,
+				product.Stock,
+				product.CreatedAt,
+				product.UpdatedAt,
+			)
 
 			response.SuccessResponse(c, "Product created successfully", productResp)
 		} else {
@@ -139,12 +126,6 @@ func CreateProduct(db *gorm.DB) gin.HandlerFunc {
 			var req request.CreateProductRequest
 			if err := c.ShouldBindJSON(&req); err != nil {
 				response.ErrorResponse(c, http.StatusBadRequest, "Invalid request body")
-				return
-			}
-
-			var category models.Category
-			if err := db.First(&category, req.CategoryID).Error; err != nil {
-				response.ErrorResponse(c, http.StatusBadRequest, "category not found")
 				return
 			}
 
@@ -179,7 +160,6 @@ func CreateProduct(db *gorm.DB) gin.HandlerFunc {
 				ImagePublicID: imagePublicID,
 				Price:         req.Price,
 				Stock:         req.Stock,
-				CategoryID:    req.CategoryID,
 			}
 
 			if err := db.Create(&product).Error; err != nil {
@@ -188,11 +168,17 @@ func CreateProduct(db *gorm.DB) gin.HandlerFunc {
 			}
 
 			// Build product response
-			if err := db.Preload("Category").First(&product, product.ID).Error; err != nil {
-				response.ErrorResponse(c, http.StatusBadRequest, err.Error())
-				return
-			}
-			productResp := response.BuildProductResponse(product)
+			productResp := response.BuildProductResponse(
+				product.ID,
+				product.Name,
+				product.Slug,
+				product.Description,
+				product.ImageURL,
+				product.Price,
+				product.Stock,
+				product.CreatedAt,
+				product.UpdatedAt,
+			)
 
 			response.SuccessResponse(c, "Product created successfully", productResp)
 		}
@@ -313,14 +299,6 @@ func UpdateProduct(db *gorm.DB) gin.HandlerFunc {
 			if req.Stock != nil {
 				updates["stock"] = *req.Stock
 			}
-			if req.CategoryID != nil {
-				var category models.Category
-				if err := db.First(&category, *req.CategoryID).Error; err != nil {
-					response.ErrorResponse(c, http.StatusNotFound, "category not found")
-					return
-				}
-				updates["category_id"] = *req.CategoryID
-			}
 
 			// Handle image URL update
 			if req.ImageURL != nil && *req.ImageURL != "" {
@@ -377,17 +355,23 @@ func UpdateProduct(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		// Reload product
-		if err := db.Preload("Category").First(&product, product.ID).Error; err != nil {
+		if err := db.First(&product, product.ID).Error; err != nil {
 			response.ErrorResponse(c, http.StatusInternalServerError, "Failed to reload product")
 			return
 		}
 
 		// Build product response
-		if err := db.Preload("Category").First(&product, product.ID).Error; err != nil {
-			response.ErrorResponse(c, http.StatusBadRequest, err.Error())
-			return
-		}
-		productResp := response.BuildProductResponse(product)
+		productResp := response.BuildProductResponse(
+			product.ID,
+			product.Name,
+			product.Slug,
+			product.Description,
+			product.ImageURL,
+			product.Price,
+			product.Stock,
+			product.CreatedAt,
+			product.UpdatedAt,
+		)
 
 		response.SuccessResponse(c, "Product updated successfully", productResp)
 	}
@@ -427,7 +411,7 @@ func GetProducts(db *gorm.DB) gin.HandlerFunc {
 		slug := c.Param("slug")
 		var product models.Product
 
-		if err := db.Preload("Category").Where("slug = ?", slug).First(&product).Error; err != nil {
+		if err := db.Where("slug = ?", slug).First(&product).Error; err != nil {
 			if err == gorm.ErrRecordNotFound {
 				response.ErrorResponse(c, http.StatusNotFound, "product not found")
 				return
@@ -436,11 +420,17 @@ func GetProducts(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		if err := db.Preload("Category").First(&product, product.ID).Error; err != nil {
-			response.ErrorResponse(c, http.StatusBadRequest, err.Error())
-			return
-		}
-		productResp := response.BuildProductResponse(product)
+		productResp := response.BuildProductResponse(
+			product.ID,
+			product.Name,
+			product.Slug,
+			product.Description,
+			product.ImageURL,
+			product.Price,
+			product.Stock,
+			product.CreatedAt,
+			product.UpdatedAt,
+		)
 
 		response.SuccessResponse(c, "product retrivied succesfully", productResp)
 	}
@@ -449,7 +439,7 @@ func GetProducts(db *gorm.DB) gin.HandlerFunc {
 func GetAllProducts(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var products []models.Product
-		if err := db.Preload("Category").Order("id ASC").Find(&products).Error; err != nil {
+		if err := db.Order("id ASC").Find(&products).Error; err != nil {
 			response.ErrorResponse(c, http.StatusInternalServerError, "Failed to fetch products")
 			return
 		}

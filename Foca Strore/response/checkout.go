@@ -57,7 +57,7 @@ func BuildCheckoutDetailResponse(checkout models.Checkout) CheckoutDetailRespons
 }
 
 func BuildCheckOutListResponse(checkouts []models.Checkout) CheckoutListResponse{
-	var response []CheckoutDetailResponse
+	response := []CheckoutDetailResponse{}
 
 	for _, checkout := range checkouts {
 		response = append(response, BuildCheckoutDetailResponse(checkout))

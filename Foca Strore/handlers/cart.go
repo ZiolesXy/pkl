@@ -20,7 +20,7 @@ func ViewCart(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		var cart models.Cart
-		if err := db.Preload("Items.Product").Where("user_id = ?", userID).First(&cart).Error; err != nil {
+		if err := db.Preload("Items.Product.Category").Where("user_id = ?", userID).First(&cart).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				// Create cart if not exists
 				cart = models.Cart{UserID: userID.(uint)}
@@ -29,7 +29,7 @@ func ViewCart(db *gorm.DB) gin.HandlerFunc {
 					return
 				}
 				// Reload cart
-				if err := db.Preload("Items.Product").First(&cart, cart.ID).Error; err != nil {
+				if err := db.Preload("Items.Product.Category").First(&cart, cart.ID).Error; err != nil {
 					response.ErrorResponse(c, http.StatusInternalServerError, "Failed to load cart")
 					return
 				}
@@ -46,15 +46,7 @@ func ViewCart(db *gorm.DB) gin.HandlerFunc {
 				continue
 			}
 			productResp := response.BuildProductResponse(
-				item.Product.ID,
-				item.Product.Name,
-				item.Product.Slug,
-				item.Product.Description,
-				item.Product.ImageURL,
-				item.Product.Price,
-				item.Product.Stock,
-				item.Product.CreatedAt,
-				item.Product.UpdatedAt,
+				*item.Product,
 			)
 			cartItemResp := response.BuildCartItemResponse(
 				item.ID,

@@ -38,7 +38,6 @@ func main() {
 	if err := db.AutoMigrate(
 		&models.Role{},
 		&models.User{},
-		&models.Category{},
 		&models.Product{},
 		&models.Cart{},
 		&models.CartItem{},

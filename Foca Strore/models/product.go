@@ -11,6 +11,8 @@ type Product struct {
 	ImagePublicID string
 	Price         float64 `gorm:"not null"`
 	Stock         int
+	CategoryID    uint
+	Category      *Category
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 	CartItems     []CartItem `gorm:"foreignKey:ProductID"`

@@ -1,13 +1,15 @@
 package handlers
 
 import (
-	"errors"
-	"fmt"
-	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
+	// "errors"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
+
+	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
+
 	"voca-store/helper"
 	"voca-store/models"
 	"voca-store/request"
@@ -16,298 +18,342 @@ import (
 
 func CreateProduct(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Check if it's multipart form using strings.HasPrefix
+
 		contentType := c.GetHeader("Content-Type")
 		isMultipart := strings.HasPrefix(contentType, "multipart/form-data")
 
+		var (
+			name, description string
+			price             float64
+			stock             int
+			categoryID        uint
+			imageURL          string
+			imagePublicID     string
+			err               error
+		)
+
+		// ==============================
+		// MULTIPART FORM
+		// ==============================
 		if isMultipart {
-			// Handle multipart form data
-			name := c.PostForm("name")
-			description := c.PostForm("description")
-			priceStr := c.PostForm("price")
-			stockStr := c.PostForm("stock")
+
+			name = c.PostForm("name")
+			description = c.PostForm("description")
 
 			if name == "" {
-				response.ErrorResponse(c, http.StatusBadRequest, "Name is required")
+				response.ErrorResponse(c, http.StatusBadRequest, "name is required")
+				return
+			}
+
+			// Parse category
+			categoryStr := c.PostForm("category_id")
+			if categoryStr == "" {
+				response.ErrorResponse(c, http.StatusBadRequest, "category_id is required")
+				return
+			}
+
+			catID64, err := strconv.ParseUint(categoryStr, 10, 64)
+			if err != nil {
+				response.ErrorResponse(c, http.StatusBadRequest, "invalid category_id")
+				return
+			}
+			categoryID = uint(catID64)
+
+			// Validate category
+			var category models.Category
+			if err := db.First(&category, categoryID).Error; err != nil {
+				response.ErrorResponse(c, http.StatusNotFound, "category not found")
 				return
 			}
 
 			// Parse price
-			var price float64
-			if priceStr != "" {
-				_, err := fmt.Sscanf(priceStr, "%f", &price)
-				if err != nil {
-					response.ErrorResponse(c, http.StatusBadRequest, "Invalid price format")
+			if priceStr := c.PostForm("price"); priceStr != "" {
+				price, err = strconv.ParseFloat(priceStr, 64)
+				if err != nil || price < 0 {
+					response.ErrorResponse(c, http.StatusBadRequest, "invalid price")
 					return
 				}
 			}
 
 			// Parse stock
-			var stock int
-			if stockStr != "" {
-				_, err := fmt.Sscanf(stockStr, "%d", &stock)
-				if err != nil {
-					response.ErrorResponse(c, http.StatusBadRequest, "Invalid stock format")
+			if stockStr := c.PostForm("stock"); stockStr != "" {
+				stock, err = strconv.Atoi(stockStr)
+				if err != nil || stock < 0 {
+					response.ErrorResponse(c, http.StatusBadRequest, "invalid stock")
 					return
 				}
 			}
 
-			// Handle file upload
-			var imageURL, imagePublicID string
-			file, err := c.FormFile("image")
-			if err == nil && file != nil {
-				// Save file temporarily
+			// Upload image (file)
+			if file, err := c.FormFile("image"); err == nil && file != nil {
 				tempPath := "/tmp/" + file.Filename
 				if err := c.SaveUploadedFile(file, tempPath); err != nil {
-					response.ErrorResponse(c, http.StatusInternalServerError, "Failed to save uploaded file")
+					response.ErrorResponse(c, http.StatusInternalServerError, "failed to save file")
 					return
 				}
 
-				// Upload to Cloudinary
 				uploadResult, err := helper.UploadImageFromFile(tempPath, "products")
-				if err != nil {
-					os.Remove(tempPath)
-					response.ErrorResponse(c, http.StatusInternalServerError, "Failed to upload image")
-					return
-				}
-
-				imageURL = uploadResult.SecureURL
-				imagePublicID = uploadResult.PublicID // ✅ SIMPAN PUBLIC ID
-
-				// Clean up temp file
 				os.Remove(tempPath)
-			} else if c.PostForm("image_url") != "" {
-				// Upload from URL
-				uploadResult, err := helper.UploadImageFromURL(c.PostForm("image_url"), "products")
+
 				if err != nil {
-					response.ErrorResponse(c, http.StatusInternalServerError, "Failed to upload image from URL")
+					response.ErrorResponse(c, http.StatusInternalServerError, "failed to upload image")
 					return
 				}
+
 				imageURL = uploadResult.SecureURL
-				imagePublicID = uploadResult.PublicID // ✅ SIMPAN PUBLIC ID
+				imagePublicID = uploadResult.PublicID
 			}
 
-			slug, err := helper.GenerateUniqueSlug(db, name)
-			if err != nil {
-				response.ErrorResponse(c, http.StatusInternalServerError, "failed to generate slug")
-				return
-			}
-			product := models.Product{
-				Name:          name,
-				Slug:          slug,
-				Description:   description,
-				ImageURL:      imageURL,
-				ImagePublicID: imagePublicID, // ✅ INI YANG DIPERBAIKI
-				Price:         price,
-				Stock:         stock,
-			}
-
-			if err := db.Create(&product).Error; err != nil {
-				response.ErrorResponse(c, http.StatusInternalServerError, "Failed to create product")
-				return
-			}
-
-			// Build product response (without ImagePublicID)
-			productResp := response.BuildProductResponse(
-				product.ID,
-				product.Name,
-				product.Slug,
-				product.Description,
-				product.ImageURL,
-				product.Price,
-				product.Stock,
-				product.CreatedAt,
-				product.UpdatedAt,
-			)
-
-			response.SuccessResponse(c, "Product created successfully", productResp)
 		} else {
-			// Handle JSON data
+			// ==============================
+			// JSON
+			// ==============================
+
 			var req request.CreateProductRequest
 			if err := c.ShouldBindJSON(&req); err != nil {
-				response.ErrorResponse(c, http.StatusBadRequest, "Invalid request body")
+				response.ErrorResponse(c, http.StatusBadRequest, "invalid request body")
 				return
 			}
 
-			// If imageURL is provided and is a URL, upload to Cloudinary
-			var imageURL, imagePublicID string
-			if req.ImageURL != "" {
-				if len(req.ImageURL) > 4 && (req.ImageURL[:4] == "http" || req.ImageURL[:5] == "https") {
-					uploadResult, err := helper.UploadImageFromURL(req.ImageURL, "products")
-					if err != nil {
-						response.ErrorResponse(c, http.StatusInternalServerError, "Failed to upload image from URL")
-						return
-					}
-					imageURL = uploadResult.SecureURL
-					imagePublicID = uploadResult.PublicID // ✅ SIMPAN PUBLIC ID
-				} else {
-					// Not a URL, treat as plain string (no upload)
-					imageURL = req.ImageURL
-					imagePublicID = "" // No public ID for non-Cloudinary URLs
+			name = req.Name
+			description = req.Description
+			price = req.Price
+			stock = req.Stock
+			categoryID = req.CategoryID
+
+			if name == "" {
+				response.ErrorResponse(c, http.StatusBadRequest, "name is required")
+				return
+			}
+
+			if price < 0 || stock < 0 {
+				response.ErrorResponse(c, http.StatusBadRequest, "price and stock must be positive")
+				return
+			}
+
+			var category models.Category
+			if err := db.First(&category, categoryID).Error; err != nil {
+				response.ErrorResponse(c, http.StatusNotFound, "category not found")
+				return
+			}
+
+			// Upload image from URL
+			if req.ImageURL != "" && strings.HasPrefix(req.ImageURL, "http") {
+				uploadResult, err := helper.UploadImageFromURL(req.ImageURL, "products")
+				if err != nil {
+					response.ErrorResponse(c, http.StatusInternalServerError, "failed to upload image")
+					return
 				}
+				imageURL = uploadResult.SecureURL
+				imagePublicID = uploadResult.PublicID
 			}
-
-			slug, err := helper.GenerateUniqueSlug(db, req.Name)
-			if err != nil {
-				response.ErrorResponse(c, http.StatusInternalServerError, "Failed to generate slug")
-				return
-			}
-			product := models.Product{
-				Name:          req.Name,
-				Slug:          slug,
-				Description:   req.Description,
-				ImageURL:      imageURL,
-				ImagePublicID: imagePublicID,
-				Price:         req.Price,
-				Stock:         req.Stock,
-			}
-
-			if err := db.Create(&product).Error; err != nil {
-				response.ErrorResponse(c, http.StatusInternalServerError, "Failed to create product")
-				return
-			}
-
-			// Build product response
-			productResp := response.BuildProductResponse(
-				product.ID,
-				product.Name,
-				product.Slug,
-				product.Description,
-				product.ImageURL,
-				product.Price,
-				product.Stock,
-				product.CreatedAt,
-				product.UpdatedAt,
-			)
-
-			response.SuccessResponse(c, "Product created successfully", productResp)
 		}
+
+		// Generate unique slug
+		slug, err := helper.GenerateUniqueSlug(db, name)
+		if err != nil {
+			response.ErrorResponse(c, http.StatusInternalServerError, "failed to generate slug")
+			return
+		}
+
+		product := models.Product{
+			Name:          name,
+			Slug:          slug,
+			Description:   description,
+			ImageURL:      imageURL,
+			ImagePublicID: imagePublicID,
+			Price:         price,
+			Stock:         stock,
+			CategoryID:    categoryID,
+		}
+
+		if err := db.Create(&product).Error; err != nil {
+			response.ErrorResponse(c, http.StatusInternalServerError, "failed to create product")
+			return
+		}
+
+		db.Preload("Category").First(&product, product.ID)
+
+		productResp := response.BuildProductResponse(product)
+		response.SuccessResponse(c, "product created successfully", productResp)
 	}
 }
 
 func UpdateProduct(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		productID := c.Param("id")
+
 		var product models.Product
-		if err := db.First(&product, productID).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				response.ErrorResponse(c, http.StatusNotFound, "Product not found")
-			} else {
-				response.ErrorResponse(c, http.StatusInternalServerError, "Failed to fetch product")
-			}
+		if err := db.First(&product, c.Param("id")).Error; err != nil {
+			response.ErrorResponse(c, http.StatusNotFound, "product not found")
 			return
 		}
 
-		// Store old image info for cleanup
-		// oldImageURL := product.ImageURL
 		oldImagePublicID := product.ImagePublicID
+		newImagePublicID := ""
+		updates := make(map[string]interface{})
 
-		// Handle multipart form for image upload
 		contentType := c.GetHeader("Content-Type")
 		isMultipart := strings.HasPrefix(contentType, "multipart/form-data")
 
-		var newImagePublicID string
-		updates := make(map[string]interface{})
-
+		// ======================================================
+		// MULTIPART FORM
+		// ======================================================
 		if isMultipart {
-			// Handle multipart form data
+
+			// NAME
 			if name := c.PostForm("name"); name != "" {
 				updates["name"] = name
 
 				slug, err := helper.GenerateUniqueSlug(db, name)
 				if err != nil {
-					response.ErrorResponse(c, http.StatusInternalServerError, "Failed to generate slug")
+					response.ErrorResponse(c, http.StatusInternalServerError, "failed to generate slug")
 					return
 				}
 				updates["slug"] = slug
 			}
-			if description := c.PostForm("description"); description != "" {
-				updates["description"] = description
+
+			// DESCRIPTION
+			if desc := c.PostForm("description"); desc != "" {
+				updates["description"] = desc
 			}
+
+			// PRICE
 			if priceStr := c.PostForm("price"); priceStr != "" {
-				var price float64
-				_, err := fmt.Sscanf(priceStr, "%f", &price)
-				if err != nil {
-					response.ErrorResponse(c, http.StatusBadRequest, "Invalid price format")
+				price, err := strconv.ParseFloat(priceStr, 64)
+				if err != nil || price < 0 {
+					response.ErrorResponse(c, http.StatusBadRequest, "invalid price")
 					return
 				}
 				updates["price"] = price
 			}
+
+			// STOCK
 			if stockStr := c.PostForm("stock"); stockStr != "" {
-				var stock int
-				_, err := fmt.Sscanf(stockStr, "%d", &stock)
-				if err != nil {
-					response.ErrorResponse(c, http.StatusBadRequest, "Invalid stock format")
+				stock, err := strconv.Atoi(stockStr)
+				if err != nil || stock < 0 {
+					response.ErrorResponse(c, http.StatusBadRequest, "invalid stock")
 					return
 				}
 				updates["stock"] = stock
 			}
 
-			// Handle file upload
-			file, err := c.FormFile("image")
-			if err == nil && file != nil {
-				// Save file temporarily
+			// CATEGORY (🔥 FIX BUG DI SINI)
+			if categoryStr := c.PostForm("category_id"); categoryStr != "" {
+				catID64, err := strconv.ParseUint(categoryStr, 10, 64)
+				if err != nil {
+					response.ErrorResponse(c, http.StatusBadRequest, "invalid category_id")
+					return
+				}
+
+				var category models.Category
+				if err := db.First(&category, uint(catID64)).Error; err != nil {
+					response.ErrorResponse(c, http.StatusNotFound, "category not found")
+					return
+				}
+
+				updates["category_id"] = uint(catID64)
+			}
+
+			// IMAGE FILE
+			if file, err := c.FormFile("image"); err == nil && file != nil {
 				tempPath := "/tmp/" + file.Filename
 				if err := c.SaveUploadedFile(file, tempPath); err != nil {
-					response.ErrorResponse(c, http.StatusInternalServerError, "Failed to save uploaded file")
+					response.ErrorResponse(c, http.StatusInternalServerError, "failed to save file")
 					return
 				}
 
-				// Upload to Cloudinary
 				uploadResult, err := helper.UploadImageFromFile(tempPath, "products")
-				if err != nil {
-					os.Remove(tempPath)
-					response.ErrorResponse(c, http.StatusInternalServerError, "Failed to upload image")
-					return
-				}
-
-				updates["image_url"] = uploadResult.SecureURL
-				updates["image_public_id"] = uploadResult.PublicID
-				newImagePublicID = uploadResult.PublicID
-
-				// Clean up temp file
 				os.Remove(tempPath)
-			} else if c.PostForm("image_url") != "" {
-				// Upload from URL
-				uploadResult, err := helper.UploadImageFromURL(c.PostForm("image_url"), "products")
+
 				if err != nil {
-					response.ErrorResponse(c, http.StatusInternalServerError, "Failed to upload image from URL")
+					response.ErrorResponse(c, http.StatusInternalServerError, "failed upload image")
 					return
 				}
+
 				updates["image_url"] = uploadResult.SecureURL
 				updates["image_public_id"] = uploadResult.PublicID
 				newImagePublicID = uploadResult.PublicID
 			}
+
+			// IMAGE URL
+			if imageURL := c.PostForm("image_url"); imageURL != "" {
+				uploadResult, err := helper.UploadImageFromURL(imageURL, "products")
+				if err != nil {
+					response.ErrorResponse(c, http.StatusInternalServerError, "failed upload image")
+					return
+				}
+
+				updates["image_url"] = uploadResult.SecureURL
+				updates["image_public_id"] = uploadResult.PublicID
+				newImagePublicID = uploadResult.PublicID
+			}
+
 		} else {
-			// Handle JSON data
+
+			// ======================================================
+			// JSON
+			// ======================================================
+
 			var req request.UpdateProductRequest
 			if err := c.ShouldBindJSON(&req); err != nil {
-				response.ErrorResponse(c, http.StatusBadRequest, "Invalid request body")
+				response.ErrorResponse(c, http.StatusBadRequest, "invalid request body")
 				return
 			}
 
+			// NAME
 			if req.Name != nil {
 				updates["name"] = *req.Name
-				updates["slug"] = helper.GenerateSlug(*req.Name)
+
+				slug, err := helper.GenerateUniqueSlug(db, *req.Name)
+				if err != nil {
+					response.ErrorResponse(c, http.StatusInternalServerError, "failed to generate slug")
+					return
+				}
+				updates["slug"] = slug
 			}
+
+			// DESCRIPTION
 			if req.Description != nil {
 				updates["description"] = *req.Description
 			}
+
+			// PRICE
 			if req.Price != nil {
+				if *req.Price < 0 {
+					response.ErrorResponse(c, http.StatusBadRequest, "invalid price")
+					return
+				}
 				updates["price"] = *req.Price
 			}
+
+			// STOCK
 			if req.Stock != nil {
+				if *req.Stock < 0 {
+					response.ErrorResponse(c, http.StatusBadRequest, "invalid stock")
+					return
+				}
 				updates["stock"] = *req.Stock
 			}
 
-			// Handle image URL update
-			if req.ImageURL != nil && *req.ImageURL != "" {
-				// Upload from URL
-				uploadResult, err := helper.UploadImageFromURL(*req.ImageURL, "products")
-				if err != nil {
-					response.ErrorResponse(c, http.StatusInternalServerError, "Failed to upload image from URL")
+			// CATEGORY (🔥 FIX BUG DI SINI)
+			if req.CategoryID != nil {
+				var category models.Category
+				if err := db.First(&category, *req.CategoryID).Error; err != nil {
+					response.ErrorResponse(c, http.StatusNotFound, "category not found")
 					return
 				}
+
+				updates["category_id"] = *req.CategoryID
+			}
+
+			// IMAGE URL
+			if req.ImageURL != nil && *req.ImageURL != "" {
+				uploadResult, err := helper.UploadImageFromURL(*req.ImageURL, "products")
+				if err != nil {
+					response.ErrorResponse(c, http.StatusInternalServerError, "failed upload image")
+					return
+				}
+
 				updates["image_url"] = uploadResult.SecureURL
 				updates["image_public_id"] = uploadResult.PublicID
 				newImagePublicID = uploadResult.PublicID
@@ -315,137 +361,84 @@ func UpdateProduct(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		if len(updates) == 0 {
-			response.ErrorResponse(c, http.StatusBadRequest, "No fields to update")
+			response.ErrorResponse(c, http.StatusBadRequest, "no fields to update")
 			return
 		}
 
 		if err := db.Model(&product).Updates(updates).Error; err != nil {
-			// If update failed but new image was uploaded, clean up Cloudinary
 			if newImagePublicID != "" {
 				helper.DeleteImage(newImagePublicID)
 			}
-			response.ErrorResponse(c, http.StatusInternalServerError, "Failed to update product")
+			response.ErrorResponse(c, http.StatusInternalServerError, "failed to update product")
 			return
 		}
 
-		// DELETE OLD IMAGE FROM CLOUDINARY IF IT WAS UPDATED
+		// Delete old image if replaced
 		if oldImagePublicID != "" && newImagePublicID != "" {
-			// Delete the old image since we have a new one
-			if err := helper.DeleteImage(oldImagePublicID); err != nil {
-				// Log error but don't fail the entire operation
-				fmt.Printf("Warning: Failed to delete old image %s: %v\n", oldImagePublicID, err)
-			}
-		} else if oldImagePublicID != "" {
-			// Check if image was explicitly cleared
-			if isMultipart {
-				if c.PostForm("image_url") == "" {
-					if err := helper.DeleteImage(oldImagePublicID); err != nil {
-						fmt.Printf("Warning: Failed to delete old image %s: %v\n", oldImagePublicID, err)
-					}
-				}
-			} else {
-				// For JSON, check if req exists and image_url is empty
-				var reqForCheck request.UpdateProductRequest
-				if c.ShouldBindJSON(&reqForCheck) == nil && reqForCheck.ImageURL != nil && *reqForCheck.ImageURL == "" {
-					if err := helper.DeleteImage(oldImagePublicID); err != nil {
-						fmt.Printf("Warning: Failed to delete old image %s: %v\n", oldImagePublicID, err)
-					}
-				}
-			}
+			helper.DeleteImage(oldImagePublicID)
 		}
 
-		// Reload product
-		if err := db.First(&product, product.ID).Error; err != nil {
-			response.ErrorResponse(c, http.StatusInternalServerError, "Failed to reload product")
+		// Reload product with category
+		if err := db.Preload("Category").First(&product, product.ID).Error; err != nil {
+			response.ErrorResponse(c, http.StatusInternalServerError, "failed to reload product")
 			return
 		}
 
-		// Build product response
-		productResp := response.BuildProductResponse(
-			product.ID,
-			product.Name,
-			product.Slug,
-			product.Description,
-			product.ImageURL,
-			product.Price,
-			product.Stock,
-			product.CreatedAt,
-			product.UpdatedAt,
-		)
-
-		response.SuccessResponse(c, "Product updated successfully", productResp)
+		productResp := response.BuildProductResponse(product)
+		response.SuccessResponse(c, "product updated successfully", productResp)
 	}
 }
 
 func DeleteProduct(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		productID := c.Param("id")
+
 		var product models.Product
-		if err := db.First(&product, productID).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				response.ErrorResponse(c, http.StatusNotFound, "Product not found")
-			} else {
-				response.ErrorResponse(c, http.StatusInternalServerError, "Failed to fetch product")
-			}
+		if err := db.First(&product, c.Param("id")).Error; err != nil {
+			response.ErrorResponse(c, http.StatusNotFound, "product not found")
 			return
 		}
 
-		// Delete image from Cloudinary if exists
 		if product.ImagePublicID != "" {
-			if err := helper.DeleteImage(product.ImagePublicID); err != nil {
-				fmt.Printf("Warning: Failed to delete image %s: %v\n", product.ImagePublicID, err)
-			}
+			helper.DeleteImage(product.ImagePublicID)
 		}
 
 		if err := db.Delete(&product).Error; err != nil {
-			response.ErrorResponse(c, http.StatusInternalServerError, "Failed to delete product")
+			response.ErrorResponse(c, http.StatusInternalServerError, "failed to delete product")
 			return
 		}
 
-		response.SuccessResponse(c, "Product deleted successfully", nil)
+		response.SuccessResponse(c, "product deleted successfully", nil)
 	}
 }
 
-func GetProducts(db *gorm.DB) gin.HandlerFunc {
+func GetProductBySlug(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		slug := c.Param("slug")
-		var product models.Product
 
-		if err := db.Where("slug = ?", slug).First(&product).Error; err != nil {
-			if err == gorm.ErrRecordNotFound {
-				response.ErrorResponse(c, http.StatusNotFound, "product not found")
-				return
-			}
-			response.ErrorResponse(c, http.StatusInternalServerError, "failed to fetch product")
+		var product models.Product
+		if err := db.Preload("Category").
+			Where("slug = ?", c.Param("slug")).
+			First(&product).Error; err != nil {
+			response.ErrorResponse(c, http.StatusNotFound, "product not found")
 			return
 		}
 
-		productResp := response.BuildProductResponse(
-			product.ID,
-			product.Name,
-			product.Slug,
-			product.Description,
-			product.ImageURL,
-			product.Price,
-			product.Stock,
-			product.CreatedAt,
-			product.UpdatedAt,
-		)
-
-		response.SuccessResponse(c, "product retrivied succesfully", productResp)
+		productResp := response.BuildProductResponse(product)
+		response.SuccessResponse(c, "product retrieved successfully", productResp)
 	}
 }
 
 func GetAllProducts(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
+
 		var products []models.Product
-		if err := db.Order("id ASC").Find(&products).Error; err != nil {
-			response.ErrorResponse(c, http.StatusInternalServerError, "Failed to fetch products")
+		if err := db.Preload("Category").
+			Order("id ASC").
+			Find(&products).Error; err != nil {
+			response.ErrorResponse(c, http.StatusInternalServerError, "failed to fetch products")
 			return
 		}
 
-		// Build product responses
 		productResponses := response.BuildProductListResponse(products)
-		response.SuccessListResponse(c, "Products retrieved successfully", productResponses)
+		response.SuccessListResponse(c, "products retrieved successfully", productResponses)
 	}
 }

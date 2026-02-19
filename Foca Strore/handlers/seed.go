@@ -96,15 +96,14 @@ func SeedAllHandler(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
+		if err := seeders.SeedCategories(db); err != nil {
+			response.ErrorResponse(c, http.StatusInternalServerError, "Failed to seed category")
+		}
+
 		if err := seeders.SeedUsers(db); err != nil {
 			response.ErrorResponse(c, http.StatusInternalServerError, "Failed to seed users")
 			return
 		}
-
-		// if err := seeders.SeedProducts(db); err != nil {
-		// 	response.ErrorResponse(c, http.StatusInternalServerError, "Failed to seed products")
-		// 	return
-		// }
 
 		response.SuccessResponse(c, "All data seeded successfully", nil)
 	}

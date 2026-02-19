@@ -38,6 +38,7 @@ func main() {
 	if err := db.AutoMigrate(
 		&models.Role{},
 		&models.User{},
+		&models.Category{},
 		&models.Product{},
 		&models.Cart{},
 		&models.CartItem{},
@@ -52,8 +53,8 @@ func main() {
 
 	//cors set
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000"},
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowOrigins:     []string{"http://localhost:3000", "http://172.16.17.79:172", "http://172.16.17.79:3000", "http://localhost:172"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
@@ -64,7 +65,9 @@ func main() {
 	r.POST("/register", authHandler.Register)
 	r.POST("/login", authHandler.Login)
 	r.POST("/refresh", authHandler.RefreshToken)
-	r.GET("/products", handlers.GetProducts(db))
+	r.GET("/category", handlers.GetAllCategory(db))
+	r.GET("/product/:slug", handlers.GetProductBySlug(db))
+	r.GET("/products", handlers.GetAllProducts(db))
 
 	// Protected routes
 	protected := r.Group("/api")
@@ -73,17 +76,19 @@ func main() {
 		// User routes
 		protected.GET("/profile", handlers.GetProfile(db))
 		protected.PUT("/profile", handlers.UpdateProfile(db))
-		protected.GET("/products", handlers.GetAllProducts(db))
-		protected.GET("/product/:slug", handlers.GetProducts(db))
 		protected.GET("/cart", handlers.ViewCart(db))
 		protected.POST("/cart/items", handlers.AddToCart(db))
 		protected.DELETE("/cart/items/:id", handlers.RemoveCartItem(db))
 		protected.POST("/checkout", handlers.Checkout(db))
+		protected.GET("/checkout/me", handlers.GetMyCheckout(db))
 
 		// Admin routes
 		admin := protected.Group("/admin")
 		admin.Use(middleware.AdminOnly())
 		{
+			admin.POST("/category", handlers.CreateCategory(db))
+			admin.PUT("/category/:id", handlers.UpdateCategory(db))
+			admin.DELETE("/category/:id", handlers.DeleteCategory(db))
 			admin.POST("/products", handlers.CreateProduct(db))
 			admin.PUT("/products/:id", handlers.UpdateProduct(db))
 			admin.DELETE("/products/:id", handlers.DeleteProduct(db))

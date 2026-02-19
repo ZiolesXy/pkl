@@ -1,4 +1,4 @@
-# E-commerce Backend API
+# Foca Store Backend API
 
 Aplikasi backend e-commerce sederhana menggunakan Golang, Gin, GORM, PostgreSQL, dan JWT.
 
@@ -7,8 +7,10 @@ Aplikasi backend e-commerce sederhana menggunakan Golang, Gin, GORM, PostgreSQL,
 - **Authentication**: Register, Login, Access Token (15 menit), Refresh Token (7 hari)
 - **Role-based Authorization**: Admin dan User
 - **Product Management**: CRUD produk (Admin only)
+- **Category Management**: CRUD kategori produk (Admin only)
 - **Cart System**: Add to cart, View cart, Remove item
 - **Checkout System**: Checkout dengan status (pending, success, failed)
+- **Image Upload**: Cloudinary integration untuk product images
 - **Seeder**: Endpoint untuk seeding data awal
 
 ---
@@ -17,7 +19,7 @@ Aplikasi backend e-commerce sederhana menggunakan Golang, Gin, GORM, PostgreSQL,
 
 ### Prasyarat
 
-- Go 1.19+
+- Go 1.24+
 - PostgreSQL 12+
 - Git
 
@@ -27,7 +29,7 @@ Aplikasi backend e-commerce sederhana menggunakan Golang, Gin, GORM, PostgreSQL,
 
 ```bash
 git clone <repository-url>
-cd voca-store
+cd "Foca Strore Test"
 ```
 
 2. Install dependencies:
@@ -49,7 +51,7 @@ DB_HOST=localhost
 DB_PORT=5432
 DB_USER=postgres
 DB_PASSWORD=your_password
-DB_NAME=voca_store
+DB_NAME=foca_store
 JWT_SECRET=your_super_secret_jwt_key_here_min_32_chars
 CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
 CLOUDINARY_API_KEY=your_cloudinary_api_key
@@ -64,7 +66,7 @@ PORT=8080
 1. Buat database PostgreSQL:
 
 ```sql
-CREATE DATABASE voca_store;
+CREATE DATABASE foca_store;
 ```
 
 2. Pastikan user PostgreSQL memiliki akses ke database tersebut.
@@ -121,7 +123,7 @@ GET http://localhost:8080/seed/all
 Data yang di-seed:
 
 - **Roles**: Admin, User
-- **Admin**: 1 admin (email: admin@voca-store.com, password: admin123)
+- **Admin**: 1 admin (email: admin@foca-store.com, password: admin123)
 - **Users**: 3 sample users dengan password: password123
 - **Products**: 5 sample products (dapat ditambah melalui endpoint /seed/products atau /seed/assets)
 
@@ -164,6 +166,12 @@ Data yang di-seed:
 - `POST /api/admin/products` - Buat produk baru
 - `PUT /api/admin/products/:id` - Update produk
 - `DELETE /api/admin/products/:id` - Hapus produk
+
+### Categories Management (Admin Only)
+
+- `POST /api/admin/categories` - Buat kategori baru
+- `PUT /api/admin/categories/:id` - Update kategori
+- `DELETE /api/admin/categories/:id` - Hapus kategori
 
 ### Checkout Management (Admin Only)
 
@@ -239,7 +247,7 @@ curl -X GET http://localhost:8080/api/cart \
 curl -X POST http://localhost:8080/api/admin/products \
   -H "Authorization: Bearer <admin_access_token>" \
   -H "Content-Type: application/json" \
-  -d '{"name":"New Product","price":100000,"stock":50}'
+  -d '{"name":"New Product","price":100000,"stock":50,"categoryId":1}'
 ```
 
 ---
@@ -257,20 +265,23 @@ curl -X POST http://localhost:8080/api/admin/products \
 ## Struktur Folder
 
 ```
-voca-store/
+Foca Strore Test/
 ├── main.go
 ├── database/
 │   └── database.go
 ├── models/
 │   ├── role.go
 │   ├── user.go
+│   ├── category.go
 │   ├── product.go
 │   ├── cart.go
 │   ├── cart_item.go
 │   ├── checkout.go
-│   └── checkout_item.go
+│   ├── checkout_item.go
+│   └── refresh_token.go
 ├── request/
 │   ├── auth.go
+│   ├── category.go
 │   ├── product.go
 │   ├── cart.go
 │   ├── checkout.go
@@ -278,10 +289,13 @@ voca-store/
 ├── response/
 │   ├── response.go
 │   ├── auth.go
+│   ├── category.go
 │   ├── product.go
 │   ├── cart.go
 │   ├── checkout.go
-│   └── profile.go
+│   ├── profile.go
+│   ├── role.go
+│   └── user.go
 ├── handlers/
 │   ├── auth.go
 │   ├── product.go
@@ -295,7 +309,9 @@ voca-store/
 ├── helper/
 │   ├── jwt.go
 │   ├── cloudinary.go
-│   └── slug.go
+│   ├── slug.go
+│   ├── password.go
+│   └── context.go
 ├── seeders/
 │   └── seed.go
 ├── trash/

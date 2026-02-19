@@ -26,7 +26,7 @@ func BuildCategoryResponse(category models.Category) CategoryResponse {
 }
 
 func BuildCategoryListResponse(categories []models.Category) CategoryListResponse {
-	var response []CategoryResponse
+	response := []CategoryResponse{}
 
 	for _, c := range categories {
 		response = append(response, BuildCategoryResponse(c))

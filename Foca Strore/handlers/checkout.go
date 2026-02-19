@@ -215,7 +215,7 @@ func GetCheckout(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// status := c.Query("status")
 
-		var checkouts []models.Checkout
+		checkouts := []models.Checkout{}
 
 		query := db.
 			Preload("User").
@@ -230,5 +230,36 @@ func GetCheckout(db *gorm.DB) gin.HandlerFunc {
 
 		res := response.BuildCheckOutListResponse(checkouts)
 		response.SuccessListResponse(c, "checkout list fetched", res)
+	}
+}
+
+func GetMyCheckout(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+
+		userIDRaw, exists := c.Get("user_id")
+		if !exists {
+			response.ErrorResponse(c, http.StatusUnauthorized, "unauthorized")
+			return
+		}
+
+		userID := userIDRaw.(uint)
+
+		var checkouts []models.Checkout
+
+		if err := db.
+			Preload("User").
+			Preload("Items").
+			Preload("Items.Product").
+			Where("user_id = ?", userID).
+			Order("created_at DESC").
+			Find(&checkouts).Error; err != nil {
+
+			response.ErrorResponse(c, http.StatusInternalServerError, "failed to fetch checkout")
+			return
+		}
+
+		res := response.BuildCheckOutListResponse(checkouts)
+		
+		response.SuccessListResponse(c, "your checkout list fetched", res)
 	}
 }

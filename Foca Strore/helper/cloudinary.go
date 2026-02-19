@@ -89,6 +89,7 @@ func DeleteImage(publicID string) error {
 	// Perbaikan: Gunakan struct DestroyParams dan masukkan PublicID di dalamnya
 	_, err := cloudinaryInstance.Upload.Destroy(context.Background(), uploader.DestroyParams{
 		PublicID: publicID,
+		Invalidate: ptrBool(true),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to delete image: %w", err)
