@@ -92,6 +92,7 @@ func main() {
 			admin.POST("/products", handlers.CreateProduct(db))
 			admin.PUT("/products/:id", handlers.UpdateProduct(db))
 			admin.DELETE("/products/:id", handlers.DeleteProduct(db))
+			admin.DELETE("/products", handlers.DeleteAllProducts(db))
 			admin.GET("/checkout", handlers.GetCheckout(db))
 			admin.PATCH("/checkout/:id/approve", handlers.ApproveCheckout(db))
 			admin.PATCH("/checkout/:id/reject", handlers.RejectCheckout(db))

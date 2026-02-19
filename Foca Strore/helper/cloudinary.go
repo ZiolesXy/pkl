@@ -82,18 +82,29 @@ func UploadImageFromURL(imageURL string, folder string) (*UploadResult, error) {
 }
 
 func DeleteImage(publicID string) error {
+
 	if cloudinaryInstance == nil {
 		return errors.New("cloudinary not initialized")
 	}
 
-	// Perbaikan: Gunakan struct DestroyParams dan masukkan PublicID di dalamnya
-	_, err := cloudinaryInstance.Upload.Destroy(context.Background(), uploader.DestroyParams{
-		PublicID: publicID,
-		Invalidate: ptrBool(true),
-	})
+	resp, err := cloudinaryInstance.Upload.Destroy(
+		context.Background(),
+		uploader.DestroyParams{
+			PublicID:   publicID,
+			Invalidate: ptrBool(true),
+		},
+	)
+
 	if err != nil {
-		return fmt.Errorf("failed to delete image: %w", err)
+		return fmt.Errorf("cloudinary delete error: %w", err)
 	}
+
+	// VALIDASI WAJIB
+	if resp.Result != "ok" {
+		return fmt.Errorf("cloudinary deletion failed: %s", resp.Result)
+	}
+
+	fmt.Println("Cloudinary deleted:", publicID)
 
 	return nil
 }

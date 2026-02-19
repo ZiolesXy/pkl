@@ -2,6 +2,7 @@ package handlers
 
 import (
 	// "errors"
+	"fmt"
 	"net/http"
 	"os"
 	"strconv"
@@ -440,5 +441,80 @@ func GetAllProducts(db *gorm.DB) gin.HandlerFunc {
 
 		productResponses := response.BuildProductListResponse(products)
 		response.SuccessListResponse(c, "products retrieved successfully", productResponses)
+	}
+}
+
+func DeleteAllProducts(db *gorm.DB) gin.HandlerFunc {
+
+	return func(c *gin.Context) {
+
+		var products []models.Product
+
+		// ambil semua product
+		if err := db.Find(&products).Error; err != nil {
+
+			response.ErrorResponse(
+				c,
+				http.StatusInternalServerError,
+				"failed get products",
+			)
+
+			return
+		}
+
+		// jika kosong
+		if len(products) == 0 {
+
+			response.SuccessResponse(
+				c,
+				"no products to delete",
+				nil,
+			)
+
+			return
+		}
+
+		// delete semua image cloudinary
+		deletedCount := 0
+
+		for _, product := range products {
+
+			if product.ImagePublicID != "" {
+
+				err := helper.DeleteImage(product.ImagePublicID)
+
+				if err != nil {
+
+					fmt.Println("Cloudinary delete failed:", err)
+
+					continue
+				}
+
+				deletedCount++
+
+			}
+		}
+
+		// delete semua product db
+		if err := db.Where("1 = 1").Delete(&models.Product{}).Error; err != nil {
+
+			response.ErrorResponse(
+				c,
+				http.StatusInternalServerError,
+				"failed delete products",
+			)
+
+			return
+		}
+
+		response.SuccessResponse(
+			c,
+			fmt.Sprintf(
+				"all products deleted successfully (%d images removed)",
+				deletedCount,
+			),
+			nil,
+		)
+
 	}
 }
