@@ -92,6 +92,8 @@ func DeleteImage(publicID string) error {
 		uploader.DestroyParams{
 			PublicID:   publicID,
 			Invalidate: ptrBool(true),
+			ResourceType: "image",
+			Type: "upload",
 		},
 	)
 
