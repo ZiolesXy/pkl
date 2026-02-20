@@ -53,7 +53,7 @@ func main() {
 
 	//cors set
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000", "http://172.16.17.79:172", "http://172.16.17.79:3000", "http://localhost:172"},
+		AllowOrigins:     []string{"http://localhost:3000", "http://172.16.17.79:172", "http://172.16.17.79:3000", "http://localhost:172", "https://undeliberatingly-decemviral-petronila.ngrok-free.dev "},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		AllowCredentials: true,
