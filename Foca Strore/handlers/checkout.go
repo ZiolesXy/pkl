@@ -8,40 +8,56 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 func Checkout(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
+		// AUTH
 		userIDRaw, exist := c.Get("user_id")
 		if !exist {
 			response.ErrorResponse(c, http.StatusUnauthorized, "unauthorized")
 			return
 		}
+
 		userID := userIDRaw.(uint)
 
+		// REQUEST
 		var req request.CheckoutRequest
+
 		if err := c.ShouldBindJSON(&req); err != nil {
 			response.ErrorResponse(c, http.StatusBadRequest, err.Error())
 			return
 		}
 
+		// TRANSACTION START
 		tx := db.Begin()
+		defer func() {
+			if r := recover(); r != nil {
+				tx.Rollback()
+			}
+		}()
 
+		// GET CART
 		var cart models.Cart
-		if err := tx.Where("user_id = ?", userID).
-			First(&cart).Error; err != nil {
 
+		if err := tx.
+			Where("user_id = ?", userID).
+			First(&cart).Error; err != nil {
 			tx.Rollback()
 			response.ErrorResponse(c, http.StatusNotFound, "cart not found")
 			return
 		}
 
+		// GET CART ITEMS + LOCK
 		var items []models.CartItem
-		if err := tx.Preload("Product").
+
+		if err := tx.
+			Clauses(clause.Locking{Strength: "UPDATE"}).
+			Preload("Product").
 			Where("cart_id = ? AND id IN ?", cart.ID, req.CartItemIDs).
 			Find(&items).Error; err != nil {
-
 			tx.Rollback()
 			response.ErrorResponse(c, http.StatusInternalServerError, "failed fetch items")
 			return
@@ -53,41 +69,96 @@ func Checkout(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
+		// CALCULATE TOTAL + UPDATE STOCK
 		totalPrice := 0.0
 
 		for _, item := range items {
-
 			if item.Product.Stock < item.Quantity {
 				tx.Rollback()
-				response.ErrorResponse(c, http.StatusBadRequest, "insufficient stock for "+item.Product.Name)
+				response.ErrorResponse(
+					c,
+					http.StatusBadRequest,
+					"insufficient stock for "+item.Product.Name,
+				)
 				return
 			}
 
-			if err := tx.Model(&models.Product{}).
+			err := tx.Model(&models.Product{}).
 				Where("id = ?", item.ProductID).
-				Update("stock", gorm.Expr("stock - ?", item.Quantity)).Error; err != nil {
+				Update("stock", gorm.Expr("stock - ?", item.Quantity)).
+				Error
 
+			if err != nil {
 				tx.Rollback()
-				response.ErrorResponse(c, http.StatusInternalServerError, "failed update stock")
+				response.ErrorResponse(c, 500, "failed update stock")
 				return
 			}
 
 			totalPrice += item.Product.Price * float64(item.Quantity)
+
 		}
 
+		// APPLY COUPON
+		var coupon models.Coupon
+
+		if req.CouponCode != nil && *req.CouponCode != "" {
+
+			err := tx.
+				Clauses(clause.Locking{Strength: "UPDATE"}).
+				Where("code = ?", *req.CouponCode).
+				First(&coupon).Error
+
+			if err != nil {
+				tx.Rollback()
+				response.ErrorResponse(c, 400, "invalid coupon")
+				return
+			}
+
+			// APPLY DISCOUNT
+			if coupon.Type == "percentage" {
+				totalPrice -= totalPrice * coupon.Value / 100
+			}
+
+			if coupon.Type == "fixed" {
+				totalPrice -= coupon.Value
+			}
+
+			if totalPrice < 0 {
+				totalPrice = 0
+			}
+
+			// SAFE INCREMENT QUOTA
+			result := tx.Model(&models.Coupon{}).
+				Where("id = ? AND used_count < quota", coupon.ID).
+				Update("used_count", gorm.Expr("used_count + 1"))
+
+			if result.RowsAffected == 0 {
+				tx.Rollback()
+				response.ErrorResponse(c, 400, "coupon quota exceeded")
+				return
+			}
+		}
+
+		// CREATE CHECKOUT
 		checkout := models.Checkout{
 			UserID:     userID,
 			TotalPrice: totalPrice,
 			Status:     "pending",
 		}
 
+		if coupon.ID != 0 {
+			checkout.CouponID = &coupon.ID
+		}
+
 		if err := tx.Create(&checkout).Error; err != nil {
 			tx.Rollback()
-			response.ErrorResponse(c, http.StatusInternalServerError, "failed create checkout")
+			response.ErrorResponse(c, 500, "failed create checkout")
 			return
 		}
 
+		// CREATE CHECKOUT ITEMS
 		for _, item := range items {
+
 			checkoutItem := models.CheckoutItem{
 				CheckoutID: checkout.ID,
 				ProductID:  item.ProductID,
@@ -97,22 +168,33 @@ func Checkout(db *gorm.DB) gin.HandlerFunc {
 
 			if err := tx.Create(&checkoutItem).Error; err != nil {
 				tx.Rollback()
-				response.ErrorResponse(c, http.StatusInternalServerError, "failed create checkout item")
+				response.ErrorResponse(c, 500, "failed create checkout item")
 				return
 			}
+
 		}
 
-		tx.Where("id IN ?", req.CartItemIDs).
-			Delete(&models.CartItem{})
+		// DELETE CART ITEMS
+		if err := tx.
+			Where("id IN ?", req.CartItemIDs).
+			Delete(&models.CartItem{}).Error; err != nil {
+				tx.Rollback()
+				response.ErrorResponse(c, 500, "failed delete cart")
+				return
+			}
 
+		// COMMIT
 		if err := tx.Commit().Error; err != nil {
-			response.ErrorResponse(c, http.StatusInternalServerError, "transaction failed")
+			response.ErrorResponse(c, 500, "transaction failed")
 			return
 		}
 
-		// 🔥 Reload with relations
+		// RELOAD RESULT
 		var result models.Checkout
-		db.Preload("User").
+
+		db.
+			Preload("User").
+			Preload("Coupon").
 			Preload("Items").
 			Preload("Items.Product").
 			First(&result, checkout.ID)
@@ -219,6 +301,7 @@ func GetCheckout(db *gorm.DB) gin.HandlerFunc {
 
 		query := db.
 			Preload("User").
+			Preload("Coupon").
 			Preload("Items").
 			Preload("Items.Product").
 			Order("created_at DESC")
@@ -248,6 +331,7 @@ func GetMyCheckout(db *gorm.DB) gin.HandlerFunc {
 
 		if err := db.
 			Preload("User").
+			Preload("Coupon").
 			Preload("Items").
 			Preload("Items.Product").
 			Where("user_id = ?", userID).
@@ -259,7 +343,7 @@ func GetMyCheckout(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		res := response.BuildCheckOutListResponse(checkouts)
-		
+
 		response.SuccessListResponse(c, "your checkout list fetched", res)
 	}
 }

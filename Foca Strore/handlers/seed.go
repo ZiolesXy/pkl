@@ -82,6 +82,46 @@ func SeedProductsFromAssetsHandler(db *gorm.DB) gin.HandlerFunc {
 	}
 }
 
+func SyncAssetProductsHandler(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+
+		err := seeders.SyncAssetProductsWithDefaultSeed(db)
+		if err != nil {
+			response.ErrorResponse(
+				c,
+				http.StatusInternalServerError,
+				"Failed to sync asset products",
+			)
+			return
+		}
+
+		response.SuccessResponse(
+			c,
+			"Asset products synced successfully",
+			nil,
+		)
+	}
+}
+
+func SeedCouponHandler(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if err := seeders.SeedCoupons(db); err != nil {
+
+			response.ErrorResponse(
+				c,
+				http.StatusInternalServerError,
+				"Failed to seed coupons",
+			)
+			return
+		}
+
+		response.SuccessResponse(
+			c,
+			"Coupons seeded successfully",
+			nil,
+		)
+	}
+}
 
 func SeedAllHandler(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -103,6 +143,10 @@ func SeedAllHandler(db *gorm.DB) gin.HandlerFunc {
 		if err := seeders.SeedUsers(db); err != nil {
 			response.ErrorResponse(c, http.StatusInternalServerError, "Failed to seed users")
 			return
+		}
+
+		if err := seeders.SeedCoupons(db); err != nil {
+			response.ErrorResponse(c, http.StatusInternalServerError, "Failed to seed coupons")
 		}
 
 		response.SuccessResponse(c, "All data seeded successfully", nil)

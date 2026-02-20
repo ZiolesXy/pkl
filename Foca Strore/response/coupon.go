@@ -1,0 +1,39 @@
+package response
+
+import "voca-store/models"
+
+type CouponResponse struct {
+	ID        uint    `json:"id"`
+	Code      string  `json:"code"`
+	Type      string  `json:"type"`
+	Value     float64 `json:"value"`
+	Quota     int     `json:"quota"`
+	UsedCount int     `json:"used_count"`
+}
+
+type CouponListResponse struct {
+	Entries []CouponResponse `json:"entries"`
+}
+
+func BuildCouponResponse(c models.Coupon) CouponResponse {
+	return CouponResponse{
+		ID: c.ID,
+		Code: c.Code,
+		Type: c.Type,
+		Value: c.Value,
+		Quota: c.Quota,
+		UsedCount: c.UsedCount,
+	}
+}
+
+func BuildCouponListResponse(coupons []models.Coupon) CouponListResponse {
+	res := []CouponResponse{}
+
+	for _, c := range coupons {
+		res = append(res, BuildCouponResponse(c))
+	}
+
+	return CouponListResponse{
+		Entries: res,
+	}
+}

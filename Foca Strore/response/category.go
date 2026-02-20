@@ -13,7 +13,7 @@ type CategoryResponse struct {
 }
 
 type CategoryListResponse struct {
-	Entries []CategoryResponse
+	Entries []CategoryResponse `json:"enntries"`
 }
 
 func BuildCategoryResponse(category models.Category) CategoryResponse {

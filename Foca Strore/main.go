@@ -42,6 +42,7 @@ func main() {
 		&models.Product{},
 		&models.Cart{},
 		&models.CartItem{},
+		&models.Coupon{},
 		&models.Checkout{},
 		&models.CheckoutItem{},
 	); err != nil {
@@ -68,6 +69,7 @@ func main() {
 	r.GET("/category", handlers.GetAllCategory(db))
 	r.GET("/product/:slug", handlers.GetProductBySlug(db))
 	r.GET("/products", handlers.GetAllProducts(db))
+	r.GET("/coupons", handlers.GetCoupons(db))
 
 	// Protected routes
 	protected := r.Group("/api")
@@ -93,6 +95,9 @@ func main() {
 			admin.PUT("/products/:id", handlers.UpdateProduct(db))
 			admin.DELETE("/products/:id", handlers.DeleteProduct(db))
 			admin.DELETE("/products", handlers.DeleteAllProducts(db))
+			admin.POST("/coupons", handlers.CreateCoupon(db))
+			admin.PUT("/coupon/:id", handlers.UpdateCoupon(db))
+			admin.DELETE("/coupon/:id", handlers.DeleteCoupon(db))
 			admin.GET("/checkout", handlers.GetCheckout(db))
 			admin.PATCH("/checkout/:id/approve", handlers.ApproveCheckout(db))
 			admin.PATCH("/checkout/:id/reject", handlers.RejectCheckout(db))
@@ -107,6 +112,8 @@ func main() {
 		seed.GET("/admin", handlers.SeedAdminHandler(db))
 		seed.GET("/users", handlers.SeedUsersHandler(db))
 		seed.GET("/products", handlers.SeedProductsHandler(db))
+		seed.GET("/coupons", handlers.SeedCouponHandler(db))
+		seed.PUT("/sync", handlers.SyncAssetProductsHandler(db))
 		seed.GET("/all", handlers.SeedAllHandler(db))
 	}
 

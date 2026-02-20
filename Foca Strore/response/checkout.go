@@ -17,9 +17,10 @@ type CheckoutDetailResponse struct {
 	User       UserMiniResponse       `json:"user"`
 	TotalPrice float64                `json:"total_price"`
 	Status     string                 `json:"status"`
+	Coupon     *CouponResponse        `json:"coupon,omitempty"`
 	Items      []CheckoutItemResponse `json:"items"`
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
+	CreatedAt  time.Time              `json:"created_at"`
+	UpdatedAt  time.Time              `json:"updated_at"`
 }
 
 type CheckoutListResponse struct {
@@ -31,32 +32,39 @@ func BuildCheckoutDetailResponse(checkout models.Checkout) CheckoutDetailRespons
 
 	for _, item := range checkout.Items {
 		items = append(items, CheckoutItemResponse{
-			ID: item.ID,
+			ID:       item.ID,
 			Quantity: item.Quantity,
-			Price: item.Price,
+			Price:    item.Price,
 			Product: ProductMiniResponse{
-				ID: item.Product.ID,
+				ID:   item.Product.ID,
 				Name: item.Product.Name,
 			},
 		})
 	}
 
+	var coupon *CouponResponse
+	if checkout.Coupon != nil {
+		c := BuildCouponResponse(*checkout.Coupon)
+		coupon = &c
+	}
+
 	return CheckoutDetailResponse{
 		ID: checkout.ID,
 		User: UserMiniResponse{
-			ID: checkout.User.ID,
-			Name: checkout.User.Name,
+			ID:    checkout.User.ID,
+			Name:  checkout.User.Name,
 			Email: checkout.User.Email,
 		},
+		Coupon:     coupon,
 		TotalPrice: checkout.TotalPrice,
-		Status: checkout.Status,
-		Items: items,
-		CreatedAt: checkout.CreatedAt,
-		UpdatedAt: checkout.UpdatedAt,
+		Status:     checkout.Status,
+		Items:      items,
+		CreatedAt:  checkout.CreatedAt,
+		UpdatedAt:  checkout.UpdatedAt,
 	}
 }
 
-func BuildCheckOutListResponse(checkouts []models.Checkout) CheckoutListResponse{
+func BuildCheckOutListResponse(checkouts []models.Checkout) CheckoutListResponse {
 	response := []CheckoutDetailResponse{}
 
 	for _, checkout := range checkouts {
