@@ -6,20 +6,22 @@ import (
 )
 
 type CategoryResponse struct {
-	ID uint `json:"id"`
-	Name string `json:"name"`
+	ID        uint      `json:"id"`
+	Name      string    `json:"name"`
+	Slug      string    `json:"slug"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
 type CategoryListResponse struct {
-	Entries []CategoryResponse `json:"enntries"`
+	Entries []CategoryResponse `json:"entries"`
 }
 
 func BuildCategoryResponse(category models.Category) CategoryResponse {
 	return CategoryResponse{
-		ID: category.ID,
-		Name: category.Name,
+		ID:        category.ID,
+		Name:      category.Name,
+		Slug:      category.Slug,
 		CreatedAt: category.CreatedAt,
 		UpdatedAt: category.UpdatedAt,
 	}

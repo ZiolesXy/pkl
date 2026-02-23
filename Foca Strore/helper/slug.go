@@ -49,3 +49,27 @@ func GenerateUniqueSlug(db *gorm.DB, name string) (string, error) {
 
 	return slug, nil
 }
+
+func GenerateUniqueCategorySlug(db *gorm.DB, name string) (string, error) {
+	baseSlug := GenerateSlug(name)
+	slug := baseSlug
+	counter := 1
+
+	for {
+		var count int64
+
+		err := db.Model(&models.Category{}).Where("slug = ?", slug).Count(&count).Error
+
+		if err != nil {
+			return "", err
+		}
+
+		if count == 0 {
+			break
+		}
+
+		slug = fmt.Sprintf("%s-%d", baseSlug, count)
+		counter++
+	}
+	return slug, nil
+}

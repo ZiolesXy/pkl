@@ -66,6 +66,7 @@ func main() {
 	r.POST("/register", authHandler.Register)
 	r.POST("/login", authHandler.Login)
 	r.POST("/refresh", authHandler.RefreshToken)
+	r.GET("/category/:slug", handlers.GetCategoryBySlug(db))
 	r.GET("/category", handlers.GetAllCategory(db))
 	r.GET("/product/:slug", handlers.GetProductBySlug(db))
 	r.GET("/products", handlers.GetAllProducts(db))

@@ -3,6 +3,7 @@ package handlers
 import (
 	"errors"
 	"net/http"
+	"voca-store/helper"
 	"voca-store/models"
 	"voca-store/request"
 	"voca-store/response"
@@ -13,14 +14,24 @@ import (
 
 func CreateCategory(db *gorm.DB) gin.HandlerFunc{
 	return func(c *gin.Context) {
+
 		var req request.CreateCategoryRequest
+
 		if err := c.ShouldBindJSON(&req); err != nil {
 			response.ErrorResponse(c, http.StatusBadRequest, "invalid request")
 			return
 		}
 
+		slug, err := helper.GenerateUniqueCategorySlug(db, req.Name)
+
+		if err != nil {
+			response.ErrorResponse(c, http.StatusInternalServerError, "failed generate slug")
+			return
+		}
+
 		category := models.Category{
 			Name: req.Name,
+			Slug: slug,
 		}
 
 		if err := db.Create(&category).Error; err != nil {
@@ -29,6 +40,7 @@ func CreateCategory(db *gorm.DB) gin.HandlerFunc{
 		}
 
 		res := response.BuildCategoryResponse(category)
+
 		response.SuccessResponse(c, "category created", res)
 	}
 }
@@ -43,6 +55,26 @@ func GetAllCategory(db *gorm.DB) gin.HandlerFunc {
 
 		res := response.BuildCategoryListResponse(categories)
 		response.SuccessListResponse(c, "categories retrieved", res)
+	}
+}
+
+func GetCategoryBySlug(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		slug := c.Param("slug")
+
+		var category models.Category
+
+		if err := db.Where("slug = ?", slug).First(&category).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				response.ErrorResponse(c, http.StatusNotFound, "category not found")
+			} else {
+				response.ErrorResponse(c, http.StatusInternalServerError, "failed to fetch category")
+			}
+			return
+		}
+
+		res := response.BuildCategoryResponse(category)
+		response.SuccessResponse(c, "category retrieved", res)
 	}
 }
 
@@ -65,7 +97,14 @@ func UpdateCategory(db *gorm.DB) gin.HandlerFunc {
 		updates := make(map[string]interface{})
 
 		if req.Name != nil {
+			slug, err := helper.GenerateUniqueCategorySlug(db, *req.Name)
+
+			if err != nil {
+				response.ErrorResponse(c, http.StatusInternalServerError, "failed generate slug")
+				return
+			}
 			updates["name"] = *req.Name
+			updates["slug"] = slug
 		}
 
 		if err := db.Model(&category).Updates(updates).Error; err != nil {

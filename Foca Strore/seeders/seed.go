@@ -24,18 +24,37 @@ func SeedRoles(db *gorm.DB) error {
 
 func SeedCategories(db *gorm.DB) error {
 
-	categories := []models.Category{
-		{Name: "Laptop"},
-		{Name: "Smartphone"},
-		{Name: "Accessories"},
-		{Name: "Makanan"},
-		{Name: "Minuman"},
-		{Name: "Pertanian"},
-		{Name: "Mainan"},
-		{Name: "Lainnya"},
+	names := []string{
+		"Laptop",
+		"Smartphone",
+		"Accessories",
+		"Makanan",
+		"Minuman",
+		"Pertanian",
+		"Mainan",
+		"Lainnya",
 	}
 
-	return db.Clauses(clause.OnConflict{DoNothing: true}).Create(&categories).Error
+	var categories []models.Category
+
+	for _, name := range names {
+
+		slug, err := helper.GenerateUniqueCategorySlug(db, name)
+
+		if err != nil {
+			return err
+		}
+
+		categories = append(categories, models.Category{
+			Name: name,
+			Slug: slug,
+		})
+
+	}
+
+	return db.
+		Clauses(clause.OnConflict{DoNothing: true}).
+		Create(&categories).Error
 }
 
 func SeedAdmin(db *gorm.DB) error {
