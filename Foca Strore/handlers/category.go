@@ -114,7 +114,7 @@ func GetCategoryBySlug(db *gorm.DB) gin.HandlerFunc {
 			Find(&products).
 			Error
 		if err != nil {
-			response.ErrorResponse(c, http.StatusInternalServerError, "failed detch products")
+			response.ErrorResponse(c, http.StatusInternalServerError, "failed to fetch products")
 			return
 		}
 
