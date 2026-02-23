@@ -518,3 +518,55 @@ func DeleteAllProducts(db *gorm.DB) gin.HandlerFunc {
 
 	}
 }
+
+func DeleteAllProductImages(db *gorm.DB) gin.HandlerFunc {
+    return func(c *gin.Context) {
+        var products []models.Product
+
+        // 1. Ambil semua produk yang memiliki ImagePublicID (biar tidak ambil semua data mubazir)
+        if err := db.Where("image_public_id != ?", "").Find(&products).Error; err != nil {
+            response.ErrorResponse(c, http.StatusInternalServerError, "failed to fetch products")
+            return
+        }
+
+        // 2. Jika tidak ada produk dengan gambar
+        if len(products) == 0 {
+            response.SuccessResponse(c, "no images to delete", nil)
+            return
+        }
+
+        deletedCount := 0
+
+        // 3. Loop untuk hapus image di Cloudinary
+        for _, product := range products {
+            // Deteksi: Jika ada PublicID, hapus di Cloudinary
+            if product.ImagePublicID != "" {
+                err := helper.DeleteImage(product.ImagePublicID)
+                if err != nil {
+                    // Jika gagal di cloudinary, kita log tapi tetap lanjut (opsional)
+                    fmt.Printf("Cloudinary delete failed for ID %s: %v\n", product.ImagePublicID, err)
+                    continue 
+                }
+                deletedCount++
+            }
+        }
+
+        // 4. Update DB: Kosongkan kolom image_url dan image_public_id untuk SEMUA produk
+        // Kita menggunakan .Model(&models.Product{}) dan .Where("1 = 1") untuk menyasar semua row
+        updateData := map[string]interface{}{
+            "image_url":       "",
+            "image_public_id": "",
+        }
+
+        if err := db.Model(&models.Product{}).Where("1 = 1").Updates(updateData).Error; err != nil {
+            response.ErrorResponse(c, http.StatusInternalServerError, "failed to clear image fields in database")
+            return
+        }
+
+        response.SuccessResponse(
+            c,
+            fmt.Sprintf("Successfully cleared %d images from Cloudinary and updated database", deletedCount),
+            nil,
+        )
+    }
+}

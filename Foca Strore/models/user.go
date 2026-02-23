@@ -14,9 +14,9 @@ type User struct {
 	ProfileImageURL      string `gorm:"type:text"`
 	ProfileImagePublicID string `gorm:"type:text"`
 	RoleID               uint   `gorm:"not null"`
-	Role                 Role
+	Role                 Role   `gorm:"constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
 	CreatedAt            time.Time
 	UpdatedAt            time.Time
 	DeletedAt            gorm.DeletedAt
-	Checkouts            []Checkout `gorm:"foreignKey:userID"`
+	Checkouts            []Checkout `gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 }

@@ -12,8 +12,8 @@ type Product struct {
 	Price         float64 `gorm:"not null"`
 	Stock         int
 	CategoryID    uint
-	Category      *Category
+	Category      *Category `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
-	CartItems     []CartItem `gorm:"foreignKey:ProductID"`
+	CartItems     []CartItem `gorm:"foreignKey:ProductID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 }

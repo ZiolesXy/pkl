@@ -12,7 +12,12 @@ import (
 	"gorm.io/gorm"
 )
 
-func CreateCategory(db *gorm.DB) gin.HandlerFunc{
+type CategoryWithCount struct {
+	models.Category
+	ProductCount int64
+}
+
+func CreateCategory(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
 		var req request.CreateCategoryRequest
@@ -39,7 +44,7 @@ func CreateCategory(db *gorm.DB) gin.HandlerFunc{
 			return
 		}
 
-		res := response.BuildCategoryResponse(category)
+		res := response.BuildCategoryResponse(category, 0)
 
 		response.SuccessResponse(c, "category created", res)
 	}
@@ -47,14 +52,40 @@ func CreateCategory(db *gorm.DB) gin.HandlerFunc{
 
 func GetAllCategory(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		categories := []models.Category{}
-		if err := db.Find(&categories).Error; err != nil {
+		var rows []CategoryWithCount
+		err := db.
+			Table("categories").
+			Select(`
+				categories.*,
+				COUNT(products.id) as product_count
+			`).
+			Joins(`
+				LEFT JOIN products
+				ON products.category_id = categories.id
+			`).
+			Group("categories.id").
+			Order("categories.id ASC").
+			Scan(&rows).Error
+
+		if err != nil {
 			response.ErrorResponse(c, http.StatusInternalServerError, "failed to get category")
 			return
 		}
 
-		res := response.BuildCategoryListResponse(categories)
-		response.SuccessListResponse(c, "categories retrieved", res)
+		var categories []models.Category
+		countMap := map[uint]int64{}
+
+		for _, r := range rows {
+			categories = append(categories, r.Category)
+			countMap[r.ID] = r.ProductCount
+		}
+
+		res := response.BuildCategoryListResponse(
+			categories,
+			countMap,
+		)
+
+		response.SuccessListResponse(c, "categories retrivied", res)
 	}
 }
 
@@ -64,16 +95,34 @@ func GetCategoryBySlug(db *gorm.DB) gin.HandlerFunc {
 
 		var category models.Category
 
-		if err := db.Where("slug = ?", slug).First(&category).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				response.ErrorResponse(c, http.StatusNotFound, "category not found")
-			} else {
-				response.ErrorResponse(c, http.StatusInternalServerError, "failed to fetch category")
-			}
+		err := db.
+			Where("slug = ?", slug).
+			First(&category).
+			Error
+
+		if err != nil {
+			response.ErrorResponse(c, http.StatusNotFound, "category not found")
 			return
 		}
 
-		res := response.BuildCategoryResponse(category)
+		var products []models.Product
+
+		err = db.
+			Preload("Category").
+			Where("category_id = ?", category.ID).
+			Order("id ASC").
+			Find(&products).
+			Error
+		if err != nil {
+			response.ErrorResponse(c, http.StatusInternalServerError, "failed detch products")
+			return
+		}
+
+		res := response.BuildCategoryDetailResponse(
+			category,
+			products,
+		)
+
 		response.SuccessResponse(c, "category retrieved", res)
 	}
 }
@@ -109,13 +158,31 @@ func UpdateCategory(db *gorm.DB) gin.HandlerFunc {
 
 		if err := db.Model(&category).Updates(updates).Error; err != nil {
 			response.ErrorResponse(c, http.StatusInternalServerError, "failed to update category")
-			return 
+			return
 		}
 
 		db.First(&category, category.ID)
 
-		res := response.BuildCategoryResponse(category)
-		response.SuccessResponse(c, "category created", res)
+		var row CategoryWithCount
+
+		db.Table("categories").
+		Select(`
+			categories.*,
+			COUNT(products.id) as product_count
+		`).
+		Joins(`
+			LEFT JOIN products
+			ON products.category_id = categories.id
+		`).
+		Where("categories.id = ?", category.ID).
+		Group("categories.id").
+		Scan(&row)
+
+		res := response.BuildCategoryResponse(
+			row.Category,
+			row.ProductCount,
+		)
+		response.SuccessResponse(c, "category updated", res)
 	}
 }
 

@@ -8,12 +8,12 @@ type Checkout struct {
 	User   *User `gorm:"foreignKey:UserID"`
 
 	CouponID *uint
-	Coupon   *Coupon
+	Coupon   *Coupon `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
 
 	TotalPrice float64 `gorm:"not null"`
 	Status     string  `gorm:"not null;type:varchar(20);default:'pending'"`
 
-	Items []CheckoutItem
+	Items []CheckoutItem `gorm:"foreignKey:CheckoutID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 
 	CreatedAt time.Time
 	UpdatedAt time.Time

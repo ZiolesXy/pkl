@@ -129,3 +129,15 @@ package trash
 // 		response.SuccessResponse(c, "Checkout status updated successfully", checkoutResp)
 // 	}
 // }
+
+// func BuildCategoryListResponse(categories []models.Category) CategoryListResponse {
+// 	response := []CategoryResponse{}
+
+// 	for _, c := range categories {
+// 		response = append(response, BuildCategoryResponse(c))
+// 	}
+
+// 	return CategoryListResponse{
+// 		Entries: response,
+// 	}
+// }

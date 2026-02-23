@@ -96,6 +96,7 @@ func main() {
 			admin.PUT("/products/:id", handlers.UpdateProduct(db))
 			admin.DELETE("/products/:id", handlers.DeleteProduct(db))
 			admin.DELETE("/products", handlers.DeleteAllProducts(db))
+			admin.DELETE("/products/assets", handlers.DeleteAllProductImages(db))
 			admin.POST("/coupons", handlers.CreateCoupon(db))
 			admin.PUT("/coupon/:id", handlers.UpdateCoupon(db))
 			admin.DELETE("/coupon/:id", handlers.DeleteCoupon(db))
