@@ -31,7 +31,7 @@ Aplikasi backend e-commerce sederhana menggunakan Golang, Gin, GORM, PostgreSQL,
 
 ```bash
 git clone <repository-url>
-cd "Foca Strore Test"
+cd "Foca Strore"
 ```
 
 2. Install dependencies:
