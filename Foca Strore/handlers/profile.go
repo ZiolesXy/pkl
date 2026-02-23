@@ -2,10 +2,14 @@ package handlers
 
 import (
 	"errors"
-	"fmt"
-	"net/http"
 	"os"
 	"strings"
+
+	// "fmt"
+	"net/http"
+	// "os"
+	// "strings"
+	// "voca-store/helper"
 	"voca-store/helper"
 	"voca-store/models"
 	"voca-store/request"
@@ -38,6 +42,9 @@ func GetProfile(db *gorm.DB) gin.HandlerFunc {
 			user.ID,
 			user.Name,
 			user.Email,
+			user.Phone,
+			user.Address,
+			user.PostalCode,
 			user.ProfileImageURL,
 			user.Role.Name,
 		)
@@ -48,121 +55,88 @@ func GetProfile(db *gorm.DB) gin.HandlerFunc {
 
 func UpdateProfile(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		userID, exists := c.Get("user_id")
-		if !exists {
-			response.ErrorResponse(c, http.StatusUnauthorized, "User not authenticated")
-			return
-		}
-
+		userID := c.GetUint("user_id")
 		var user models.User
+
 		if err := db.First(&user, userID).Error; err != nil {
-			response.ErrorResponse(c, http.StatusNotFound, "User not found")
+			response.ErrorResponse(c, http.StatusNotFound, "user not found")
 			return
 		}
 
-		// Store old image info for cleanup
-		oldProfileImagePublicID := user.ProfileImagePublicID
-
-		// Check if it's multipart form
+		oldImagePublicID := user.ProfileImagePublicID
 		contentType := c.GetHeader("Content-Type")
-		isMultipart := strings.HasPrefix(contentType, "multipart/form-data")
+		updates := map[string]interface{}{}
 
-		updates := make(map[string]interface{})
-
-		if isMultipart {
-			// Handle multipart form data
+		if strings.HasPrefix(contentType, "multipart/form-data") {
 			if name := c.PostForm("name"); name != "" {
 				updates["name"] = name
 			}
-			if description := c.PostForm("description"); description != "" {
-				updates["description"] = description
+			if phone := c.PostForm("phone"); phone != "" {
+				updates["phone"] = phone
+			}
+			if address := c.PostForm("address"); address != "" {
+				updates["address"] = address
+			}
+			if postal := c.PostForm("postal_code"); postal != "" {
+				updates["postal_code"] = postal
 			}
 
-			// Handle profile image upload
 			file, err := c.FormFile("profile_image")
-			if err == nil && file != nil {
-				// Save file temporarily
+			if err == nil {
 				tempPath := "/tmp/" + file.Filename
 				if err := c.SaveUploadedFile(file, tempPath); err != nil {
-					response.ErrorResponse(c, http.StatusInternalServerError, "Failed to save uploaded file")
+					response.ErrorResponse(c, http.StatusInternalServerError, "failed save image")
 					return
 				}
 
-				// Upload to Cloudinary
-				uploadResult, err := helper.UploadImageFromFile(tempPath, "user-profiles")
-				if err != nil {
-					os.Remove(tempPath)
-					response.ErrorResponse(c, http.StatusInternalServerError, "failed to upload profile image")
-					return
-				}
-
-				updates["profile_image_url"] = uploadResult.SecureURL
-				updates["profile_image_public_id"] = uploadResult.PublicID
-
-				// Clean up temp file
+				upload, err := helper.UploadImageFromFile(tempPath, "user-profiles")
 				os.Remove(tempPath)
-			} else if c.PostForm("profile_image_url") != "" {
-				// Upload from URL
-				uploadResult, err := helper.UploadImageFromURL(c.PostForm("profile_image_url"), "user-profiles")
+
 				if err != nil {
-					response.ErrorResponse(c, http.StatusInternalServerError, "Failed to upload profile image from URL")
+					response.ErrorResponse(c, http.StatusInternalServerError, "failed upload image")
 					return
 				}
-				updates["profile_image_url"] = uploadResult.SecureURL
-				updates["profile_image_public_id"] = uploadResult.PublicID
+
+				updates["profile_image_url"] = upload.SecureURL
+				updates["profile_image_public_id"] = upload.PublicID
 			}
 		} else {
-			// Handle JSON data
 			var req request.UpdateProfileRequest
 			if err := c.ShouldBindJSON(&req); err != nil {
-				response.ErrorResponse(c, http.StatusBadRequest, "Invalid request body")
+				response.ErrorResponse(c, http.StatusBadRequest, "invalid body")
 				return
 			}
 
-			if req.Name != nil {
-				updates["name"] = *req.Name
-			}
+			if req.Name != nil { updates["name"] = *req.Name }
+			if req.Phone != nil { updates["phone"] = *req.Phone }
+			if req.Address != nil { updates["address"] = *req.Address }
+			if req.PostalCode != nil { updates["postal_code"] = *req.PostalCode }
 		}
 
 		if len(updates) == 0 {
-			response.ErrorResponse(c, http.StatusBadRequest, "No fields to update")
+			response.ErrorResponse(c, http.StatusBadRequest, "no data updated")
 			return
 		}
 
-		// Update user
-		if err := db.Model(&user).Updates(updates).Error; err != nil {
-			response.ErrorResponse(c, http.StatusInternalServerError, "Failed to update profile")
-			return
+		db.Model(&user).Updates(updates)
+
+		if oldImagePublicID != "" && updates["profile_image_public_id"] != nil {
+			helper.DeleteImage(oldImagePublicID)
 		}
 
-		// DELETE OLD PROFILE IMAGE FROM CLOUDINARY IF IT WAS UPDATED
-		if oldProfileImagePublicID != "" && updates["profile_image_public_id"] != nil {
-			// Delete the old image since we have a new one
-			if err := helper.DeleteImage(oldProfileImagePublicID); err != nil {
-				fmt.Printf("Warning: Failed to delete old profile image %s: %v\n", oldProfileImagePublicID, err)
-			}
-		} else if oldProfileImagePublicID != "" && isMultipart && c.PostForm("profile_image_url") == "" {
-			// Profile image was explicitly cleared
-			if err := helper.DeleteImage(oldProfileImagePublicID); err != nil {
-				fmt.Printf("Warning: Failed to delete old profile image %s: %v\n", oldProfileImagePublicID, err)
-			}
-		}
+		db.Preload("Role").First(&user, user.ID)
 
-		// Reload user
-		if err := db.Preload("Role").First(&user, user.ID).Error; err != nil {
-			response.ErrorResponse(c, http.StatusInternalServerError, "Failed to reload user")
-			return
-		}
-
-		// Build profile response
-		profileResp := response.BuildUserProfileResponse(
+		resp := response.BuildUserProfileResponse(
 			user.ID,
 			user.Name,
 			user.Email,
+			user.Phone,
+			user.Address,
+			user.PostalCode,
 			user.ProfileImageURL,
 			user.Role.Name,
 		)
 
-		response.SuccessResponse(c, "Profile updated successfully", profileResp)
+		response.SuccessResponse(c, "profile updated", resp)
 	}
 }
