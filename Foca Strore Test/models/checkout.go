@@ -4,6 +4,7 @@ import "time"
 
 type Checkout struct {
 	ID     uint  `gorm:"primaryKey"`
+	UID string 	`gorm:"uniqueIndex;not null"`
 	UserID uint  `gorm:"not null"`
 	User   *User `gorm:"foreignKey:UserID"`
 

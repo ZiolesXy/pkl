@@ -46,10 +46,11 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	}
 
 	user := models.User{
-		Name:     req.Name,
-		Email:    req.Email,
-		Password: hashedPassword,
-		RoleID:   userRole.ID,
+		Name:            req.Name,
+		Email:           req.Email,
+		Password:        hashedPassword,
+		TelephoneNumber: req.TelephoneNumber,
+		RoleID:          userRole.ID,
 	}
 
 	if err := h.DB.Create(&user).Error; err != nil {
@@ -72,7 +73,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	userResp := response.BuildUserResponse(user.ID, user.Name, user.Email, user.Role.Name)
+	userResp := response.BuildUserResponse(user.ID, user.Name, user.Email, user.Role.Name, user.TelephoneNumber)
 	response.SuccessResponse(c, "user registered succesfully", userResp)
 }
 
@@ -110,7 +111,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	userResp := response.BuildUserResponse(user.ID, user.Name, user.Email, user.Role.Name)
+	userResp := response.BuildUserResponse(user.ID, user.Name, user.Email, user.Role.Name, user.TelephoneNumber)
 	authResp := response.BuildAuthResponse(userResp, accessToken, refreshToken)
 
 	response.SuccessResponse(c, "login succesfull", authResp)
@@ -143,4 +144,68 @@ func(h *AuthHandler) RefreshToken(c *gin.Context) {
 
 	tokenResp := response.BuildToken(accessToken)
 	response.SuccessResponse(c, "token refreshed succesfull", tokenResp)
+}
+
+func ChangePassword(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userIDRaw, exist := c.Get("user_id")
+		if !exist {
+			response.ErrorResponse(c, http.StatusUnauthorized, "missing authorization header")
+			return
+		}
+
+		userID := userIDRaw.(uint)
+		var req request.ChangePasswordRequest
+		if err := c.ShouldBindJSON(&req); err != nil {
+			response.ErrorResponse(c, http.StatusBadRequest, "invalid body request")
+			return
+		}
+
+		var user models.User
+		if err := db.First(&user, userID).Error; err != nil {
+			response.ErrorResponse(c, http.StatusNotFound, "user not found")
+			return
+		}
+
+		//check old pw
+		if err := helper.VerifyPassword(
+			user.Password,
+			req.OldPassword,
+		); err != nil {
+			response.ErrorResponse(c, http.StatusBadRequest, "old password incorect")
+			return
+		}
+
+		//new pw & conf pw same
+		if req.NewPassword != req.ConfirmPassword {
+			response.ErrorResponse(c, http.StatusBadRequest, "password confirmation does not match")
+			return
+		}
+
+		// new pw must not same
+		if err := helper.VerifyPassword(
+			user.Password,
+			req.NewPassword,
+		); err == nil {
+			response.ErrorResponse(c, http.StatusBadRequest, "new password must be different")
+			return
+		}
+
+		//hashing new password
+		hash, err := helper.HashPassword(
+			req.NewPassword,
+		)
+		if err != nil {
+			response.ErrorResponse(c, http.StatusInternalServerError, "failed hash password")
+			return
+		}
+
+		// update in database
+		if err := db.Model(&user).Update("password", hash).Error; err != nil {
+			response.ErrorResponse(c, http.StatusInternalServerError, "failed update password")
+			return
+		}
+
+		response.SuccessResponse(c, "password change", nil)
+	}
 }

@@ -2,15 +2,17 @@ package response
 
 type UserMiniResponse struct {
 	ID    uint   `json:"id"`
-	Name  string `json:"name"`
-	Email string `json:"email"`
+	Name            string `json:"name"`
+	Email           string `json:"email"`
+	TelephoneNumber string `json:"telephone_number"`
 }
 
 type UserResponse struct {
 	ID    uint   `json:"id"`
-	Name  string `json:"name"`
-	Email string `json:"email"`
-	Role  string `json:"role"`
+	Name            string `json:"name"`
+	Email           string `json:"email"`
+	TelephoneNumber string `json:"telephone_number"`
+	Role            string `json:"role"`
 }
 
 type AllUsers struct {
@@ -21,17 +23,19 @@ type UserProfileResponse struct {
 	ID              uint   `json:"id"`
 	Name            string `json:"name"`
 	Email           string `json:"email"`
+	TelephoneNumber string `json:"telephone_number"`
 	ProfileImageURL string `json:"profile_image_url,omitempty"`
 	Role            string `json:"role"`
 	Address         []AddressResponse `json:"address"`
 }
 
-func BuildUserResponse(id uint, name, email, role string) UserResponse {
+func BuildUserResponse(id uint, name, email, role, telephoneNumber string) UserResponse {
 	return UserResponse{
-		ID:    id,
-		Name:  name,
-		Email: email,
-		Role:  role,
+		ID:              id,
+		Name:            name,
+		Email:           email,
+		TelephoneNumber: telephoneNumber,
+		Role:            role,
 	}
 }
 
@@ -41,11 +45,12 @@ func BuildAllUser(users []UserResponse) AllUsers {
 	}
 }
 
-func BuildUserProfileResponse(id uint, name, email, profileImageURL, role string, address []AddressResponse) UserProfileResponse {
+func BuildUserProfileResponse(id uint, name, email, telephoneNumber, profileImageURL, role string, address []AddressResponse) UserProfileResponse {
 	return UserProfileResponse{
 		ID:              id,
 		Name:            name,
 		Email:           email,
+		TelephoneNumber: telephoneNumber,
 		ProfileImageURL: profileImageURL,
 		Role:            role,
 		Address:         address,

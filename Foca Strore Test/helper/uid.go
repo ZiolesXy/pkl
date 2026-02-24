@@ -2,11 +2,13 @@ package helper
 
 import (
 	"fmt"
+	"math/rand/v2"
 	"strconv"
 	"time"
 	"voca-store/models"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 func GenerateAddressUID(tx *gorm.DB) (string, error) {
@@ -38,4 +40,57 @@ func GenerateAddressUID(tx *gorm.DB) (string, error) {
 
     uid := fmt.Sprintf("ADDR-%s-%04d", today, nextSeq)
     return uid, nil
+}
+
+// ADDRESS UID
+
+func NewGenerateAddressUID(tx *gorm.DB) (string, error) {
+	now := time.Now()
+	date := now.Format("20060102-150405")
+	var count int64
+
+	err := tx.
+		Clauses(clause.Locking{Strength: "UPDATE"}).
+		Table("addresses").
+		Where("uid LIKE ?", "ADDR-"+date+"%").
+		Count(&count).Error
+
+	if err != nil {
+		return "", err
+	}
+
+	index := count + 1
+	uid := fmt.Sprintf(
+		"ADDR-%s-%02d",
+		date,
+		index,
+	)
+	return uid, nil
+}
+
+func GenerateCheckoutUID(tx *gorm.DB) (string, error) {
+    for i := 0; i < 3; i++ {
+        now := time.Now()
+        random := rand.IntN(100000)
+        uid := fmt.Sprintf(
+            "VOCA-%s-%05d",
+            now.Format("20060102-150405"),
+            random,
+        )
+        var exists bool
+        err := tx.
+            Table("checkouts").
+            Select("count(*) > 0").
+            Where("uid = ?", uid).
+            Find(&exists).Error
+        if err != nil {
+            return "", err
+        }
+
+        if !exists {
+            return uid, nil
+        }
+    }
+
+    return "", fmt.Errorf("failed generate unique uid")
 }

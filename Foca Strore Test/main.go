@@ -68,6 +68,7 @@ func main() {
 		// User routes
 		protected.GET("/profile", handlers.GetProfile(db))
 		protected.PUT("/profile", handlers.UpdateProfile(db))
+		protected.PUT("/change-password", handlers.ChangePassword(db))
 		protected.GET("/cart", handlers.ViewCart(db))
 		protected.POST("/cart/items", handlers.AddToCart(db))
 		protected.DELETE("/cart/items/:id", handlers.RemoveCartItem(db))
@@ -111,6 +112,7 @@ func main() {
 	system.Use(middleware.SystemAuth())
 	{
 		system.POST("/reset", handlers.ResetDatabaseHandler(db))
+		system.POST("/reset/product", handlers.ResetDatabaseWithProductsHandler(db))
 		system.POST("/migrate", handlers.MigrateHandler(db))
 		// Seeder endpoint
 		seed := system.Group("/seed")
@@ -123,6 +125,7 @@ func main() {
 			seed.GET("/coupons", handlers.SeedCouponHandler(db))
 			seed.PUT("/sync", handlers.SyncAssetProductsHandler(db))
 			seed.GET("/all", handlers.SeedAllHandler(db))
+			seed.GET("/all-product", handlers.SeedAllWithProductnonAssetsHandler(db))
 		}
 	}
 

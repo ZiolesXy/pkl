@@ -50,6 +50,15 @@ func CreateAddress(db *gorm.DB) gin.HandlerFunc {
 			City:          req.City,
 			Province:      req.Province,
 			PostalCode:    req.PostalCode,
+			IsPrimary:     req.IsPrimary,
+		}
+
+		if address.IsPrimary {
+			if err := tx.Model(&models.Address{}).Where("user_id = ?", userID).Update("is_primary", false).Error; err != nil {
+				tx.Rollback()
+				response.ErrorResponse(c, http.StatusInternalServerError, "failed to unset existing primary address")
+				return
+			}
 		}
 
 		if err := tx.Create(&address).Error; err != nil {
@@ -163,13 +172,38 @@ func UpdateAddress(db *gorm.DB) gin.HandlerFunc {
 			updates["postal_code"] = *req.PostalCode
 		}
 
+		if req.IsPrimary != nil {
+			updates["is_primary"] = *req.IsPrimary
+		}
+
 		if len(updates) == 0 {
 			response.ErrorResponse(c, http.StatusBadRequest, "no fields to update")
 			return
 		}
 
-		if err := db.Model(&address).Updates(updates).Error; err != nil {
+		tx := db.Begin()
+		defer func() {
+			if r := recover(); r != nil {
+				tx.Rollback()
+			}
+		}()
+
+		if req.IsPrimary != nil && *req.IsPrimary {
+			if err := tx.Model(&models.Address{}).Where("user_id = ? AND uid != ?", userID, uid).Update("is_primary", false).Error; err != nil {
+				tx.Rollback()
+				response.ErrorResponse(c, http.StatusInternalServerError, "failed to unset existing primary address")
+				return
+			}
+		}
+
+		if err := tx.Model(&address).Updates(updates).Error; err != nil {
+			tx.Rollback()
 			response.ErrorResponse(c, http.StatusInternalServerError, "failed to update address")
+			return
+		}
+
+		if err := tx.Commit().Error; err != nil {
+			response.ErrorResponse(c, http.StatusInternalServerError, "transaction failed")
 			return
 		}
 

@@ -58,9 +58,10 @@ func BuildCheckoutDetailResponse(checkout models.Checkout) CheckoutDetailRespons
 	return CheckoutDetailResponse{
 		ID: checkout.ID,
 		User: UserMiniResponse{
-			ID:    checkout.User.ID,
-			Name:  checkout.User.Name,
-			Email: checkout.User.Email,
+			ID:              checkout.User.ID,
+			Name:            checkout.User.Name,
+			Email:           checkout.User.Email,
+			TelephoneNumber: checkout.User.TelephoneNumber,
 		},
 		Coupon:     coupon,
 		Address:    addressResp,

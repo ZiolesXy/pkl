@@ -8,6 +8,7 @@ type CreateAddressRequest struct {
 	City          string `json:"city" binding:"required"`
 	Province      string `json:"province" binding:"required"`
 	PostalCode    string `json:"postal_code" binding:"required"`
+	IsPrimary     bool   `json:"is_primary"`
 }
 
 type UpdateAddressRequest struct {
@@ -18,4 +19,5 @@ type UpdateAddressRequest struct {
 	City          *string `json:"city"`
 	Province      *string `json:"province"`
 	PostalCode    *string `json:"postal_code"`
+	IsPrimary     *bool   `json:"is_primary"`
 }

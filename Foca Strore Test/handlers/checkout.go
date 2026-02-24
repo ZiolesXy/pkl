@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"time"
+	"voca-store/helper"
 	"voca-store/models"
 	"voca-store/request"
 	"voca-store/response"
@@ -174,8 +175,16 @@ func Checkout(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
+		uid, err := helper.GenerateCheckoutUID(tx)
+		if err != nil {
+			tx.Rollback()
+			response.ErrorResponse(c, http.StatusInternalServerError, "failed generate uid")
+			return
+		}
+
 		// CREATE CHECKOUT
 		checkout := models.Checkout{
+			UID:        uid,
 			UserID:     userID,
 			AddressID:  &address.ID,
 			TotalPrice: totalPrice,
@@ -214,10 +223,10 @@ func Checkout(db *gorm.DB) gin.HandlerFunc {
 		if err := tx.
 			Where("id IN ?", req.CartItemIDs).
 			Delete(&models.CartItem{}).Error; err != nil {
-				tx.Rollback()
-				response.ErrorResponse(c, 500, "failed delete cart")
-				return
-			}
+			tx.Rollback()
+			response.ErrorResponse(c, 500, "failed delete cart")
+			return
+		}
 
 		// COMMIT
 		if err := tx.Commit().Error; err != nil {
@@ -237,7 +246,7 @@ func Checkout(db *gorm.DB) gin.HandlerFunc {
 			First(&result, checkout.ID)
 
 		res := response.BuildCheckoutDetailResponse(result)
-		response.SuccessResponse(c, "Checkout created", res)
+		response.SuccessResponse(c, "checkout created", res)
 	}
 }
 

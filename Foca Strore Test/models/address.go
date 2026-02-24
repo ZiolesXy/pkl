@@ -19,6 +19,7 @@ type Address struct {
 	City          string `gorm:"not null"`
 	Province      string `gorm:"not null"`
 	PostalCode    string `gorm:"not null"`
+	IsPrimary     bool   `gorm:"default:false"`
 
 	CreatedAt time.Time
 	UpdatedAt time.Time

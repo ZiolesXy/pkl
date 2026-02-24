@@ -40,6 +40,7 @@ func GetProfile(db *gorm.DB) gin.HandlerFunc {
 			user.ID,
 			user.Name,
 			user.Email,
+			user.TelephoneNumber,
 			user.ProfileImageURL,
 			user.Role.Name,
 			addresses,
@@ -79,6 +80,9 @@ func UpdateProfile(db *gorm.DB) gin.HandlerFunc {
 			}
 			if description := c.PostForm("description"); description != "" {
 				updates["description"] = description
+			}
+			if telephoneNumber := c.PostForm("telephone_number"); telephoneNumber != "" {
+				updates["telephone_number"] = telephoneNumber
 			}
 
 			// Handle profile image upload
@@ -125,6 +129,9 @@ func UpdateProfile(db *gorm.DB) gin.HandlerFunc {
 			if req.Name != nil {
 				updates["name"] = *req.Name
 			}
+			if req.TelephoneNumber != nil {
+				updates["telephone_number"] = *req.TelephoneNumber
+			}
 		}
 
 		if len(updates) == 0 {
@@ -164,6 +171,7 @@ func UpdateProfile(db *gorm.DB) gin.HandlerFunc {
 			user.ID,
 			user.Name,
 			user.Email,
+			user.TelephoneNumber,
 			user.ProfileImageURL,
 			user.Role.Name,
 			addresses,

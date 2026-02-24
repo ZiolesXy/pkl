@@ -15,6 +15,7 @@ type AddressResponse struct {
 	City          string    `json:"city"`
 	Province      string    `json:"province"`
 	PostalCode    string    `json:"postal_code"`
+	IsPrimary     bool      `json:"is_primary"`
 	CreatedAt     time.Time `json:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at"`
 }
@@ -40,6 +41,7 @@ func BuildAddressResponse(a models.Address) AddressResponse {
 		City:          a.City,
 		Province:      a.Province,
 		PostalCode:    a.PostalCode,
+		IsPrimary:     a.IsPrimary,
 		CreatedAt:     a.CreatedAt,
 		UpdatedAt:     a.UpdatedAt,
 	}

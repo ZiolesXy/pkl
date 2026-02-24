@@ -153,9 +153,54 @@ func SeedAllHandler(db *gorm.DB) gin.HandlerFunc {
 	}
 }
 
+func SeedAllWithProductnonAssetsHandler(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+
+		if err := seeders.SeedRoles(db); err != nil {
+			response.ErrorResponse(c, http.StatusInternalServerError, "Failed to seed roles")
+			return
+		}
+
+		if err := seeders.SeedAdmin(db); err != nil {
+			response.ErrorResponse(c, http.StatusInternalServerError, "Failed to seed admin")
+			return
+		}
+
+		if err := seeders.SeedCategories(db); err != nil {
+			response.ErrorResponse(c, http.StatusInternalServerError, "Failed to seed category")
+		}
+
+		if err := seeders.SeedUsers(db); err != nil {
+			response.ErrorResponse(c, http.StatusInternalServerError, "Failed to seed users")
+			return
+		}
+
+		if err := seeders.SeedCoupons(db); err != nil {
+			response.ErrorResponse(c, http.StatusInternalServerError, "Failed to seed coupons")
+		}
+
+		if err := seeders.SeedProducts(db); err != nil {
+			response.ErrorResponse(c, http.StatusInternalServerError, "Failed to seed products")
+		}
+
+		response.SuccessResponse(c, "All data seeded successfully", nil)
+	}
+}
+
 func ResetDatabaseHandler(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if err := seeders.ResetDatabase(db); err != nil {
+			response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		response.SuccessResponse(c, "database reset succesfully", nil)
+	}
+}
+
+func ResetDatabaseWithProductsHandler(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if err := seeders.ResetDatabaseWithProduct(db); err != nil {
 			response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 			return
 		}

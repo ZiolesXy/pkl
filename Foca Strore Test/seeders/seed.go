@@ -74,13 +74,56 @@ func SeedAdmin(db *gorm.DB) error {
 	}
 
 	admin := models.User{
-		Name:     "Pasha",
-		Email:    "pashaprabasakti@gmail.com",
-		Password: hashedPassword,
-		RoleID:   adminRole.ID,
+		Name:            "Pasha",
+		Email:           "pashaprabasakti@gmail.com",
+		Password:        hashedPassword,
+		TelephoneNumber: "081234567890",
+		RoleID:          adminRole.ID,
 	}
 
-	return db.Create(&admin).Error
+	if err := db.Create(&admin).Error; err != nil {
+		return err
+	}
+
+	adminAddresses := []struct {
+		label       string
+		addressLine string
+		city        string
+		province    string
+		postalCode  string
+	}{
+		{"Rumah Dinas", "Jl. Menteri No. 1", "Jakarta Pusat", "DKI Jakarta", "10110"},
+		{"Kantor Pusat", "Gedung Voca Lantai 1", "Jakarta Selatan", "DKI Jakarta", "12190"},
+		{"Rumah Pribadi", "Jl. Boulevard Indah 5", "Tangerang", "Banten", "15810"},
+		{"Gudang Utama", "Kawasan Industri MM2100", "Bekasi", "Jawa Barat", "17530"},
+		{"Drop Point", "Jl. Ahmad Yani No. 10", "Semarang", "Jawa Tengah", "50131"},
+	}
+
+	for i, addr := range adminAddresses {
+		uid, err := helper.GenerateAddressUID(db)
+		if err != nil {
+			return err
+		}
+
+		address := models.Address{
+			UID:           uid,
+			UserID:        admin.ID,
+			Label:         addr.label,
+			RecipientName: admin.Name,
+			Phone:         admin.TelephoneNumber,
+			AddressLine:   addr.addressLine,
+			City:          addr.city,
+			Province:      addr.province,
+			PostalCode:    addr.postalCode,
+			IsPrimary:     i == 0,
+		}
+
+		if err := db.Create(&address).Error; err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func SeedUsers(db *gorm.DB) error {
@@ -90,13 +133,75 @@ func SeedUsers(db *gorm.DB) error {
 	}
 
 	users := []struct {
-		name  string
-		email string
-		pass  string
+		name      string
+		email     string
+		pass      string
+		telp      string
+		addresses []struct {
+			label       string
+			addressLine string
+			city        string
+			province    string
+			postalCode  string
+		}
 	}{
-		{"Amtir", "petir@gmail.com", "123456"},
-		{"Jane Smith", "siti@gmail.com", "123456"},
-		{"Bob Johnson", "bob@gmail.com", "123456"},
+		{
+			name:  "Amtir",
+			email: "petir@gmail.com",
+			pass:  "123456",
+			telp:  "081111111111",
+			addresses: []struct {
+				label       string
+				addressLine string
+				city        string
+				province    string
+				postalCode  string
+			}{
+				{"Rumah", "Jl. Petir Utama No. 1", "Semarang", "Jawa Tengah", "50123"},
+				{"Kantor", "Jl. Industri Modern I", "Jakarta", "DKI Jakarta", "10110"},
+				{"Rumah Orang Tua", "Jl. Desa Sejahtera 44", "Solo", "Jawa Tengah", "57123"},
+				{"Kost", "Jl. Tembalang No. 5", "Semarang", "Jawa Tengah", "50275"},
+				{"Villa", "Jl. Puncak Indah 7", "Bogor", "Jawa Barat", "16750"},
+			},
+		},
+		{
+			name:  "Jane Smith",
+			email: "siti@gmail.com",
+			pass:  "123456",
+			telp:  "082222222222",
+			addresses: []struct {
+				label       string
+				addressLine string
+				city        string
+				province    string
+				postalCode  string
+			}{
+				{"Rumah", "Jl. Mawar Merah No. 12", "Surabaya", "Jawa Timur", "60111"},
+				{"Apartment", "Pakuwon City Lt. 15", "Surabaya", "Jawa Timur", "60112"},
+				{"Kantor Surabaya", "Jl. HR Muhammad No. 1", "Surabaya", "Jawa Timur", "60226"},
+				{"Rumah Nenek", "Jl. Pahlawan 3", "Malang", "Jawa Timur", "65111"},
+				{"Workshop", "Jl. Gresik Industri 5", "Gresik", "Jawa Timur", "61121"},
+			},
+		},
+		{
+			name:  "Bob Johnson",
+			email: "bob@gmail.com",
+			pass:  "123456",
+			telp:  "083333333333",
+			addresses: []struct {
+				label       string
+				addressLine string
+				city        string
+				province    string
+				postalCode  string
+			}{
+				{"Headquarters", "Jl. Gatot Subroto No. 50", "Jakarta", "DKI Jakarta", "12710"},
+				{"Warehouse", "Jl. Marunda Center No. 8", "Bekasi", "Jawa Barat", "17111"},
+				{"Private Studio", "Jl. Kemang Timur 12", "Jakarta", "DKI Jakarta", "12730"},
+				{"Family Home", "Jl. Menteng No. 1", "Jakarta", "DKI Jakarta", "10310"},
+				{"Guest House", "Jl. Braga No. 20", "Bandung", "Jawa Barat", "40111"},
+			},
+		},
 	}
 
 	for _, u := range users {
@@ -111,14 +216,39 @@ func SeedUsers(db *gorm.DB) error {
 		}
 
 		user := models.User{
-			Name:     u.name,
-			Email:    u.email,
-			Password: hashedPassword,
-			RoleID:   userRole.ID,
+			Name:            u.name,
+			Email:           u.email,
+			Password:        hashedPassword,
+			TelephoneNumber: u.telp,
+			RoleID:          userRole.ID,
 		}
 
 		if err := db.Create(&user).Error; err != nil {
 			return err
+		}
+
+		for i, addr := range u.addresses {
+			uid, err := helper.GenerateAddressUID(db)
+			if err != nil {
+				return err
+			}
+
+			address := models.Address{
+				UID:           uid,
+				UserID:        user.ID,
+				Label:         addr.label,
+				RecipientName: u.name,
+				Phone:         u.telp,
+				AddressLine:   addr.addressLine,
+				City:          addr.city,
+				Province:      addr.province,
+				PostalCode:    addr.postalCode,
+				IsPrimary:     i == 0,
+			}
+
+			if err := db.Create(&address).Error; err != nil {
+				return err
+			}
 		}
 	}
 
