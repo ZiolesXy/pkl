@@ -23,6 +23,7 @@ type UserProfileResponse struct {
 	Email           string `json:"email"`
 	ProfileImageURL string `json:"profile_image_url,omitempty"`
 	Role            string `json:"role"`
+	Address         []AddressResponse `json:"address"`
 }
 
 func BuildUserResponse(id uint, name, email, role string) UserResponse {
@@ -40,12 +41,13 @@ func BuildAllUser(users []UserResponse) AllUsers {
 	}
 }
 
-func BuildUserProfileResponse(id uint, name, email, profileImageURL, role string) UserProfileResponse {
+func BuildUserProfileResponse(id uint, name, email, profileImageURL, role string, address []AddressResponse) UserProfileResponse {
 	return UserProfileResponse{
-		ID: id,
-		Name: name,
-		Email: email,
+		ID:              id,
+		Name:            name,
+		Email:           email,
 		ProfileImageURL: profileImageURL,
-		Role: role,
+		Role:            role,
+		Address:         address,
 	}
 }

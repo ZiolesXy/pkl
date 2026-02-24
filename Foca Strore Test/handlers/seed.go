@@ -152,3 +152,25 @@ func SeedAllHandler(db *gorm.DB) gin.HandlerFunc {
 		response.SuccessResponse(c, "All data seeded successfully", nil)
 	}
 }
+
+func ResetDatabaseHandler(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if err := seeders.ResetDatabase(db); err != nil {
+			response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		response.SuccessResponse(c, "database reset succesfully", nil)
+	}
+}
+
+func MigrateHandler(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if err := seeders.MigrateAll(db); err != nil {
+			response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		response.SuccessResponse(c, "migration complite", nil)
+	}
+}

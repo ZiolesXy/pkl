@@ -24,15 +24,17 @@ func GetProfile(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		var user models.User
-		if err := db.Preload("Role").First(&user, userID).Error; err != nil {
+		if err := db.Preload("Role").Preload("Addresses").First(&user, userID).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				response.ErrorResponse(c, http.StatusNotFound, "user not found")
-	
+
 			} else {
 				response.ErrorResponse(c, http.StatusInternalServerError, "failed to fetch user")
 			}
-			return 
+			return
 		}
+
+		addresses := response.BuildAddressResponses(user.Addresses)
 
 		profileResp := response.BuildUserProfileResponse(
 			user.ID,
@@ -40,6 +42,7 @@ func GetProfile(db *gorm.DB) gin.HandlerFunc {
 			user.Email,
 			user.ProfileImageURL,
 			user.Role.Name,
+			addresses,
 		)
 
 		response.SuccessResponse(c, "profile retrieved successfull", profileResp)
@@ -149,10 +152,12 @@ func UpdateProfile(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		// Reload user
-		if err := db.Preload("Role").First(&user, user.ID).Error; err != nil {
+		if err := db.Preload("Role").Preload("Addresses").First(&user, user.ID).Error; err != nil {
 			response.ErrorResponse(c, http.StatusInternalServerError, "Failed to reload user")
 			return
 		}
+
+		addresses := response.BuildAddressResponses(user.Addresses)
 
 		// Build profile response
 		profileResp := response.BuildUserProfileResponse(
@@ -161,6 +166,7 @@ func UpdateProfile(db *gorm.DB) gin.HandlerFunc {
 			user.Email,
 			user.ProfileImageURL,
 			user.Role.Name,
+			addresses,
 		)
 
 		response.SuccessResponse(c, "Profile updated successfully", profileResp)

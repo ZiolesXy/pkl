@@ -10,7 +10,7 @@ import (
 	"voca-store/handlers"
 	"voca-store/helper"
 	"voca-store/middleware"
-	"voca-store/models"
+	"voca-store/seeders"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -32,23 +32,9 @@ func main() {
 
 	// Initialize database
 	db := database.InitDB()
-	defer database.CloseDB()
-
-	// Auto migrate models
-	if err := db.AutoMigrate(
-		&models.Role{},
-		&models.User{},
-		&models.Category{},
-		&models.Product{},
-		&models.Cart{},
-		&models.CartItem{},
-		&models.Coupon{},
-		&models.Checkout{},
-		&models.CheckoutItem{},
-		&models.Address{},
-		&models.UserCoupon{},
-	); err != nil {
-		log.Fatalf("Failed to migrate database: %v", err)
+	
+	if err := seeders.MigrateAll(db); err != nil {
+		panic("failed migrate")
 	}
 
 	// Setup Gin router
@@ -65,6 +51,7 @@ func main() {
 
 	// Public routes
 	authHandler := handlers.NewAuthHandler(db)
+	r.GET("/password", handlers.GetNewSecret)
 	r.POST("/register", authHandler.Register)
 	r.POST("/login", authHandler.Login)
 	r.POST("/refresh", authHandler.RefreshToken)
@@ -120,17 +107,23 @@ func main() {
 		}
 	}
 
-	// Seeder endpoint
-	seed := r.Group("/seed")
+	system := r.Group("/system")
+	system.Use(middleware.SystemAuth())
 	{
-		seed.GET("/assets", handlers.SeedProductsFromAssetsHandler(db))
-		seed.GET("/roles", handlers.SeedRoleHandler(db))
-		seed.GET("/admin", handlers.SeedAdminHandler(db))
-		seed.GET("/users", handlers.SeedUsersHandler(db))
-		seed.GET("/products", handlers.SeedProductsHandler(db))
-		seed.GET("/coupons", handlers.SeedCouponHandler(db))
-		seed.PUT("/sync", handlers.SyncAssetProductsHandler(db))
-		seed.GET("/all", handlers.SeedAllHandler(db))
+		system.POST("/reset", handlers.ResetDatabaseHandler(db))
+		system.POST("/migrate", handlers.MigrateHandler(db))
+		// Seeder endpoint
+		seed := system.Group("/seed")
+		{
+			seed.GET("/assets", handlers.SeedProductsFromAssetsHandler(db))
+			seed.GET("/roles", handlers.SeedRoleHandler(db))
+			seed.GET("/admin", handlers.SeedAdminHandler(db))
+			seed.GET("/users", handlers.SeedUsersHandler(db))
+			seed.GET("/products", handlers.SeedProductsHandler(db))
+			seed.GET("/coupons", handlers.SeedCouponHandler(db))
+			seed.PUT("/sync", handlers.SyncAssetProductsHandler(db))
+			seed.GET("/all", handlers.SeedAllHandler(db))
+		}
 	}
 
 	// Start server

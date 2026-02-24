@@ -290,6 +290,8 @@ func RejectCheckout(db *gorm.DB) gin.HandlerFunc {
 			Preload("Address").
 			Preload("Items").
 			Preload("Items.Product").
+			Preload("Coupon").
+			Preload("UserCoupon").
 			First(&checkout, id).Error; err != nil {
 
 			tx.Rollback()

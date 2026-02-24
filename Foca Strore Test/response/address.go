@@ -53,6 +53,14 @@ func BuildAddressListResponse(addresses []models.Address) AddressListResponse {
 	return AddressListResponse{Entries: entries}
 }
 
+func BuildAddressResponses(address []models.Address) []AddressResponse {
+	var entries []AddressResponse
+	for _, a := range address {
+		entries = append(entries, BuildAddressResponse(a))
+	}
+	return entries
+}
+
 func BuildCheckoutAddressResponse(a models.Address) CheckoutAddressResponse {
 	fullAddress := fmt.Sprintf("%s, %s, %s, %s", a.AddressLine, a.City, a.Province, a.PostalCode)
 	return CheckoutAddressResponse{

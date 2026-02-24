@@ -11,9 +11,10 @@ Aplikasi backend e-commerce sederhana menggunakan Golang, Gin, GORM, PostgreSQL,
 - **Address Management**: CRUD alamat pengiriman user
 - **Cart System**: Add to cart, View cart, Remove item
 - **Checkout System**: Checkout dengan status (pending, success, failed)
-- **Coupon System**: Buat, klaim, dan gunakan kupon diskon
+- **Coupon System**: Buat, klaim, dan gunakan kupon diskon (dengan masa berlaku dan status aktif)
+- **System Management**: Endpoint untuk migrasi database, reset database, dan seeding data
+- **Security**: Generator secret key untuk JWT dan proteksi endpoint sistem
 - **Image Upload**: Cloudinary integration untuk product images dan profile images
-- **Seeder**: Endpoint untuk seeding data awal
 
 ---
 
@@ -31,7 +32,7 @@ Aplikasi backend e-commerce sederhana menggunakan Golang, Gin, GORM, PostgreSQL,
 
 ```bash
 git clone <repository-url>
-cd "Foca Store"
+cd "Foca Store Test"
 ```
 
 2. Install dependencies:
@@ -55,6 +56,7 @@ DB_USER=postgres
 DB_PASSWORD=your_password
 DB_NAME=foca_store
 JWT_SECRET=your_super_secret_jwt_key_here_min_32_chars
+SYSTEM_PASSWORD=your_system_password_here
 CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
 CLOUDINARY_API_KEY=your_cloudinary_api_key
 CLOUDINARY_API_SECRET=your_cloudinary_api_secret
@@ -78,7 +80,8 @@ CREATE DATABASE foca_store;
 ## Migrasi Database
 
 Aplikasi menggunakan auto-migration GORM.  
-Tabel akan dibuat otomatis saat aplikasi pertama kali dijalankan.
+Tabel akan dibuat otomatis saat aplikasi pertama kali dijalankan.  
+Anda juga dapat melakukan migrasi manual melalui endpoint `/system/migrate`.
 
 ---
 
@@ -98,72 +101,73 @@ http://localhost:8080
 
 ---
 
-## Seeder
+## System & Seeder
 
-Untuk mengisi data awal, terdapat beberapa endpoint seeding:
+Semua endpoint sistem dan seeding dilindungi oleh `SYSTEM_PASSWORD` yang harus dikirim melalui `form-data` dengan key `password`.
+
+### System Endpoints
+
+- `POST /system/migrate` - Menjalankan migrasi database
+- `POST /system/reset` - Reset database (drop semua tabel dan migrasi ulang)
+
+### Seeder Endpoints
+
+Untuk mengisi data awal, gunakan endpoint berikut:
 
 ```bash
 # Seed roles (Admin, User)
-GET http://localhost:8080/seed/roles
+GET http://localhost:8080/system/seed/roles
 
-# Seed admin user (email: admin@voca-store.com, password: admin123)
-GET http://localhost:8080/seed/admin
+# Seed admin user
+GET http://localhost:8080/system/seed/admin
 
 # Seed sample users
-GET http://localhost:8080/seed/users
+GET http://localhost:8080/system/seed/users
 
 # Seed sample products
-GET http://localhost:8080/seed/products
+GET http://localhost:8080/system/seed/products
 
 # Seed products from assets folder
-GET http://localhost:8080/seed/assets
+GET http://localhost:8080/system/seed/assets
 
 # Seed sample coupons
-GET http://localhost:8080/seed/coupons
+GET http://localhost:8080/system/seed/coupons
 
 # Sync asset products
-GET http://localhost:8080/seed/sync
+PUT http://localhost:8080/system/seed/sync
 
-# Seed all data (roles, admin, users)
-GET http://localhost:8080/seed/all
+# Seed all data (roles, admin, user, categories, coupons)
+GET http://localhost:8080/system/seed/all
 ```
 
 Data yang di-seed:
 
 - **Roles**: Admin, User
-- **Admin**: 1 admin (email: admin@foca-store.com, password: admin123)
-- **Users**: 3 sample users dengan password: password123
-- **Products**: 5 sample products (dapat ditambah melalui endpoint /seed/products atau /seed/assets)
-- **Coupons**: Sample coupons untuk testing
+- **Admin**: Email sesuai seeder (e.g., admin@foca-store.com), password: (lihat `seeders/seed.go`)
+- **Users**: Beberapa sample users untuk testing
+- **Products**: Berbagai kategori produk (Laptop, Smartphone, dsb)
+- **Coupons**: Sample coupons dengan tipe percentage dan fixed
 
 ---
 
 ## API Endpoints
 
-### Authentication (Public)
+### Public Endpoints
 
+- `GET /password` - Generate rekomendasi JWT secret key
 - `POST /register` - Register user baru
 - `POST /login` - Login user
 - `POST /refresh` - Refresh access token
-
-### Categories (Public)
-
 - `GET /category` - Lihat semua kategori
 - `GET /category/:slug` - Lihat detail kategori berdasarkan slug
-
-### Products (Public)
-
-- `GET /products` - Lihat semua produk (public endpoint)
+- `GET /products` - Lihat semua produk
 - `GET /product/:slug` - Lihat detail produk berdasarkan slug
-
-### Coupons (Public)
-
 - `GET /coupons` - Lihat semua kupon yang tersedia
 
 ### User Profile (Protected)
 
 - `GET /api/profile` - Lihat profil user
-- `PUT /api/profile` - Update profil user (support JSON & multipart/form-data untuk upload gambar)
+- `PUT /api/profile` - Update profil user (support upload gambar)
 
 ### Address Management (Protected)
 
@@ -186,35 +190,33 @@ Data yang di-seed:
 
 ### Coupon Management (Protected)
 
-- `POST /api/coupons/claim` - Klaim kupon
+- `POST /api/coupons/claim` - Klaim kupon ke akun user
 - `GET /api/coupons/me` - Lihat kupon yang dimiliki user
-- `DELETE /api/coupons/:id/remove` - Hapus kupon dari user
+- `DELETE /api/coupons/:id/remove` - Hapus kupon dari akun user
 
-### Products Management (Admin Only)
+### Admin Management (Admin Only)
 
+**Product Admin:**
 - `POST /api/admin/products` - Buat produk baru
 - `PUT /api/admin/products/:id` - Update produk
 - `DELETE /api/admin/products/:id` - Hapus produk
 - `DELETE /api/admin/products` - Hapus semua produk
-- `DELETE /api/admin/products/assets` - Hapus semua gambar produk
+- `DELETE /api/admin/products/assets` - Hapus semua gambar produk dari Cloudinary
 
-### Categories Management (Admin Only)
-
+**Category Admin:**
 - `POST /api/admin/category` - Buat kategori baru
 - `PUT /api/admin/category/:id` - Update kategori
 - `DELETE /api/admin/category/:id` - Hapus kategori
 
-### Coupons Management (Admin Only)
-
+**Coupon Admin:**
 - `POST /api/admin/coupons` - Buat kupon baru
 - `PUT /api/admin/coupon/:id` - Update kupon
 - `DELETE /api/admin/coupon/:id` - Hapus kupon
 
-### Checkout Management (Admin Only)
-
-- `GET /api/admin/checkout` - Lihat semua checkout
-- `PATCH /api/admin/checkout/:id/approve` - Approve checkout
-- `PATCH /api/admin/checkout/:id/reject` - Reject checkout
+**Checkout Admin:**
+- `GET /api/admin/checkout` - Lihat semua history checkout
+- `PATCH /api/admin/checkout/:id/approve` - Approve transaksi
+- `PATCH /api/admin/checkout/:id/reject` - Reject transaksi
 
 ---
 
@@ -253,82 +255,13 @@ Data yang di-seed:
 
 ---
 
-## Testing dengan cURL
-
-### Register
-
-```bash
-curl -X POST http://localhost:8080/register \
-  -H "Content-Type: application/json" \
-  -d '{"name":"Test User","email":"test@example.com","password":"password123"}'
-```
-
-### Login
-
-```bash
-curl -X POST http://localhost:8080/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"test@example.com","password":"password123"}'
-```
-
-### Access Protected Endpoint
-
-```bash
-curl -X GET http://localhost:8080/api/cart \
-  -H "Authorization: Bearer <access_token>"
-```
-
-### Create Address
-
-```bash
-curl -X POST http://localhost:8080/api/addresses \
-  -H "Authorization: Bearer <access_token>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "label": "Rumah",
-    "recipient_name": "John Doe",
-    "phone": "08123456789",
-    "address_line": "Jl. Contoh No. 123",
-    "city": "Jakarta",
-    "province": "DKI Jakarta",
-    "postal_code": "12345"
-  }'
-```
-
-### Get My Addresses
-
-```bash
-curl -X GET http://localhost:8080/api/addresses \
-  -H "Authorization: Bearer <access_token>"
-```
-
-### Update Profile with Image
-
-```bash
-curl -X PUT http://localhost:8080/api/profile \
-  -H "Authorization: Bearer <access_token>" \
-  -F "name=Updated Name" \
-  -F "profile_image=@/path/to/image.jpg"
-```
-
-### Admin Endpoint
-
-```bash
-curl -X POST http://localhost:8080/api/admin/products \
-  -H "Authorization: Bearer <admin_access_token>" \
-  -H "Content-Type: application/json" \
-  -d '{"name":"New Product","price":100000,"stock":50,"categoryId":1}'
-```
-
----
-
 ## Keamanan
 
 - Password di-hash menggunakan bcrypt
-- JWT untuk autentikasi
-- Role-based authorization
-- Validasi input pada semua endpoint
-- Error handling yang komprehensif
+- JWT untuk autentikasi (Access & Refresh tokens)
+- Role-based authorization (Admin / User)
+- System management protection menggunakan static password
+- Cloudinary integration untuk secure image hosting
 
 ---
 
@@ -340,64 +273,22 @@ Foca Strore Test/
 ├── database/
 │   └── database.go
 ├── models/
-│   ├── role.go
-│   ├── user.go
-│   ├── category.go
-│   ├── product.go
-│   ├── cart.go
-│   ├── cart_item.go
-│   ├── checkout.go
-│   ├── checkout_item.go
-│   ├── address.go
-│   ├── coupon.go
-│   ├── user_coupon.go
-│   └── refresh_token.go
+│   ├── role.go, user.go, category.go, product.go, ...
+│   └── coupon.go, user_coupon.go, address.go
 ├── request/
-│   ├── auth.go
-│   ├── category.go
-│   ├── product.go
-│   ├── cart.go
-│   ├── checkout.go
-│   ├── profile.go
-│   └── address.go
+│   └── auth.go, product.go, checkout.go, address.go, ...
 ├── response/
-│   ├── response.go
-│   ├── auth.go
-│   ├── category.go
-│   ├── product.go
-│   ├── cart.go
-│   ├── checkout.go
-│   ├── profile.go
-│   ├── address.go
-│   ├── coupon.go
-│   ├── role.go
-│   └── user.go
+│   └── response.go, auth.go, product.go, coupon.go, ...
 ├── handlers/
-│   ├── auth.go
-│   ├── product.go
-│   ├── profile.go
-│   ├── address.go
-│   ├── cart.go
-│   ├── checkout.go
-│   ├── category.go
-│   ├── coupon.go
-│   ├── user_coupon.go
-│   └── seed.go
+│   ├── auth.go, product.go, category.go, coupon.go, ...
+│   ├── checkout.go, address.go, cart.go, seed.go, ...
+│   └── Security.go
 ├── middleware/
-│   ├── jwt.go
-│   └── admin.go
+│   ├── jwt.go, admin.go, system.go
 ├── helper/
-│   ├── jwt.go
-│   ├── cloudinary.go
-│   ├── slug.go
-│   ├── password.go
-│   └── context.go
+│   ├── jwt.go, cloudinary.go, slug.go, password.go, context.go
 ├── seeders/
-│   └── seed.go
-├── trash/
-│   └── trash.go
+│   ├── seed.go, reset.go, migrate.go, drop.go
 ├── AssetPrivate/
 └── README.md
 ```
-
----
