@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"net/http"
+	"time"
+	"voca-store/helper"
 	"voca-store/models"
 	"voca-store/request"
 	"voca-store/response"
@@ -100,6 +102,7 @@ func Checkout(db *gorm.DB) gin.HandlerFunc {
 
 		// APPLY COUPON
 		var coupon models.Coupon
+		var userCoupon models.UserCoupon
 
 		if req.CouponCode != nil && *req.CouponCode != "" {
 
@@ -111,6 +114,21 @@ func Checkout(db *gorm.DB) gin.HandlerFunc {
 			if err != nil {
 				tx.Rollback()
 				response.ErrorResponse(c, 400, "invalid coupon")
+				return
+			}
+
+			// VALIDATE COUPON OWNERSHIP
+			if err := tx.
+				Where("user_id = ? AND coupon_id = ?", userID, coupon.ID).
+				First(&userCoupon).Error; err != nil {
+				tx.Rollback()
+				response.ErrorResponse(c, 400, "coupon not claimed")
+				return
+			}
+
+			if userCoupon.UsedAt != nil {
+				tx.Rollback()
+				response.ErrorResponse(c, 400, "coupon already used")
 				return
 			}
 
@@ -137,11 +155,38 @@ func Checkout(db *gorm.DB) gin.HandlerFunc {
 				response.ErrorResponse(c, 400, "coupon quota exceeded")
 				return
 			}
+
+			// MARK COUPON AS USED
+			now := time.Now()
+			if err := tx.Model(&userCoupon).Update("used_at", now).Error; err != nil {
+				tx.Rollback()
+				response.ErrorResponse(c, 500, "failed to mark coupon as used")
+				return
+			}
+		}
+
+		// LOOKUP ADDRESS
+		var address models.Address
+		if err := tx.
+			Where("uid = ? AND user_id = ?", req.AddressUID, userID).
+			First(&address).Error; err != nil {
+			tx.Rollback()
+			response.ErrorResponse(c, http.StatusNotFound, "address not found")
+			return
+		}
+
+		uid, err := helper.GenerateCheckoutUID(tx)
+		if err != nil {
+			tx.Rollback()
+			response.ErrorResponse(c, http.StatusInternalServerError, "failed generate uid")
+			return
 		}
 
 		// CREATE CHECKOUT
 		checkout := models.Checkout{
+			UID:        uid,
 			UserID:     userID,
+			AddressID:  &address.ID,
 			TotalPrice: totalPrice,
 			Status:     "pending",
 		}
@@ -178,10 +223,10 @@ func Checkout(db *gorm.DB) gin.HandlerFunc {
 		if err := tx.
 			Where("id IN ?", req.CartItemIDs).
 			Delete(&models.CartItem{}).Error; err != nil {
-				tx.Rollback()
-				response.ErrorResponse(c, 500, "failed delete cart")
-				return
-			}
+			tx.Rollback()
+			response.ErrorResponse(c, 500, "failed delete cart")
+			return
+		}
 
 		// COMMIT
 		if err := tx.Commit().Error; err != nil {
@@ -195,12 +240,13 @@ func Checkout(db *gorm.DB) gin.HandlerFunc {
 		db.
 			Preload("User").
 			Preload("Coupon").
+			Preload("Address").
 			Preload("Items").
 			Preload("Items.Product").
 			First(&result, checkout.ID)
 
 		res := response.BuildCheckoutDetailResponse(result)
-		response.SuccessResponse(c, "Checkout created", res)
+		response.SuccessResponse(c, "checkout created", res)
 	}
 }
 
@@ -211,6 +257,7 @@ func ApproveCheckout(db *gorm.DB) gin.HandlerFunc {
 
 		var checkout models.Checkout
 		if err := db.Preload("User").
+			Preload("Address").
 			Preload("Items").
 			Preload("Items.Product").
 			First(&checkout, id).Error; err != nil {
@@ -249,8 +296,11 @@ func RejectCheckout(db *gorm.DB) gin.HandlerFunc {
 
 		var checkout models.Checkout
 		if err := tx.Preload("User").
+			Preload("Address").
 			Preload("Items").
 			Preload("Items.Product").
+			Preload("Coupon").
+			Preload("UserCoupon").
 			First(&checkout, id).Error; err != nil {
 
 			tx.Rollback()
@@ -300,8 +350,10 @@ func GetCheckout(db *gorm.DB) gin.HandlerFunc {
 		checkouts := []models.Checkout{}
 
 		query := db.
+			Unscoped().
 			Preload("User").
 			Preload("Coupon").
+			Preload("Address").
 			Preload("Items").
 			Preload("Items.Product").
 			Order("created_at DESC")
@@ -332,6 +384,7 @@ func GetMyCheckout(db *gorm.DB) gin.HandlerFunc {
 		if err := db.
 			Preload("User").
 			Preload("Coupon").
+			Preload("Address").
 			Preload("Items").
 			Preload("Items.Product").
 			Where("user_id = ?", userID).
@@ -345,5 +398,31 @@ func GetMyCheckout(db *gorm.DB) gin.HandlerFunc {
 		res := response.BuildCheckOutListResponse(checkouts)
 
 		response.SuccessListResponse(c, "your checkout list fetched", res)
+	}
+}
+
+func DeleteMyCheckout(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userIDRaw, exists := c.Get("user_id")
+		if !exists {
+			response.ErrorResponse(c, http.StatusUnauthorized, "missing authorization header")
+			return
+		}
+		userID := userIDRaw.(uint)
+		uid := c.Param("uid")
+
+		var checkout models.Checkout
+		if err := db.Where("uid = ? AND user_id = ?", uid, userID).First(&checkout).Error; err != nil {
+			response.ErrorResponse(c, http.StatusNotFound, "checkout not found")
+			return
+		}
+
+		//soft delete
+		if err := db.Delete(&checkout).Error; err != nil {
+			response.ErrorResponse(c, http.StatusInternalServerError, "failed to delete checkout")
+			return
+		}
+
+		response.SuccessResponse(c, "checkout deleted succesfully", nil)
 	}
 }

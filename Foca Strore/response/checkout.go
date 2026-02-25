@@ -13,14 +13,16 @@ type CheckoutItemResponse struct {
 }
 
 type CheckoutDetailResponse struct {
-	ID         uint                   `json:"id"`
-	User       UserMiniResponse       `json:"user"`
-	TotalPrice float64                `json:"total_price"`
-	Status     string                 `json:"status"`
-	Coupon     *CouponResponse        `json:"coupon,omitempty"`
-	Items      []CheckoutItemResponse `json:"items"`
-	CreatedAt  time.Time              `json:"created_at"`
-	UpdatedAt  time.Time              `json:"updated_at"`
+	ID         uint                     `json:"id"`
+	UID        string                   `json:"uid"`
+	User       UserMiniResponse         `json:"user"`
+	TotalPrice float64                  `json:"total_price"`
+	Status     string                   `json:"status"`
+	Coupon     *CouponResponse          `json:"coupon,omitempty"`
+	Address    *CheckoutAddressResponse `json:"address,omitempty"`
+	Items      []CheckoutItemResponse   `json:"items"`
+	CreatedAt  time.Time                `json:"created_at"`
+	UpdatedAt  time.Time                `json:"updated_at"`
 }
 
 type CheckoutListResponse struct {
@@ -48,14 +50,23 @@ func BuildCheckoutDetailResponse(checkout models.Checkout) CheckoutDetailRespons
 		coupon = &c
 	}
 
+	var addressResp *CheckoutAddressResponse
+	if checkout.Address != nil {
+		a := BuildCheckoutAddressResponse(*checkout.Address)
+		addressResp = &a
+	}
+
 	return CheckoutDetailResponse{
-		ID: checkout.ID,
+		ID:  checkout.ID,
+		UID: checkout.UID,
 		User: UserMiniResponse{
-			ID:    checkout.User.ID,
-			Name:  checkout.User.Name,
-			Email: checkout.User.Email,
+			ID:              checkout.User.ID,
+			Name:            checkout.User.Name,
+			Email:           checkout.User.Email,
+			TelephoneNumber: checkout.User.TelephoneNumber,
 		},
 		Coupon:     coupon,
+		Address:    addressResp,
 		TotalPrice: checkout.TotalPrice,
 		Status:     checkout.Status,
 		Items:      items,

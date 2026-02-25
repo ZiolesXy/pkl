@@ -11,6 +11,9 @@ type Coupon struct {
 
 	UsedCount int `gorm:"not null"`
 
+	IsActive  *bool      `gorm:"default:true"`
+	ExpiresAt *time.Time
+
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }

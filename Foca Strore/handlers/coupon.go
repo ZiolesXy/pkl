@@ -40,12 +40,12 @@ func GetCoupons(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		coupons := []models.Coupon{}
 
-		if err := db.Find(&coupons).Order("id ASC").Error; err != nil {
+		if err := db.Order("id ASC").Find(&coupons).Error; err != nil {
 			response.ErrorResponse(c, http.StatusInternalServerError, "failed to get coupons")
 			return
 		}
 
-		res := response.BuildCouponListResponse(coupons)
+		res := response.BuildCouponWithRemainingListResponse(coupons)
 		response.SuccessListResponse(c, "coupon retrievert succesfully", res)
 	}
 }

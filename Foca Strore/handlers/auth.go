@@ -2,7 +2,10 @@ package handlers
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
+	"time"
+	"voca-store/database"
 	"voca-store/helper"
 	"voca-store/models"
 	"voca-store/request"
@@ -46,10 +49,11 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	}
 
 	user := models.User{
-		Name:     req.Name,
-		Email:    req.Email,
-		Password: hashedPassword,
-		RoleID:   userRole.ID,
+		Name:            req.Name,
+		Email:           req.Email,
+		Password:        hashedPassword,
+		TelephoneNumber: req.TelephoneNumber,
+		RoleID:          userRole.ID,
 	}
 
 	if err := h.DB.Create(&user).Error; err != nil {
@@ -72,7 +76,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	userResp := response.BuildUserResponse(user.ID, user.Name, user.Email, user.Role.Name)
+	userResp := response.BuildUserResponse(user.ID, user.Name, user.Email, user.Role.Name, user.TelephoneNumber)
 	response.SuccessResponse(c, "user registered succesfully", userResp)
 }
 
@@ -110,7 +114,18 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	userResp := response.BuildUserResponse(user.ID, user.Name, user.Email, user.Role.Name)
+	err = database.RDB.Set(
+		database.Ctx,
+		"refresh:"+fmt.Sprint(user.ID),
+		refreshToken,
+		7*24*time.Hour,
+	).Err()
+	if err != nil {
+		response.ErrorResponse(c, http.StatusInternalServerError, "failed store refresh token")
+		return
+	}
+
+	userResp := response.BuildUserResponse(user.ID, user.Name, user.Email, user.Role.Name, user.TelephoneNumber)
 	authResp := response.BuildAuthResponse(userResp, accessToken, refreshToken)
 
 	response.SuccessResponse(c, "login succesfull", authResp)
@@ -135,6 +150,22 @@ func(h *AuthHandler) RefreshToken(c *gin.Context) {
 		return
 	}
 
+	key := fmt.Sprintf("refresh:%d", claims.UserID)
+	storedToken, err := database.RDB.Get(
+		database.Ctx,
+		key,
+	).Result()
+	
+	if err != nil {
+		response.ErrorResponse(c, http.StatusUnauthorized, "refresh token not found")
+		return
+	}
+
+	if storedToken != req.RefreshToken {
+		response.ErrorResponse(c, http.StatusUnauthorized, "invalid refresh token")
+		return
+	}
+
 	accessToken, err := helper.GenerateAccessToken(user.ID, user.Role.Name)
 	if err != nil {
 		response.ErrorResponse(c, http.StatusInternalServerError, "failed to get access token")
@@ -143,4 +174,106 @@ func(h *AuthHandler) RefreshToken(c *gin.Context) {
 
 	tokenResp := response.BuildToken(accessToken)
 	response.SuccessResponse(c, "token refreshed succesfull", tokenResp)
+}
+
+func (h *AuthHandler) Logout(c *gin.Context) {
+	userIDRaw, _ := c.Get("user_id")
+	UserID := userIDRaw.(uint)
+
+	authHeader := c.GetHeader("Authorization")
+	tokenString := authHeader[7:]
+
+	claims, err := helper.ValidateAccessToken(tokenString)
+	if err != nil {
+		response.ErrorResponse(c, http.StatusUnauthorized, "invalid token")
+		return
+	}
+
+	exp := claims.ExpiresAt.Time
+	ttl := time.Until(exp)
+
+	//blacklist
+	err = database.RDB.Set(
+		database.Ctx,
+		"blacklist:"+tokenString,
+		"revoked",
+		ttl,
+	).Err()
+
+	if err != nil {
+		response.ErrorResponse(c, http.StatusInternalServerError, "failed blacklist token")
+		return
+	}
+
+	//delete ref token
+	database.RDB.Del(
+		database.Ctx,
+		"refresh:"+fmt.Sprint(UserID),
+	)
+
+	response.SuccessResponse(c, "logout success", nil)
+}
+
+func ChangePassword(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userIDRaw, exist := c.Get("user_id")
+		if !exist {
+			response.ErrorResponse(c, http.StatusUnauthorized, "missing authorization header")
+			return
+		}
+
+		userID := userIDRaw.(uint)
+		var req request.ChangePasswordRequest
+		if err := c.ShouldBindJSON(&req); err != nil {
+			response.ErrorResponse(c, http.StatusBadRequest, "invalid body request")
+			return
+		}
+
+		var user models.User
+		if err := db.First(&user, userID).Error; err != nil {
+			response.ErrorResponse(c, http.StatusNotFound, "user not found")
+			return
+		}
+
+		//check old pw
+		if err := helper.VerifyPassword(
+			user.Password,
+			req.OldPassword,
+		); err != nil {
+			response.ErrorResponse(c, http.StatusBadRequest, "old password incorect")
+			return
+		}
+
+		//new pw & conf pw same
+		if req.NewPassword != req.ConfirmPassword {
+			response.ErrorResponse(c, http.StatusBadRequest, "password confirmation does not match")
+			return
+		}
+
+		// new pw must not same
+		if err := helper.VerifyPassword(
+			user.Password,
+			req.NewPassword,
+		); err == nil {
+			response.ErrorResponse(c, http.StatusBadRequest, "new password must be different")
+			return
+		}
+
+		//hashing new password
+		hash, err := helper.HashPassword(
+			req.NewPassword,
+		)
+		if err != nil {
+			response.ErrorResponse(c, http.StatusInternalServerError, "failed hash password")
+			return
+		}
+
+		// update in database
+		if err := db.Model(&user).Update("password", hash).Error; err != nil {
+			response.ErrorResponse(c, http.StatusInternalServerError, "failed update password")
+			return
+		}
+
+		response.SuccessResponse(c, "password change", nil)
+	}
 }

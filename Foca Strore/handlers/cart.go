@@ -182,3 +182,20 @@ func RemoveCartItem(db *gorm.DB) gin.HandlerFunc {
 		response.SuccessResponse(c, "Cart item removed successfully", nil)
 	}
 }
+
+func ClearCart(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userIDRaw, exists := c.Get("user_id")
+		if !exists {
+			response.ErrorResponse(c, http.StatusUnauthorized, "user not authenticated")
+			return
+		}
+		userID := userIDRaw.(uint)
+
+		if err := db.Where("cart_id IN (?)", db.Model(&models.Cart{}).Select("id").Where("user_id = ?", userID)).Delete(&models.CartItem{}).Error; err != nil {
+			response.ErrorResponse(c, http.StatusInternalServerError, "failed to clear cart")
+		}
+
+		response.SuccessResponse(c, "cart cleared succesfully", nil)
+	}
+}

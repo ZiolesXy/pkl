@@ -1,11 +1,14 @@
 package middleware
 
 import (
+	"fmt"
 	"net/http"
+	"voca-store/database"
 	"voca-store/helper"
 	"voca-store/response"
 
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
@@ -30,7 +33,25 @@ func JWTAuth(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Store user info in context
+		// Ambil data dari blacklist
+		_, err = database.RDB.Get(database.Ctx, "blacklist:"+tokenString).Result()
+
+		if err == nil {
+			// Token ditemukan di blacklist -> Blokir!
+			response.ErrorResponse(c, http.StatusUnauthorized, "token revoked")
+			c.Abort()
+			return
+		} else if err != redis.Nil {
+			// Error di sini BUKAN karena data kosong, tapi karena hal lain (misal: Redis MATI)
+
+			fmt.Println("Gagal koneksi ke Redis:", err)
+
+			// Jika Anda ingin SANGAT AMAN (Redis mati = tidak boleh akses):
+			response.ErrorResponse(c, http.StatusInternalServerError, "auth service error")
+			c.Abort()
+			return
+		}
+
 		c.Set("user_id", claims.UserID)
 		c.Set("role", claims.Role)
 

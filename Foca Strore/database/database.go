@@ -26,9 +26,10 @@ func InitDB() *gorm.DB {
 	newLogger := logger.New(
 		log.New(os.Stdout, "\r\n", log.LstdFlags),
 		logger.Config{
-			SlowThreshold: time.Second,
-			LogLevel: logger.Error,
-			Colorful: true,
+			SlowThreshold:             time.Second,
+			LogLevel:                  logger.Error,
+			IgnoreRecordNotFoundError: true,
+			Colorful:                  true,
 		},
 	)
 

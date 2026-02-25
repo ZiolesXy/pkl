@@ -45,7 +45,6 @@ func CreateCategory(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		res := response.BuildCategoryResponse(category, 0)
-
 		response.SuccessResponse(c, "category created", res)
 	}
 }
