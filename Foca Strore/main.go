@@ -40,6 +40,7 @@ func main() {
 	}
 
 	// Setup Gin router
+	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
 
 	//cors set
