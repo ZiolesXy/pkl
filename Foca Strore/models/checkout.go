@@ -18,6 +18,9 @@ type Checkout struct {
 	AddressID *uint
 	Address   *Address `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
 
+	Subtotal       float64 `gorm:"not null;default:0"`
+	DiscountAmount float64 `gorm:"not null;default:0"`
+
 	TotalPrice float64 `gorm:"not null"`
 	Status     string  `gorm:"not null;type:varchar(20);default:'pending'"`
 

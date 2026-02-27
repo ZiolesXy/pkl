@@ -73,6 +73,7 @@ func Checkout(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
+		var subtotalCents int64 = 0
 		var totalCents int64 = 0
 
 		for _, item := range items {
@@ -99,8 +100,11 @@ func Checkout(db *gorm.DB) gin.HandlerFunc {
 			}
 
 			priceCents := int64(item.Product.Price * 100)
-			totalCents += priceCents * int64(item.Quantity)
+			subtotalCents += priceCents * int64(item.Quantity)
 		}
+
+		totalCents = subtotalCents
+		var discountAmountCents int64 = 0
 
 		var coupon models.Coupon
 		var userCoupon models.UserCoupon
@@ -149,15 +153,18 @@ func Checkout(db *gorm.DB) gin.HandlerFunc {
 			}
 
 			if coupon.Type == "percentage" {
-				totalCents -= totalCents * int64(coupon.Value) / 100
+				discountAmountCents = subtotalCents * int64(coupon.Value) / 100
 			}
 
 			if coupon.Type == "fixed" {
-				totalCents -= int64(coupon.Value * 100)
+				discountAmountCents = int64(coupon.Value * 100)
 			}
+
+			totalCents = subtotalCents - discountAmountCents
 
 			if totalCents < 0 {
 				totalCents = 0
+				discountAmountCents = subtotalCents
 			}
 
 			if coupon.Quota > 0 {
@@ -198,11 +205,13 @@ func Checkout(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		checkout := models.Checkout{
-			UID:        uid,
-			UserID:     userID,
-			AddressID:  &address.ID,
-			TotalPrice: float64(totalCents) / 100,
-			Status:     "pending",
+			UID:            uid,
+			UserID:         userID,
+			AddressID:      &address.ID,
+			Subtotal:       float64(subtotalCents) / 100,
+			DiscountAmount: float64(discountAmountCents) / 100,
+			TotalPrice:     float64(totalCents) / 100,
+			Status:         "pending",
 		}
 
 		if coupon.ID != 0 {

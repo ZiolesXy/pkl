@@ -18,8 +18,10 @@ type CheckoutDetailResponse struct {
 	Status     string                   `json:"status"`
 	User       UserMiniResponse         `json:"user"`
 	Items      []CheckoutItemResponse   `json:"items"`
-	Coupon     *CouponResponse          `json:"coupon,omitempty"`
-	TotalPrice float64                  `json:"total_price"`
+	Coupon         *CouponResponse          `json:"coupon,omitempty"`
+	Subtotal       float64                  `json:"subtotal"`
+	DiscountAmount float64                  `json:"discount_amount"`
+	TotalPrice     float64                  `json:"total_price"`
 	Address    *CheckoutAddressResponse `json:"address,omitempty"`
 	CreatedAt  time.Time                `json:"created_at"`
 	UpdatedAt  time.Time                `json:"updated_at"`
@@ -65,9 +67,11 @@ func BuildCheckoutDetailResponse(checkout models.Checkout) CheckoutDetailRespons
 			Email:           checkout.User.Email,
 			TelephoneNumber: checkout.User.TelephoneNumber,
 		},
-		Coupon:     coupon,
-		Address:    addressResp,
-		TotalPrice: checkout.TotalPrice,
+		Coupon:         coupon,
+		Address:        addressResp,
+		Subtotal:       checkout.Subtotal,
+		DiscountAmount: checkout.DiscountAmount,
+		TotalPrice:     checkout.TotalPrice,
 		Status:     checkout.Status,
 		Items:      items,
 		CreatedAt:  checkout.CreatedAt,
