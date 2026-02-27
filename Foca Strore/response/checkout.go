@@ -15,12 +15,12 @@ type CheckoutItemResponse struct {
 type CheckoutDetailResponse struct {
 	ID         uint                     `json:"id"`
 	UID        string                   `json:"uid"`
-	User       UserMiniResponse         `json:"user"`
-	TotalPrice float64                  `json:"total_price"`
 	Status     string                   `json:"status"`
-	Coupon     *CouponResponse          `json:"coupon,omitempty"`
-	Address    *CheckoutAddressResponse `json:"address,omitempty"`
+	User       UserMiniResponse         `json:"user"`
 	Items      []CheckoutItemResponse   `json:"items"`
+	Coupon     *CouponResponse          `json:"coupon,omitempty"`
+	TotalPrice float64                  `json:"total_price"`
+	Address    *CheckoutAddressResponse `json:"address,omitempty"`
 	CreatedAt  time.Time                `json:"created_at"`
 	UpdatedAt  time.Time                `json:"updated_at"`
 }

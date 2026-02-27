@@ -1,8 +1,10 @@
 package handlers
 
 import (
+	"crypto/rand"
 	"errors"
 	"fmt"
+	"math/big"
 	"net/http"
 	"time"
 	"voca-store/database"
@@ -98,7 +100,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	}
 
 	if err := helper.VerifyPassword(user.Password, req.Password); err != nil {
-		response.ErrorResponse(c, http. StatusBadRequest, "invalid email or password")
+		response.ErrorResponse(c, http.StatusBadRequest, "invalid email or password")
 		return
 	}
 
@@ -131,7 +133,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	response.SuccessResponse(c, "login succesfull", authResp)
 }
 
-func(h *AuthHandler) RefreshToken(c *gin.Context) {
+func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	var req request.RefreshTokenRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.ErrorResponse(c, http.StatusBadRequest, "invalid request body")
@@ -155,7 +157,7 @@ func(h *AuthHandler) RefreshToken(c *gin.Context) {
 		database.Ctx,
 		key,
 	).Result()
-	
+
 	if err != nil {
 		response.ErrorResponse(c, http.StatusUnauthorized, "refresh token not found")
 		return
@@ -276,4 +278,104 @@ func ChangePassword(db *gorm.DB) gin.HandlerFunc {
 
 		response.SuccessResponse(c, "password change", nil)
 	}
+}
+
+func (h *AuthHandler) ForgotPassword(c *gin.Context) {
+	var req request.ForgotPasswordRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.ErrorResponse(c, http.StatusBadRequest, "invalid body request")
+		return
+	}
+
+	email := req.Email
+	limitKey := "otp:limit:" + email
+	otpKey := "otp:" + email
+
+	count, err := database.RDB.Get(database.Ctx, limitKey).Int()
+	if err != nil && err.Error() != "redis: nil" {
+		response.ErrorResponse(c, http.StatusInternalServerError, "redis error")
+		return
+	}
+
+	if count >= 5 {
+		response.ErrorResponse(c, http.StatusTooManyRequests, "too many otp request, try again later")
+		return
+	}
+
+	var user models.User
+	if err := h.DB.Where("email = ?", req.Email).First(&user).Error; err != nil {
+		database.RDB.Incr(database.Ctx, limitKey)
+		database.RDB.Expire(database.Ctx, limitKey, 5*time.Minute)
+
+		response.SuccessResponse(c, "if email exists, otp sent", nil)
+		return
+	}
+
+	n, _ := rand.Int(rand.Reader, big.NewInt(1000000))
+	otp := fmt.Sprintf("%06d", n.Int64())
+
+	err = database.RDB.Set(
+		database.Ctx,
+		otpKey,
+		otp,
+		5*time.Minute,
+	).Err()
+
+	if err != nil {
+		response.ErrorResponse(c, http.StatusInternalServerError, "failed generate otp")
+		return
+	}
+
+	newCount, _ := database.RDB.Incr(database.Ctx, limitKey).Result()
+	if newCount == 1 {
+		database.RDB.Expire(database.Ctx, limitKey, 5*time.Minute)
+	}
+
+	go func() {
+		if err := helper.SendOTPEmail(email, otp); err != nil {
+			fmt.Println("failed send otp email:", err)
+		}
+	}()
+
+	response.SuccessResponse(c, "if email exists, otp sent", nil)
+}
+
+func (h *AuthHandler) VerifyOTP(c *gin.Context) {
+	var req request.VerifyOTPRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.ErrorResponse(c, http.StatusBadRequest, "invalid body request")
+		return
+	}
+
+	key := "otp:" + req.Email
+
+	storedOTP, err := database.RDB.Get(database.Ctx, key).Result()
+	if err != nil {
+		response.ErrorResponse(c, http.StatusBadRequest, "invalid or expired otp")
+		return
+	}
+
+	if storedOTP != req.OTP {
+		response.ErrorResponse(c, http.StatusBadRequest, "invalid otp")
+		return
+	}
+
+	hashed, err := helper.HashPassword(req.NewPassword)
+	if err != nil {
+		response.ErrorResponse(c, http.StatusInternalServerError, "failed hashed password")
+		return
+	}
+
+	err = h.DB.Model(&models.User{}).
+		Where("email = ?", req.Email).
+		Update("password", hashed).Error
+	if err != nil {
+		response.ErrorResponse(c, http.StatusInternalServerError, "failed update password")
+		return
+	}
+
+	database.RDB.Del(database.Ctx, key)
+	response.SuccessResponse(c, "password reset success", nil)
 }

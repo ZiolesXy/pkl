@@ -16,16 +16,18 @@ import (
 func Checkout(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
-		// AUTH
 		userIDRaw, exist := c.Get("user_id")
 		if !exist {
 			response.ErrorResponse(c, http.StatusUnauthorized, "unauthorized")
 			return
 		}
 
-		userID := userIDRaw.(uint)
+		userID, ok := userIDRaw.(uint)
+		if !ok {
+			response.ErrorResponse(c, http.StatusInternalServerError, "invalid user context")
+			return
+		}
 
-		// REQUEST
 		var req request.CheckoutRequest
 
 		if err := c.ShouldBindJSON(&req); err != nil {
@@ -33,7 +35,11 @@ func Checkout(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// TRANSACTION START
+		if len(req.CartItemIDs) == 0 {
+			response.ErrorResponse(c, http.StatusBadRequest, "no items selected")
+			return
+		}
+
 		tx := db.Begin()
 		defer func() {
 			if r := recover(); r != nil {
@@ -41,9 +47,7 @@ func Checkout(db *gorm.DB) gin.HandlerFunc {
 			}
 		}()
 
-		// GET CART
 		var cart models.Cart
-
 		if err := tx.
 			Where("user_id = ?", userID).
 			First(&cart).Error; err != nil {
@@ -52,9 +56,7 @@ func Checkout(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// GET CART ITEMS + LOCK
 		var items []models.CartItem
-
 		if err := tx.
 			Clauses(clause.Locking{Strength: "UPDATE"}).
 			Preload("Product").
@@ -71,10 +73,10 @@ func Checkout(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// CALCULATE TOTAL + UPDATE STOCK
-		totalPrice := 0.0
+		var totalCents int64 = 0
 
 		for _, item := range items {
+
 			if item.Product.Stock < item.Quantity {
 				tx.Rollback()
 				response.ErrorResponse(
@@ -96,11 +98,10 @@ func Checkout(db *gorm.DB) gin.HandlerFunc {
 				return
 			}
 
-			totalPrice += item.Product.Price * float64(item.Quantity)
-
+			priceCents := int64(item.Product.Price * 100)
+			totalCents += priceCents * int64(item.Quantity)
 		}
 
-		// APPLY COUPON
 		var coupon models.Coupon
 		var userCoupon models.UserCoupon
 
@@ -117,7 +118,22 @@ func Checkout(db *gorm.DB) gin.HandlerFunc {
 				return
 			}
 
-			// VALIDATE COUPON OWNERSHIP
+			if coupon.ExpiresAt != nil && coupon.ExpiresAt.Before(time.Now()) {
+				tx.Rollback()
+				response.ErrorResponse(c, http.StatusBadRequest, "coupon has expired")
+				return
+			}
+
+			if coupon.MinimumPurchase > 0 {
+				minCent := int64(coupon.MinimumPurchase * 100)
+
+				if totalCents < minCent {
+					tx.Rollback()
+					response.ErrorResponse(c, http.StatusBadRequest, "minimum purchase not reached")
+					return
+				}
+			}
+
 			if err := tx.
 				Where("user_id = ? AND coupon_id = ?", userID, coupon.ID).
 				First(&userCoupon).Error; err != nil {
@@ -132,40 +148,39 @@ func Checkout(db *gorm.DB) gin.HandlerFunc {
 				return
 			}
 
-			// APPLY DISCOUNT
 			if coupon.Type == "percentage" {
-				totalPrice -= totalPrice * coupon.Value / 100
+				totalCents -= totalCents * int64(coupon.Value) / 100
 			}
 
 			if coupon.Type == "fixed" {
-				totalPrice -= coupon.Value
+				totalCents -= int64(coupon.Value * 100)
 			}
 
-			if totalPrice < 0 {
-				totalPrice = 0
+			if totalCents < 0 {
+				totalCents = 0
 			}
 
-			// SAFE INCREMENT QUOTA
-			result := tx.Model(&models.Coupon{}).
-				Where("id = ? AND used_count < quota", coupon.ID).
-				Update("used_count", gorm.Expr("used_count + 1"))
+			if coupon.Quota > 0 {
+				result := tx.Model(&models.Coupon{}).
+					Where("id = ? AND used_count < quota", coupon.ID).
+					Update("used_count", gorm.Expr("used_count + 1"))
 
-			if result.RowsAffected == 0 {
-				tx.Rollback()
-				response.ErrorResponse(c, 400, "coupon quota exceeded")
-				return
+				if result.RowsAffected == 0 {
+					tx.Rollback()
+					response.ErrorResponse(c, 400, "coupon quota exceeded")
+					return
+				}
 			}
 
-			// MARK COUPON AS USED
 			now := time.Now()
-			if err := tx.Model(&userCoupon).Update("used_at", now).Error; err != nil {
+			if err := tx.Model(&userCoupon).
+				Update("used_at", now).Error; err != nil {
 				tx.Rollback()
 				response.ErrorResponse(c, 500, "failed to mark coupon as used")
 				return
 			}
 		}
 
-		// LOOKUP ADDRESS
 		var address models.Address
 		if err := tx.
 			Where("uid = ? AND user_id = ?", req.AddressUID, userID).
@@ -182,12 +197,11 @@ func Checkout(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// CREATE CHECKOUT
 		checkout := models.Checkout{
 			UID:        uid,
 			UserID:     userID,
 			AddressID:  &address.ID,
-			TotalPrice: totalPrice,
+			TotalPrice: float64(totalCents) / 100,
 			Status:     "pending",
 		}
 
@@ -201,7 +215,6 @@ func Checkout(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// CREATE CHECKOUT ITEMS
 		for _, item := range items {
 
 			checkoutItem := models.CheckoutItem{
@@ -216,34 +229,33 @@ func Checkout(db *gorm.DB) gin.HandlerFunc {
 				response.ErrorResponse(c, 500, "failed create checkout item")
 				return
 			}
-
 		}
 
-		// DELETE CART ITEMS
 		if err := tx.
-			Where("id IN ?", req.CartItemIDs).
+			Where("cart_id = ? AND id IN ?", cart.ID, req.CartItemIDs).
 			Delete(&models.CartItem{}).Error; err != nil {
 			tx.Rollback()
 			response.ErrorResponse(c, 500, "failed delete cart")
 			return
 		}
 
-		// COMMIT
 		if err := tx.Commit().Error; err != nil {
 			response.ErrorResponse(c, 500, "transaction failed")
 			return
 		}
 
-		// RELOAD RESULT
 		var result models.Checkout
-
-		db.
+		if err := db.
 			Preload("User").
 			Preload("Coupon").
 			Preload("Address").
 			Preload("Items").
 			Preload("Items.Product").
-			First(&result, checkout.ID)
+			First(&result, checkout.ID).Error; err != nil {
+
+			response.ErrorResponse(c, 500, "failed load checkout result")
+			return
+		}
 
 		res := response.BuildCheckoutDetailResponse(result)
 		response.SuccessResponse(c, "checkout created", res)
@@ -300,7 +312,7 @@ func RejectCheckout(db *gorm.DB) gin.HandlerFunc {
 			Preload("Items").
 			Preload("Items.Product").
 			Preload("Coupon").
-			Preload("UserCoupon").
+			// Preload("UserCoupon").
 			First(&checkout, id).Error; err != nil {
 
 			tx.Rollback()
@@ -398,6 +410,31 @@ func GetMyCheckout(db *gorm.DB) gin.HandlerFunc {
 		res := response.BuildCheckOutListResponse(checkouts)
 
 		response.SuccessListResponse(c, "your checkout list fetched", res)
+	}
+}
+
+func GetCheckoutByUID(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+
+		uid := c.Param("uid")
+
+		var checkout models.Checkout
+
+		if err := db.
+			Preload("User").
+			Preload("Coupon").
+			Preload("Address").
+			Preload("Items").
+			Preload("Items.Product").
+			Where("uid = ?", uid).
+			First(&checkout).Error; err != nil {
+
+			response.ErrorResponse(c, http.StatusNotFound, "checkout not found")
+			return
+		}
+
+		res := response.BuildCheckoutDetailResponse(checkout)
+		response.SuccessResponse(c, "checkout detail fetched", res)
 	}
 }
 

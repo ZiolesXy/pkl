@@ -4,22 +4,23 @@ import (
 	"errors"
 	"os"
 	"time"
+
 	"github.com/golang-jwt/jwt/v5"
 )
 
 type Claims struct {
-	UserID uint `json:"user_id"`
-	Role string `json:"role"`
+	UserID uint   `json:"user_id"`
+	Role   string `json:"role"`
 	jwt.RegisteredClaims
 }
 
 func GenerateAccessToken(userID uint, role string) (string, error) {
 	claims := Claims{
 		UserID: userID,
-		Role: role,
+		Role:   role,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(1 * time.Hour)),
-			IssuedAt: jwt.NewNumericDate(time.Now()),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			NotBefore: jwt.NewNumericDate(time.Now()),
 		},
 	}

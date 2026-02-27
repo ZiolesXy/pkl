@@ -183,6 +183,47 @@ func RemoveCartItem(db *gorm.DB) gin.HandlerFunc {
 	}
 }
 
+func RemoveCartItemMany(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userIDRaw, exists := c.Get("user_id")
+		if !exists {
+			response.ErrorResponse(c, http.StatusUnauthorized, "user not authenticated")
+			return
+		}
+		userID := userIDRaw.(uint)
+
+		var req request.RemoveCartItemRequest
+		if err := c.ShouldBindJSON(&req); err != nil {
+			response.ErrorResponse(c, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		var cart models.Cart
+		if err := db.Where("user_id = ?", userID).First(&cart).Error; err != nil {
+			response.ErrorResponse(c, http.StatusNotFound, "cart not found")
+			return
+		}
+
+		var count int64
+		if err := db.Model(&models.CartItem{}).Where("cart_id = ? AND id IN ?", cart.ID, req.CartItemIDs).Count(&count).Error; err != nil {
+			response.ErrorResponse(c, http.StatusInternalServerError, "failed to validate cart item")
+			return
+		}
+
+		if count != int64(len(req.CartItemIDs)) {
+			response.ErrorResponse(c, http.StatusForbidden, "some cart items are invalid")
+			return
+		}
+
+		if err := db.Where("cart_id = ? AND id IN ?", cart.ID, req.CartItemIDs).Delete(&models.CartItem{}).Error; err != nil {
+			response.ErrorResponse(c, http.StatusInternalServerError, "failed to delete cart item")
+			return
+		}
+
+		response.SuccessResponse(c, "cart items removed succesfully", nil)
+	}
+}
+
 func ClearCart(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userIDRaw, exists := c.Get("user_id")

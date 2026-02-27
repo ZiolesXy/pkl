@@ -1,14 +1,19 @@
 package response
 
-import "voca-store/models"
+import (
+	"time"
+	"voca-store/models"
+)
 
 type CouponResponse struct {
-	ID        uint    `json:"id"`
-	Code      string  `json:"code"`
-	Type      string  `json:"type"`
-	Value     float64 `json:"value"`
-	Quota     int     `json:"quota"`
-	UsedCount int     `json:"used_count"`
+	ID              uint       `json:"id"`
+	Code            string     `json:"code"`
+	Type            string     `json:"type"`
+	Value           float64    `json:"value"`
+	Quota           int        `json:"quota"`
+	UsedCount       int        `json:"used_count"`
+	MinimumPurchase float64    `json:"minimum_purchase"`
+	ExpiresAt       *time.Time `json:"expires_at"`
 }
 
 type CouponListResponse struct {
@@ -17,12 +22,14 @@ type CouponListResponse struct {
 
 func BuildCouponResponse(c models.Coupon) CouponResponse {
 	return CouponResponse{
-		ID: c.ID,
-		Code: c.Code,
-		Type: c.Type,
-		Value: c.Value,
-		Quota: c.Quota,
-		UsedCount: c.UsedCount,
+		ID:              c.ID,
+		Code:            c.Code,
+		Type:            c.Type,
+		Value:           c.Value,
+		Quota:           c.Quota,
+		UsedCount:       c.UsedCount,
+		MinimumPurchase: c.MinimumPurchase,
+		ExpiresAt:       c.ExpiresAt,
 	}
 }
 
@@ -39,13 +46,15 @@ func BuildCouponListResponse(coupons []models.Coupon) CouponListResponse {
 }
 
 type CouponWithRemainingResponse struct {
-	ID        uint    `json:"id"`
-	Code      string  `json:"code"`
-	Type      string  `json:"type"`
-	Value     float64 `json:"value"`
-	Quota     int     `json:"quota"`
-	UsedCount int     `json:"used_count"`
-	Remaining int     `json:"remaining"`
+	ID              uint       `json:"id"`
+	Code            string     `json:"code"`
+	Type            string     `json:"type"`
+	Value           float64    `json:"value"`
+	Quota           int        `json:"quota"`
+	UsedCount       int        `json:"used_count"`
+	Remaining       int        `json:"remaining"`
+	MinimumPurchase float64    `json:"minimum_purchase"`
+	ExpiresAt       *time.Time `json:"expires_at"`
 }
 
 type CouponWithRemainingListResponse struct {
@@ -59,13 +68,15 @@ func BuildCouponWithRemainingResponse(c models.Coupon) CouponWithRemainingRespon
 	}
 
 	return CouponWithRemainingResponse{
-		ID: c.ID,
-		Code: c.Code,
-		Type: c.Type,
-		Value: c.Value,
-		Quota: c.Quota,
-		UsedCount: c.UsedCount,
-		Remaining: remaining,
+		ID:              c.ID,
+		Code:            c.Code,
+		Type:            c.Type,
+		Value:           c.Value,
+		Quota:           c.Quota,
+		UsedCount:       c.UsedCount,
+		Remaining:       remaining,
+		MinimumPurchase: c.MinimumPurchase,
+		ExpiresAt:       c.ExpiresAt,
 	}
 }
 

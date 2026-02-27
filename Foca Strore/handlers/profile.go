@@ -44,6 +44,8 @@ func GetProfile(db *gorm.DB) gin.HandlerFunc {
 			user.ProfileImageURL,
 			user.Role.Name,
 			addresses,
+			user.CreatedAt,
+			user.UpdatedAt,
 		)
 
 		response.SuccessResponse(c, "profile retrieved successfull", profileResp)
@@ -175,6 +177,8 @@ func UpdateProfile(db *gorm.DB) gin.HandlerFunc {
 			user.ProfileImageURL,
 			user.Role.Name,
 			addresses,
+			user.CreatedAt,
+			user.UpdatedAt,
 		)
 
 		response.SuccessResponse(c, "Profile updated successfully", profileResp)

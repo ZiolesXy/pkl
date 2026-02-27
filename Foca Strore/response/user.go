@@ -1,14 +1,16 @@
 package response
 
+import "time"
+
 type UserMiniResponse struct {
-	ID    uint   `json:"id"`
+	ID              uint   `json:"id"`
 	Name            string `json:"name"`
 	Email           string `json:"email"`
 	TelephoneNumber string `json:"telephone_number"`
 }
 
 type UserResponse struct {
-	ID    uint   `json:"id"`
+	ID              uint   `json:"id"`
 	Name            string `json:"name"`
 	Email           string `json:"email"`
 	TelephoneNumber string `json:"telephone_number"`
@@ -20,13 +22,15 @@ type AllUsers struct {
 }
 
 type UserProfileResponse struct {
-	ID              uint   `json:"id"`
-	Name            string `json:"name"`
-	Email           string `json:"email"`
-	TelephoneNumber string `json:"telephone_number"`
-	ProfileImageURL string `json:"profile_image_url,omitempty"`
-	Role            string `json:"role"`
+	ID              uint              `json:"id"`
+	Name            string            `json:"name"`
+	Email           string            `json:"email"`
+	TelephoneNumber string            `json:"telephone_number"`
+	ProfileImageURL string            `json:"profile_image_url,omitempty"`
+	Role            string            `json:"role"`
 	Address         []AddressResponse `json:"address"`
+	CreatedAt       time.Time         `json:"created_at"`
+	UpdatedAt       time.Time         `json:"updated_at"`
 }
 
 func BuildUserResponse(id uint, name, email, role, telephoneNumber string) UserResponse {
@@ -45,7 +49,7 @@ func BuildAllUser(users []UserResponse) AllUsers {
 	}
 }
 
-func BuildUserProfileResponse(id uint, name, email, telephoneNumber, profileImageURL, role string, address []AddressResponse) UserProfileResponse {
+func BuildUserProfileResponse(id uint, name, email, telephoneNumber, profileImageURL, role string, address []AddressResponse, createdat, updatedat time.Time) UserProfileResponse {
 	return UserProfileResponse{
 		ID:              id,
 		Name:            name,
@@ -54,5 +58,7 @@ func BuildUserProfileResponse(id uint, name, email, telephoneNumber, profileImag
 		ProfileImageURL: profileImageURL,
 		Role:            role,
 		Address:         address,
+		CreatedAt:       createdat,
+		UpdatedAt:       updatedat,
 	}
 }

@@ -20,7 +20,7 @@ type ProductResponse struct {
 	Name        string                `json:"name"`
 	Slug        string                `json:"slug"`
 	Description string                `json:"description,omitempty"`
-	ImageURL    string                `json:"image_url,omitempty"`
+	ImageURL    *string               `json:"image_url"`
 	Price       float64               `json:"price"`
 	Stock       int                   `json:"stock"`
 	Category    *CategoryMiniResponse `json:"category,omitempty"`
@@ -41,12 +41,17 @@ func BuildProductResponse(product models.Product) ProductResponse {
 		}
 	}
 
+	var imageURL *string
+	if product.ImageURL != "" {
+		imageURL = &product.ImageURL
+	}
+
 	return ProductResponse{
 		ID:          product.ID,
 		Name:        product.Name,
 		Slug:        product.Slug,
 		Description: product.Description,
-		ImageURL:    product.ImageURL,
+		ImageURL:    imageURL,
 		Price:       product.Price,
 		Stock:       product.Stock,
 		Category:    CategoryResp,
@@ -56,29 +61,10 @@ func BuildProductResponse(product models.Product) ProductResponse {
 }
 
 func BuildProductListResponse(products []models.Product) ProductListResponse {
-	responses := []ProductResponse{}
+	responses := make([]ProductResponse, 0, len(products))
 
 	for _, p := range products {
-		var CategoryResp *CategoryMiniResponse
-		if p.Category != nil {
-			CategoryResp = &CategoryMiniResponse{
-				ID:   p.Category.ID,
-				Name: p.Category.Name,
-			}
-		}
-
-		responses = append(responses, ProductResponse{
-			ID:          p.ID,
-			Name:        p.Name,
-			Slug:        p.Slug,
-			Description: p.Description,
-			ImageURL:    p.ImageURL,
-			Price:       p.Price,
-			Stock:       p.Stock,
-			Category:    CategoryResp,
-			CreatedAt:   p.CreatedAt,
-			UpdatedAt:   p.UpdatedAt,
-		})
+		responses = append(responses, BuildProductResponse(p))
 	}
 
 	return ProductListResponse{

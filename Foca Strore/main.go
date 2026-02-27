@@ -62,6 +62,8 @@ func main() {
 	r.GET("/password", handlers.GetNewSecret)
 	r.POST("/register", authHandler.Register)
 	r.POST("/login", authHandler.Login)
+	r.POST("/forgot-password", authHandler.ForgotPassword)
+	r.POST("/verify-otp", authHandler.VerifyOTP)
 	r.POST("/refresh", authHandler.RefreshToken)
 	r.GET("/category/:slug", handlers.GetCategoryBySlug(db))
 	r.GET("/category", handlers.GetAllCategory(db))
@@ -80,9 +82,11 @@ func main() {
 		protected.GET("/cart", handlers.ViewCart(db))
 		protected.POST("/cart/items", handlers.AddToCart(db))
 		protected.DELETE("/cart/items/:id", handlers.RemoveCartItem(db))
+		protected.DELETE("/cart/items", handlers.RemoveCartItemMany(db))
 		protected.DELETE("/cart/items/all", handlers.ClearCart(db))
 		protected.POST("/checkout", handlers.Checkout(db))
 		protected.GET("/checkout/me", handlers.GetMyCheckout(db))
+		protected.GET("/checkout/:uid", handlers.GetCheckoutByUID(db))
 		protected.DELETE("/checkout/:uid", handlers.DeleteMyCheckout(db))
 		protected.POST("/logout", authHandler.Logout)
 
@@ -94,7 +98,7 @@ func main() {
 		protected.DELETE("/addresses/:uid", handlers.DeleteAddress(db))
 
 		// Coupon user routes
-		protected.POST("/coupons/claim", handlers.ClaimCoupon(db))
+		protected.POST("/coupons/:id/claim", handlers.ClaimCoupon(db))
 		protected.GET("/coupons/me", handlers.GetMyCoupons(db))
 		protected.DELETE("/coupons/:id/remove", handlers.RemoveCoupon(db))
 

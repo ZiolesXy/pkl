@@ -17,3 +17,7 @@ type UpdateProductRequest struct {
 	Stock       *int     `json:"stock"`
 	CategoryID  *uint    `json:"category_id"`
 }
+
+type RemoveCartItemRequest struct {
+	CartItemIDs []uint `json:"cart_item_ids" binding:"required,min=1"`
+}
