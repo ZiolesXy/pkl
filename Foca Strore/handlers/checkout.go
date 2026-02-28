@@ -218,6 +218,33 @@ func Checkout(db *gorm.DB) gin.HandlerFunc {
 			checkout.CouponID = &coupon.ID
 		}
 
+		// Preload for WhatsApp URL generation
+		checkout.User = &models.User{}
+		if err := tx.First(checkout.User, userID).Error; err != nil {
+			tx.Rollback()
+			response.ErrorResponse(c, 500, "failed load user for whatsapp")
+			return
+		}
+
+		checkout.Address = &address
+		// Items are already in 'items' slice, but let's associate them for the generator
+		// We'll map models.CartItem to models.CheckoutItem logic if needed, 
+		// but checkout.Items is usually for the model. 
+		// Actually, let's just pass the data we have.
+		
+		// To make GenerateCheckoutWhatsappURL work correctly, we need the items with product details.
+		checkout.Items = make([]models.CheckoutItem, len(items))
+		for i, item := range items {
+			checkout.Items[i] = models.CheckoutItem{
+				ProductID: item.ProductID,
+				Quantity:  item.Quantity,
+				Price:     item.Product.Price,
+				Product:   *item.Product,
+			}
+		}
+
+		checkout.WhatsappURL = helper.GenerateCheckoutWhatsappURL(checkout)
+
 		if err := tx.Create(&checkout).Error; err != nil {
 			tx.Rollback()
 			response.ErrorResponse(c, 500, "failed create checkout")
@@ -425,6 +452,13 @@ func GetMyCheckout(db *gorm.DB) gin.HandlerFunc {
 func GetCheckoutByUID(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
+		userIDRaw, exists := c.Get("user_id")
+		if !exists {
+			response.ErrorResponse(c, http.StatusUnauthorized, "unauthorized")
+			return
+		}
+
+		userID := userIDRaw.(uint)
 		uid := c.Param("uid")
 
 		var checkout models.Checkout
@@ -435,7 +469,7 @@ func GetCheckoutByUID(db *gorm.DB) gin.HandlerFunc {
 			Preload("Address").
 			Preload("Items").
 			Preload("Items.Product").
-			Where("uid = ?", uid).
+			Where("uid = ? AND user_id = ?", uid, userID).
 			First(&checkout).Error; err != nil {
 
 			response.ErrorResponse(c, http.StatusNotFound, "checkout not found")

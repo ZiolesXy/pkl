@@ -117,5 +117,9 @@ func ResetDatabasePreserveProductsAndCategories(db *gorm.DB, rdb *redis.Client) 
 		return err
 	}
 
+	if err := SyncAssetProductsWithDefaultSeed(db); err != nil {
+		return err
+	}
+
 	return nil
 }

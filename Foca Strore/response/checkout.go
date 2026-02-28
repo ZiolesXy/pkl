@@ -22,6 +22,7 @@ type CheckoutDetailResponse struct {
 	Subtotal       float64                  `json:"subtotal"`
 	DiscountAmount float64                  `json:"discount_amount"`
 	TotalPrice     float64                  `json:"total_price"`
+	WhatsappURL    string                   `json:"whatsapp_url"`
 	Address    *CheckoutAddressResponse `json:"address,omitempty"`
 	CreatedAt  time.Time                `json:"created_at"`
 	UpdatedAt  time.Time                `json:"updated_at"`
@@ -72,6 +73,7 @@ func BuildCheckoutDetailResponse(checkout models.Checkout) CheckoutDetailRespons
 		Subtotal:       checkout.Subtotal,
 		DiscountAmount: checkout.DiscountAmount,
 		TotalPrice:     checkout.TotalPrice,
+		WhatsappURL:    checkout.WhatsappURL,
 		Status:     checkout.Status,
 		Items:      items,
 		CreatedAt:  checkout.CreatedAt,
