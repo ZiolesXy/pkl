@@ -99,7 +99,7 @@ func Checkout(db *gorm.DB) gin.HandlerFunc {
 				return
 			}
 
-			priceCents := int64(item.Product.Price * 100)
+			priceCents := int64(item.Product.Price)
 			subtotalCents += priceCents * int64(item.Quantity)
 		}
 
@@ -129,7 +129,7 @@ func Checkout(db *gorm.DB) gin.HandlerFunc {
 			}
 
 			if coupon.MinimumPurchase > 0 {
-				minCent := int64(coupon.MinimumPurchase * 100)
+				minCent := int64(coupon.MinimumPurchase)
 
 				if totalCents < minCent {
 					tx.Rollback()
@@ -157,13 +157,13 @@ func Checkout(db *gorm.DB) gin.HandlerFunc {
 			}
 
 			if coupon.Type == "fixed" {
-				discountAmountCents = int64(coupon.Value * 100)
+				discountAmountCents = int64(coupon.Value)
 			}
 
 			totalCents = subtotalCents - discountAmountCents
 
 			if totalCents < 0 {
-				totalCents = 0
+				totalCents = 1
 				discountAmountCents = subtotalCents
 			}
 
@@ -208,9 +208,9 @@ func Checkout(db *gorm.DB) gin.HandlerFunc {
 			UID:            uid,
 			UserID:         userID,
 			AddressID:      &address.ID,
-			Subtotal:       float64(subtotalCents) / 100,
-			DiscountAmount: float64(discountAmountCents) / 100,
-			TotalPrice:     float64(totalCents) / 100,
+			Subtotal:       float64(subtotalCents),
+			DiscountAmount: float64(discountAmountCents),
+			TotalPrice:     float64(totalCents),
 			Status:         "pending",
 		}
 
@@ -226,21 +226,18 @@ func Checkout(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
+		// set address
 		checkout.Address = &address
-		// Items are already in 'items' slice, but let's associate them for the generator
-		// We'll map models.CartItem to models.CheckoutItem logic if needed, 
-		// but checkout.Items is usually for the model. 
-		// Actually, let's just pass the data we have.
-		
-		// To make GenerateCheckoutWhatsappURL work correctly, we need the items with product details.
-		checkout.Items = make([]models.CheckoutItem, len(items))
-		for i, item := range items {
-			checkout.Items[i] = models.CheckoutItem{
+
+		// maping item list
+		// var checkoutItem []models.CheckoutItem
+		for _, item := range items {
+			checkout.Items = append(checkout.Items, models.CheckoutItem{
 				ProductID: item.ProductID,
-				Quantity:  item.Quantity,
-				Price:     item.Product.Price,
-				Product:   *item.Product,
-			}
+				Product: *item.Product,
+				Quantity: item.Quantity,
+				Price: item.Product.Price,
+			})
 		}
 
 		checkout.WhatsappURL = helper.GenerateCheckoutWhatsappURL(checkout)
@@ -275,6 +272,34 @@ func Checkout(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
+		midtransOrderID := checkout.UID
+		midtransResp, err := helper.CreateSnapTransaction(
+			midtransOrderID,
+			totalCents,
+			discountAmountCents,
+			checkout.User.Name,
+			checkout.User.Email,
+			checkout.User.TelephoneNumber,
+			address,
+			items,
+		)
+
+		if err != nil {
+			tx.Rollback()
+			response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		checkout.MidtransOrderID = midtransResp.OrderID
+		checkout.SnapToken = midtransResp.Token
+		checkout.PaymentURL = midtransResp.RedirectURL
+		checkout.PaymentStatus = "pending"
+		if err := tx.Save(&checkout).Error; err != nil {
+			tx.Rollback()
+			response.ErrorResponse(c, http.StatusInternalServerError, "failed save midtrans data")
+			return
+		}
+
 		if err := tx.Commit().Error; err != nil {
 			response.ErrorResponse(c, 500, "transaction failed")
 			return
@@ -292,6 +317,7 @@ func Checkout(db *gorm.DB) gin.HandlerFunc {
 			response.ErrorResponse(c, 500, "failed load checkout result")
 			return
 		}
+
 
 		res := response.BuildCheckoutDetailResponse(result)
 		response.SuccessResponse(c, "checkout created", res)

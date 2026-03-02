@@ -24,6 +24,11 @@ type Checkout struct {
 	TotalPrice float64 `gorm:"not null"`
 	Status     string  `gorm:"not null;type:varchar(20);default:'pending'"`
 
+	MidtransOrderID string `gorm:"uniqueIndex"`
+	SnapToken       string
+	PaymentURL      string
+	PaymentStatus   string `gorm:"type:varchar(20);default:'pending'"`
+
 	Items       []CheckoutItem `gorm:"foreignKey:CheckoutID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	WhatsappURL string         `gorm:"type:text"`
 

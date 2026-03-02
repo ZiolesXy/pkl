@@ -13,19 +13,22 @@ type CheckoutItemResponse struct {
 }
 
 type CheckoutDetailResponse struct {
-	ID         uint                     `json:"id"`
-	UID        string                   `json:"uid"`
-	Status     string                   `json:"status"`
-	User       UserMiniResponse         `json:"user"`
-	Items      []CheckoutItemResponse   `json:"items"`
+	ID             uint                     `json:"id"`
+	UID            string                   `json:"uid"`
+	Status         string                   `json:"status"`
+	User           UserMiniResponse         `json:"user"`
+	Items          []CheckoutItemResponse   `json:"items"`
 	Coupon         *CouponResponse          `json:"coupon,omitempty"`
 	Subtotal       float64                  `json:"subtotal"`
 	DiscountAmount float64                  `json:"discount_amount"`
 	TotalPrice     float64                  `json:"total_price"`
 	WhatsappURL    string                   `json:"whatsapp_url"`
-	Address    *CheckoutAddressResponse `json:"address,omitempty"`
-	CreatedAt  time.Time                `json:"created_at"`
-	UpdatedAt  time.Time                `json:"updated_at"`
+	SnapToken      string                   `json:"snap_token,omitempty"`
+	PaymentURL     string                   `json:"payment_url,omitempty"`
+	PaymentStatus  string                   `json:"payment_status"`
+	Address        *CheckoutAddressResponse `json:"address,omitempty"`
+	CreatedAt      time.Time                `json:"created_at"`
+	UpdatedAt      time.Time                `json:"updated_at"`
 }
 
 type CheckoutListResponse struct {
@@ -74,10 +77,13 @@ func BuildCheckoutDetailResponse(checkout models.Checkout) CheckoutDetailRespons
 		DiscountAmount: checkout.DiscountAmount,
 		TotalPrice:     checkout.TotalPrice,
 		WhatsappURL:    checkout.WhatsappURL,
-		Status:     checkout.Status,
-		Items:      items,
-		CreatedAt:  checkout.CreatedAt,
-		UpdatedAt:  checkout.UpdatedAt,
+		SnapToken:      checkout.SnapToken,
+		PaymentURL:     checkout.PaymentURL,
+		PaymentStatus:  checkout.PaymentStatus,
+		Status:         checkout.Status,
+		Items:          items,
+		CreatedAt:      checkout.CreatedAt,
+		UpdatedAt:      checkout.UpdatedAt,
 	}
 }
 

@@ -92,7 +92,7 @@ func CreateProduct(db *gorm.DB) gin.HandlerFunc {
 					return
 				}
 
-				uploadResult, err := helper.UploadImageFromFile(tempPath, "products")
+				uploadResult, err := helper.UploadFile(tempPath, "products")
 				os.Remove(tempPath)
 
 				if err != nil {
@@ -139,7 +139,7 @@ func CreateProduct(db *gorm.DB) gin.HandlerFunc {
 
 			// Upload image from URL
 			if req.ImageURL != "" && strings.HasPrefix(req.ImageURL, "http") {
-				uploadResult, err := helper.UploadImageFromURL(req.ImageURL, "products")
+				uploadResult, err := helper.UploadFile(req.ImageURL, "products")
 				if err != nil {
 					response.ErrorResponse(c, http.StatusInternalServerError, "failed to upload image")
 					return
@@ -262,7 +262,7 @@ func UpdateProduct(db *gorm.DB) gin.HandlerFunc {
 					return
 				}
 
-				uploadResult, err := helper.UploadImageFromFile(tempPath, "products")
+				uploadResult, err := helper.UploadFile(tempPath, "products")
 				os.Remove(tempPath)
 
 				if err != nil {
@@ -277,7 +277,7 @@ func UpdateProduct(db *gorm.DB) gin.HandlerFunc {
 
 			// IMAGE URL
 			if imageURL := c.PostForm("image_url"); imageURL != "" {
-				uploadResult, err := helper.UploadImageFromURL(imageURL, "products")
+				uploadResult, err := helper.UploadFile(imageURL, "products")
 				if err != nil {
 					response.ErrorResponse(c, http.StatusInternalServerError, "failed upload image")
 					return
@@ -348,7 +348,7 @@ func UpdateProduct(db *gorm.DB) gin.HandlerFunc {
 
 			// IMAGE URL
 			if req.ImageURL != nil && *req.ImageURL != "" {
-				uploadResult, err := helper.UploadImageFromURL(*req.ImageURL, "products")
+				uploadResult, err := helper.UploadFile(*req.ImageURL, "products")
 				if err != nil {
 					response.ErrorResponse(c, http.StatusInternalServerError, "failed upload image")
 					return

@@ -605,7 +605,7 @@ func SeedProductsFromAssets(db *gorm.DB) error {
 				continue
 			}
 
-			uploadResult, err := helper.UploadImageFromFile(filePath, "products")
+			uploadResult, err := helper.UploadFile(filePath, "products")
 			if err != nil {
 				fmt.Println("Upload gagal:", err)
 				continue
@@ -640,100 +640,252 @@ func SyncAssetProductsWithDefaultSeed(db *gorm.DB) error {
 	defaultProducts := []models.Product{
 
 		// ================= LAPTOP =================
-		{Name: "MacBook Air M2", Price: 18500000, Stock: 10, Description: "MacBook Air M2"},
-		{Name: "MacBook Pro M3", Price: 32000000, Stock: 10, Description: "MacBook Pro M3"},
-		{Name: "ASUS ROG Zephyrus G14", Price: 25000000, Stock: 10, Description: "ASUS ROG Zephyrus G14"},
-		{Name: "Lenovo Legion 5", Price: 21000000, Stock: 10, Description: "Lenovo Legion 5"},
-		{Name: "Acer Aspire 5", Price: 7500000, Stock: 10, Description: "Acer Aspire 5"},
-		{Name: "HP Pavilion 14", Price: 9000000, Stock: 10, Description: "HP Pavilion 14"},
-		{Name: "Dell XPS 13", Price: 24000000, Stock: 10, Description: "Dell XPS 13"},
-		{Name: "MSI Katana GF66", Price: 17000000, Stock: 10, Description: "MSI Katana GF66"},
-		{Name: "ASUS Vivobook 15", Price: 8000000, Stock: 10, Description: "ASUS Vivobook 15"},
-		{Name: "Lenovo IdeaPad 3", Price: 6500000, Stock: 10, Description: "Lenovo IdeaPad 3"},
+		{Name: "Apple MacBook Air M2", Price: 18500000, Stock: 10,
+			Description: "MacBook Air dengan chip Apple M2, RAM 8GB, SSD 256GB, layar Liquid Retina 13.6 inci, baterai hingga 18 jam."},
+
+		{Name: "Apple MacBook Pro M3 14-inch", Price: 32000000, Stock: 10,
+			Description: "MacBook Pro dengan chip Apple M3, RAM 16GB, SSD 512GB, layar 14 inci Liquid Retina XDR."},
+
+		{Name: "ASUS ROG Zephyrus G14", Price: 25000000, Stock: 10,
+			Description: "Laptop gaming Ryzen 9 dan RTX 4060 dengan layar 165Hz."},
+
+		{Name: "ASUS TUF Gaming F15", Price: 18000000, Stock: 10,
+			Description: "Laptop gaming Intel i7 dan RTX series dengan layar 144Hz."},
+
+		{Name: "Lenovo Legion 5 Pro", Price: 21000000, Stock: 10,
+			Description: "Ryzen 7 dengan RTX 3060 dan sistem pendingin optimal."},
+
+		{Name: "Lenovo IdeaPad Slim 5", Price: 9500000, Stock: 10,
+			Description: "Laptop tipis Ryzen 5, RAM 8GB, SSD 512GB untuk produktivitas."},
+
+		{Name: "Dell XPS 13", Price: 24000000, Stock: 10,
+			Description: "Ultrabook premium Intel i7, layar 4K InfinityEdge."},
+
+		{Name: "Dell Inspiron 14", Price: 10000000, Stock: 10,
+			Description: "Laptop Intel i5 untuk kerja dan kuliah."},
+
+		{Name: "Acer Aspire 5", Price: 7500000, Stock: 10,
+			Description: "Laptop Intel i5 dengan SSD 512GB cocok untuk kebutuhan harian."},
+
+		{Name: "Acer Predator Helios 300", Price: 22000000, Stock: 10,
+			Description: "Laptop gaming RTX series dengan performa tinggi."},
 
 		// ================= SMARTPHONE =================
-		{Name: "iPhone 15 Pro", Price: 21000000, Stock: 10, Description: "iPhone 15 Pro"},
-		{Name: "Samsung S24 Ultra", Price: 22000000, Stock: 10, Description: "Samsung S24 Ultra"},
-		{Name: "Xiaomi 14", Price: 11000000, Stock: 10, Description: "Xiaomi 14"},
-		{Name: "Oppo Find X6", Price: 15000000, Stock: 10, Description: "Oppo Find X6"},
-		{Name: "Vivo X100", Price: 14000000, Stock: 10, Description: "Vivo X100"},
-		{Name: "Realme GT5", Price: 9000000, Stock: 10, Description: "Realme GT5"},
-		{Name: "Samsung A54", Price: 6000000, Stock: 10, Description: "Samsung A54"},
-		{Name: "iPhone 13", Price: 11000000, Stock: 10, Description: "iPhone 13"},
-		{Name: "Redmi Note 13", Price: 3500000, Stock: 10, Description: "Redmi Note 13"},
-		{Name: "Infinix Zero Ultra", Price: 5000000, Stock: 10, Description: "Infinix Zero Ultra"},
+		{Name: "Apple iPhone 15 Pro", Price: 21000000, Stock: 10,
+			Description: "Chip A17 Pro, layar 120Hz, kamera 48MP, storage 256GB."},
+
+		{Name: "Apple iPhone 14", Price: 16000000, Stock: 10,
+			Description: "Chip A15 Bionic, layar OLED 6.1 inci, kamera dual 12MP."},
+
+		{Name: "Samsung Galaxy S24 Ultra", Price: 22000000, Stock: 10,
+			Description: "Snapdragon 8 Gen 3, kamera 200MP, layar AMOLED 120Hz."},
+
+		{Name: "Samsung Galaxy S23 FE", Price: 9000000, Stock: 10,
+			Description: "Exynos flagship, layar AMOLED 120Hz, RAM 8GB."},
+
+		{Name: "Xiaomi 14", Price: 11000000, Stock: 10,
+			Description: "Snapdragon 8 Gen 3, kamera Leica, layar AMOLED 120Hz."},
+
+		{Name: "Xiaomi Redmi Note 13 Pro", Price: 4500000, Stock: 10,
+			Description: "Snapdragon series, kamera 200MP, layar AMOLED 120Hz."},
+
+		{Name: "Vivo X100 Pro", Price: 15000000, Stock: 10,
+			Description: "Dimensity 9300, kamera ZEISS flagship."},
+
+		{Name: "Realme GT 5 Pro", Price: 10000000, Stock: 10,
+			Description: "Snapdragon 8 Gen series dengan fast charging 150W."},
+
+		{Name: "OPPO Reno11", Price: 7000000, Stock: 10,
+			Description: "Smartphone stylish dengan kamera portrait unggulan."},
+
+		{Name: "OPPO Find X6 Pro", Price: 17000000, Stock: 10,
+			Description: "Flagship kamera Hasselblad, layar AMOLED premium."},
 
 		// ================= ACCESSORIES =================
-		{Name: "Logitech MX Master 3", Price: 1500000, Stock: 10, Description: "Logitech MX Master 3"},
-		{Name: "Razer DeathAdder", Price: 800000, Stock: 10, Description: "Razer DeathAdder"},
-		{Name: "Keychron K2", Price: 1400000, Stock: 10, Description: "Keychron K2"},
-		{Name: "Sony WH1000XM5", Price: 5500000, Stock: 10, Description: "Sony WH1000XM5"},
-		{Name: "AirPods Pro 2", Price: 3800000, Stock: 10, Description: "AirPods Pro 2"},
-		{Name: "Samsung SSD T7", Price: 1900000, Stock: 10, Description: "Samsung SSD T7"},
-		{Name: "Sandisk Flashdisk 128GB", Price: 150000, Stock: 10, Description: "Sandisk Flashdisk 128GB"},
-		{Name: "Anker Powerbank", Price: 600000, Stock: 10, Description: "Anker Powerbank"},
-		{Name: "UGREEN USB Hub", Price: 300000, Stock: 10, Description: "UGREEN USB Hub"},
-		{Name: "HyperX Cloud II", Price: 1200000, Stock: 10, Description: "HyperX Cloud II"},
+		{Name: "Logitech MX Master 3", Price: 1500000, Stock: 10,
+			Description: "Mouse premium dengan sensor 4000 DPI, koneksi Bluetooth, baterai tahan lama hingga 70 hari."},
+
+		{Name: "Razer DeathAdder", Price: 800000, Stock: 10,
+			Description: "Mouse gaming dengan sensor 20.000 DPI dan desain ergonomis."},
+
+		{Name: "Keychron K2", Price: 1400000, Stock: 10,
+			Description: "Mechanical keyboard wireless dengan switch hot-swappable dan RGB backlight."},
+
+		{Name: "Sony WH1000XM5", Price: 5500000, Stock: 10,
+			Description: "Headphone dengan Active Noise Cancelling terbaik dan baterai 30 jam."},
+
+		{Name: "AirPods Pro 2", Price: 3800000, Stock: 10,
+			Description: "TWS dengan chip H2, ANC, dan spatial audio."},
+
+		{Name: "Samsung SSD T7", Price: 1900000, Stock: 10,
+			Description: "External SSD 1TB dengan kecepatan hingga 1050MB/s."},
+
+		{Name: "Sandisk Flashdisk 128GB", Price: 150000, Stock: 10,
+			Description: "Flashdisk USB 3.0 kapasitas 128GB untuk penyimpanan cepat dan praktis."},
+
+		{Name: "Anker Powerbank", Price: 600000, Stock: 10,
+			Description: "Powerbank 20.000mAh dengan fast charging dan proteksi keamanan."},
+
+		{Name: "UGREEN USB Hub", Price: 300000, Stock: 10,
+			Description: "USB Hub multiport dengan HDMI dan USB 3.0."},
+
+		{Name: "HyperX Cloud II", Price: 1200000, Stock: 10,
+			Description: "Headset gaming dengan surround sound 7.1 dan mic noise cancelling."},
 
 		// ================= MAKANAN =================
-		{Name: "Indomie Goreng", Price: 3500, Stock: 100, Description: "Indomie Goreng"},
-		{Name: "Mie Sedaap", Price: 3200, Stock: 100, Description: "Mie Sedaap"},
-		{Name: "Beras Ramos 5kg", Price: 75000, Stock: 50, Description: "Beras Ramos 5kg"},
-		{Name: "Chitato", Price: 10000, Stock: 80, Description: "Chitato"},
-		{Name: "SilverQueen", Price: 15000, Stock: 80, Description: "SilverQueen"},
-		{Name: "Tango Wafer", Price: 12000, Stock: 80, Description: "Tango Wafer"},
-		{Name: "Roma Biscuit", Price: 8000, Stock: 80, Description: "Roma Biscuit"},
-		{Name: "Sarden ABC", Price: 12000, Stock: 80, Description: "Sarden ABC"},
-		{Name: "Kornet Pronas", Price: 25000, Stock: 80, Description: "Kornet Pronas"},
-		{Name: "Nugget Fiesta", Price: 45000, Stock: 80, Description: "Nugget Fiesta"},
+		{Name: "Indomie Goreng", Price: 3500, Stock: 100,
+			Description: "Mi instan goreng dengan rasa khas Indonesia, praktis dan lezat."},
+
+		{Name: "Mie Sedaap", Price: 3200, Stock: 100,
+			Description: "Mi instan dengan bumbu gurih dan tekstur kenyal."},
+
+		{Name: "Beras Ramos 5kg", Price: 75000, Stock: 50,
+			Description: "Beras premium pulen dan wangi untuk kebutuhan rumah tangga."},
+
+		{Name: "Chitato", Price: 10000, Stock: 80,
+			Description: "Keripik kentang renyah dengan berbagai varian rasa."},
+
+		{Name: "SilverQueen", Price: 15000, Stock: 80,
+			Description: "Coklat premium dengan kacang mete berkualitas."},
+
+		{Name: "Tango Wafer", Price: 12000, Stock: 80,
+			Description: "Wafer renyah dengan lapisan krim tebal dan rasa nikmat."},
+
+		{Name: "Roma Biscuit", Price: 8000, Stock: 80,
+			Description: "Biskuit renyah cocok untuk camilan keluarga."},
+
+		{Name: "Sarden ABC", Price: 12000, Stock: 80,
+			Description: "Sarden kaleng dengan saus tomat lezat dan bergizi."},
+
+		{Name: "Kornet Pronas", Price: 25000, Stock: 80,
+			Description: "Kornet sapi berkualitas untuk berbagai olahan makanan."},
+
+		{Name: "Nugget Fiesta", Price: 45000, Stock: 80,
+			Description: "Nugget ayam praktis dan lezat untuk keluarga."},
 
 		// ================= MINUMAN =================
-		{Name: "Aqua 600ml", Price: 4000, Stock: 100, Description: "Aqua 600ml"},
-		{Name: "Teh Botol Sosro", Price: 5000, Stock: 100, Description: "Teh Botol Sosro"},
-		{Name: "Coca Cola", Price: 6000, Stock: 100, Description: "Coca Cola"},
-		{Name: "Sprite", Price: 6000, Stock: 100, Description: "Sprite"},
-		{Name: "Fanta", Price: 6000, Stock: 100, Description: "Fanta"},
-		{Name: "Pocari Sweat", Price: 7000, Stock: 100, Description: "Pocari Sweat"},
-		{Name: "Ultra Milk", Price: 7000, Stock: 100, Description: "Ultra Milk"},
-		{Name: "Good Day Coffee", Price: 4000, Stock: 100, Description: "Good Day Coffee"},
-		{Name: "Yakult", Price: 9000, Stock: 100, Description: "Yakult"},
-		{Name: "Floridina", Price: 5000, Stock: 100, Description: "Floridina"},
+		{Name: "Aqua 600ml", Price: 4000, Stock: 100,
+			Description: "Air mineral higienis dan menyegarkan."},
+
+		{Name: "Teh Botol Sosro", Price: 5000, Stock: 100,
+			Description: "Teh melati asli dengan rasa manis segar."},
+
+		{Name: "Coca Cola", Price: 6000, Stock: 100,
+			Description: "Minuman soda berkarbonasi dengan rasa khas."},
+
+		{Name: "Sprite", Price: 6000, Stock: 100,
+			Description: "Minuman soda rasa lemon-lime menyegarkan."},
+
+		{Name: "Fanta", Price: 6000, Stock: 100,
+			Description: "Minuman soda dengan rasa buah segar."},
+
+		{Name: "Pocari Sweat", Price: 7000, Stock: 100,
+			Description: "Minuman isotonik pengganti cairan tubuh."},
+
+		{Name: "Ultra Milk", Price: 7000, Stock: 100,
+			Description: "Susu UHT bernutrisi untuk kebutuhan harian."},
+
+		{Name: "Good Day Coffee", Price: 4000, Stock: 100,
+			Description: "Minuman kopi instan dengan rasa creamy."},
+
+		{Name: "Yakult", Price: 9000, Stock: 100,
+			Description: "Minuman probiotik untuk kesehatan pencernaan."},
+
+		{Name: "Floridina", Price: 5000, Stock: 100,
+			Description: "Minuman jeruk dengan bulir asli yang segar."},
 
 		// ================= PERTANIAN =================
-		{Name: "Bibit Padi", Price: 50000, Stock: 50, Description: "Bibit Padi"},
-		{Name: "Bibit Jagung", Price: 40000, Stock: 50, Description: "Bibit Jagung"},
-		{Name: "Pupuk Urea", Price: 120000, Stock: 50, Description: "Pupuk Urea"},
-		{Name: "Pupuk Kompos", Price: 60000, Stock: 50, Description: "Pupuk Kompos"},
-		{Name: "Cangkul", Price: 80000, Stock: 50, Description: "Cangkul"},
-		{Name: "Sekop", Price: 70000, Stock: 50, Description: "Sekop"},
-		{Name: "Sprayer", Price: 150000, Stock: 50, Description: "Sprayer"},
-		{Name: "Polybag", Price: 20000, Stock: 50, Description: "Polybag"},
-		{Name: "Bibit Cabai", Price: 25000, Stock: 50, Description: "Bibit Cabai"},
-		{Name: "Bibit Tomat", Price: 25000, Stock: 50, Description: "Bibit Tomat"},
+		{Name: "Bibit Padi", Price: 50000, Stock: 50,
+			Description: "Bibit padi unggul dengan daya tumbuh tinggi."},
+
+		{Name: "Bibit Jagung", Price: 40000, Stock: 50,
+			Description: "Bibit jagung berkualitas dengan hasil panen maksimal."},
+
+		{Name: "Pupuk Urea", Price: 120000, Stock: 50,
+			Description: "Pupuk nitrogen untuk pertumbuhan optimal tanaman."},
+
+		{Name: "Pupuk Kompos", Price: 60000, Stock: 50,
+			Description: "Pupuk organik ramah lingkungan."},
+
+		{Name: "Cangkul", Price: 80000, Stock: 50,
+			Description: "Alat pertanian berbahan baja kuat dan tahan lama."},
+
+		{Name: "Sekop", Price: 70000, Stock: 50,
+			Description: "Sekop baja ergonomis untuk berbagai kebutuhan."},
+
+		{Name: "Sprayer", Price: 150000, Stock: 50,
+			Description: "Sprayer manual untuk penyemprotan pupuk dan pestisida."},
+
+		{Name: "Polybag", Price: 20000, Stock: 50,
+			Description: "Polybag kuat untuk media tanam."},
+
+		{Name: "Bibit Cabai", Price: 25000, Stock: 50,
+			Description: "Bibit cabai unggul dengan hasil pedas maksimal."},
+
+		{Name: "Bibit Tomat", Price: 25000, Stock: 50,
+			Description: "Bibit tomat segar dengan pertumbuhan cepat."},
 
 		// ================= MAINAN =================
-		{Name: "Lego Classic", Price: 350000, Stock: 30, Description: "Lego Classic"},
-		{Name: "Hot Wheels", Price: 50000, Stock: 30, Description: "Hot Wheels"},
-		{Name: "Rubik 3x3", Price: 40000, Stock: 30, Description: "Rubik 3x3"},
-		{Name: "Boneka Teddy", Price: 80000, Stock: 30, Description: "Boneka Teddy"},
-		{Name: "RC Car", Price: 250000, Stock: 30, Description: "RC Car"},
-		{Name: "Puzzle", Price: 60000, Stock: 30, Description: "Puzzle"},
-		{Name: "UNO Card", Price: 30000, Stock: 30, Description: "UNO Card"},
-		{Name: "Monopoly", Price: 200000, Stock: 30, Description: "Monopoly"},
-		{Name: "Action Figure Naruto", Price: 150000, Stock: 30, Description: "Action Figure Naruto"},
-		{Name: "Drone Mini", Price: 500000, Stock: 30, Description: "Drone Mini"},
+		{Name: "Lego Classic", Price: 350000, Stock: 30,
+			Description: "Balok Lego kreatif untuk melatih imajinasi anak."},
+
+		{Name: "Hot Wheels", Price: 50000, Stock: 30,
+			Description: "Mobil mini koleksi dengan desain menarik."},
+
+		{Name: "Rubik 3x3", Price: 40000, Stock: 30,
+			Description: "Puzzle klasik untuk melatih logika dan konsentrasi."},
+
+		{Name: "Boneka Teddy", Price: 80000, Stock: 30,
+			Description: "Boneka lembut dan nyaman untuk anak-anak."},
+
+		{Name: "RC Car", Price: 250000, Stock: 30,
+			Description: "Mobil remote control dengan baterai rechargeable."},
+
+		{Name: "Puzzle", Price: 60000, Stock: 30,
+			Description: "Puzzle edukatif untuk melatih fokus anak."},
+
+		{Name: "UNO Card", Price: 30000, Stock: 30,
+			Description: "Permainan kartu seru untuk keluarga."},
+
+		{Name: "Monopoly", Price: 200000, Stock: 30,
+			Description: "Permainan papan strategi jual beli properti."},
+
+		{Name: "Action Figure Naruto", Price: 150000, Stock: 30,
+			Description: "Figure karakter Naruto dengan detail presisi tinggi."},
+
+		{Name: "Drone Mini", Price: 500000, Stock: 30,
+			Description: "Drone mini dengan kamera HD dan kontrol stabil."},
 
 		// ================= LAINNYA =================
-		{Name: "Kursi Plastik", Price: 50000, Stock: 30, Description: "Kursi Plastik"},
-		{Name: "Meja Lipat", Price: 150000, Stock: 30, Description: "Meja Lipat"},
-		{Name: "Lampu LED", Price: 40000, Stock: 30, Description: "Lampu LED"},
-		{Name: "Kipas Angin", Price: 200000, Stock: 30, Description: "Kipas Angin"},
-		{Name: "Jam Dinding", Price: 70000, Stock: 30, Description: "Jam Dinding"},
-		{Name: "Botol Minum", Price: 60000, Stock: 30, Description: "Botol Minum"},
-		{Name: "Payung", Price: 50000, Stock: 30, Description: "Payung"},
-		{Name: "Tas Ransel", Price: 200000, Stock: 30, Description: "Tas Ransel"},
-		{Name: "Karpet", Price: 150000, Stock: 30, Description: "Karpet"},
-		{Name: "Bantal", Price: 80000, Stock: 30, Description: "Bantal"},
+		{Name: "Kursi Plastik", Price: 50000, Stock: 30,
+			Description: "Kursi plastik kuat dan ringan untuk berbagai kebutuhan."},
+
+		{Name: "Meja Lipat", Price: 150000, Stock: 30,
+			Description: "Meja lipat praktis dan mudah disimpan."},
+
+		{Name: "Lampu LED", Price: 40000, Stock: 30,
+			Description: "Lampu LED hemat energi dengan cahaya terang."},
+
+		{Name: "Kipas Angin", Price: 200000, Stock: 30,
+			Description: "Kipas angin listrik 3 kecepatan dengan konsumsi daya rendah."},
+
+		{Name: "Jam Dinding", Price: 70000, Stock: 30,
+			Description: "Jam dinding minimalis dengan mesin presisi."},
+
+		{Name: "Botol Minum", Price: 60000, Stock: 30,
+			Description: "Botol minum tahan panas dan dingin, cocok untuk aktivitas harian."},
+
+		{Name: "Payung", Price: 50000, Stock: 30,
+			Description: "Payung kuat anti angin dan tahan air."},
+
+		{Name: "Tas Ransel", Price: 200000, Stock: 30,
+			Description: "Tas ransel multifungsi dengan bahan tahan air ringan."},
+
+		{Name: "Karpet", Price: 150000, Stock: 30,
+			Description: "Karpet lembut dan nyaman untuk ruang tamu atau kamar."},
+
+		{Name: "Bantal", Price: 80000, Stock: 30,
+			Description: "Bantal empuk dengan bahan berkualitas untuk kenyamanan tidur."},
 	}
 
 	// buat map name -> default product

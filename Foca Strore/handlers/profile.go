@@ -98,7 +98,7 @@ func UpdateProfile(db *gorm.DB) gin.HandlerFunc {
 				}
 
 				// Upload to Cloudinary
-				uploadResult, err := helper.UploadImageFromFile(tempPath, "user-profiles")
+				uploadResult, err := helper.UploadFile(tempPath, "user-profiles")
 				if err != nil {
 					os.Remove(tempPath)
 					response.ErrorResponse(c, http.StatusInternalServerError, "failed to upload profile image")
@@ -112,7 +112,7 @@ func UpdateProfile(db *gorm.DB) gin.HandlerFunc {
 				os.Remove(tempPath)
 			} else if c.PostForm("profile_image_url") != "" {
 				// Upload from URL
-				uploadResult, err := helper.UploadImageFromURL(c.PostForm("profile_image_url"), "user-profiles")
+				uploadResult, err := helper.UploadFile(c.PostForm("profile_image_url"), "user-profiles")
 				if err != nil {
 					response.ErrorResponse(c, http.StatusInternalServerError, "Failed to upload profile image from URL")
 					return

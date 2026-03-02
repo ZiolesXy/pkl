@@ -59,6 +59,7 @@ func main() {
 
 	// Public routes
 	authHandler := handlers.NewAuthHandler(db)
+	r.GET("/", handlers.GetAllProducts(db))
 	r.GET("/password", handlers.GetNewSecret)
 	r.POST("/register", authHandler.Register)
 	r.POST("/login", authHandler.Login)
@@ -70,6 +71,7 @@ func main() {
 	r.GET("/product/:slug", handlers.GetProductBySlug(db))
 	r.GET("/products", handlers.GetAllProducts(db))
 	r.GET("/coupons", handlers.GetCoupons(db))
+	r.POST("/midtrans/webhook", handlers.MidtransWebhook(db))
 
 	// Protected routes
 	protected := r.Group("/api")
@@ -130,6 +132,7 @@ func main() {
 		system.POST("/reset/product", handlers.ResetDatabaseWithProductsHandler(db, rdb))
 		system.POST("/reset/catalog", handlers.ResetDatabasePreserveProductsAndCategoriesHandler(db, rdb))
 		system.POST("/migrate", handlers.MigrateHandler(db))
+		system.DELETE("/reset/assets", handlers.DeleteAllCloudinaryAssets())
 
 		system.POST("/redis", handlers.ResetRedis(rdb))
 		// Seeder endpoint

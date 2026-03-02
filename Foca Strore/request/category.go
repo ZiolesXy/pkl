@@ -1,9 +1,9 @@
 package request
 
 type CreateCategoryRequest struct {
-	Name string `json:"name" binding:"required"`
+	Name string `form:"name" binding:"required"`
 }
 
 type UpdateCategoryRequest struct {
-	Name *string `json:"name"`
+	Name *string `form:"name"`
 }

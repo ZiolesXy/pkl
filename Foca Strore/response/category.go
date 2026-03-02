@@ -9,6 +9,7 @@ type CategoryResponse struct {
 	ID           uint      `json:"id"`
 	Name         string    `json:"name"`
 	Slug         string    `json:"slug"`
+	IconURL      string    `json:"icon_url"`
 	ProductCount int64     `json:"product_count"`
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
@@ -18,6 +19,7 @@ type CategoryDetailResponse struct {
 	ID        uint              `json:"id"`
 	Name      string            `json:"name"`
 	Slug      string            `json:"slug"`
+	IconURL   string            `json:"icon_url"`
 	Products  []ProductResponse `json:"products"`
 	CreatedAt time.Time         `json:"created_at"`
 	UpdatedAt time.Time         `json:"updated_at"`
@@ -32,6 +34,7 @@ func BuildCategoryResponse(category models.Category, count int64) CategoryRespon
 		ID:           category.ID,
 		Name:         category.Name,
 		Slug:         category.Slug,
+		IconURL:      category.IconURL,
 		ProductCount: count,
 		CreatedAt:    category.CreatedAt,
 		UpdatedAt:    category.UpdatedAt,
@@ -45,6 +48,7 @@ func BuildCategoryDetailResponse(category models.Category, products []models.Pro
 		ID:        category.ID,
 		Name:      category.Name,
 		Slug:      category.Slug,
+		IconURL:   category.IconURL,
 		Products:  productResponse.Entries,
 		CreatedAt: category.CreatedAt,
 		UpdatedAt: category.UpdatedAt,
