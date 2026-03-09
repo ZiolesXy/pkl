@@ -28,6 +28,7 @@ func SetUpRoutes(r *gin.Engine,
 		v1.POST("/auth/register", authHandler.Register)
 		v1.POST("/auth/login", authHandler.Login)
 		v1.POST("/auth/refresh", authHandler.RefreshToken)
+		v1.POST("/transactions/midtrans/callback", transactionHandler.MidtransCallback)
 
 		// Public Flight Search
 		v1.GET("/flights", flightHandler.GetAll)

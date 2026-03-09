@@ -14,6 +14,7 @@ import (
 	"voca-plane/internal/seeders"
 	"voca-plane/internal/service"
 	"voca-plane/middleware"
+	"voca-plane/pkg/helper"
 	"voca-plane/routes"
 
 	"github.com/gin-gonic/gin"
@@ -26,6 +27,11 @@ func main() {
     if cfg.GinMode == "release" {
         gin.SetMode(gin.ReleaseMode)
     }
+
+	midtransClient := helper.NewMidTransClient(
+		cfg.MidtransServerKey,
+		cfg.MidtransIsProd,
+	)
 	
 	db := config.NewDatabase(cfg)
 
@@ -41,7 +47,7 @@ func main() {
 
 	authService := service.NewAuthService(userRepo, cfg.JWTSecret, cfg.AccessTokenExpiry, cfg.RefreshTokenExpiry)
 	flightService := service.NewFlightService(flightRepo)
-	transactionService := service.NewTransactionService(transactionRepo, flightRepo, promoRepo, db)
+	transactionService := service.NewTransactionService(transactionRepo, flightRepo, promoRepo, db, midtransClient)
 	userService := service.NewUserService(userRepo)
 	adminService := service.NewAdminService(adminRepo, userRepo, flightRepo, airlineRepo, airportRepo, promoRepo, db)
 

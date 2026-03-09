@@ -9,18 +9,25 @@ import (
 )
 
 type config struct {
-	AppPort            string
-	GinMode            string
-	DBHost             string
-	DBPort             string
-	DBUser             string
-	DBPassword         string
-	DBName             string
-	DBSSLMode          string
+	AppPort string
+
+	DBHost     string
+	DBPort     string
+	DBUser     string
+	DBPassword string
+	DBName     string
+	DBSSLMode  string
+
+	MidtransServerKey string
+	MidtransClientKey string
+	MidtransIsProd    bool
+
 	JWTSecret          string
 	AccessTokenExpiry  time.Duration
 	RefreshTokenExpiry time.Duration
-	AllowedOrigins     string
+
+	GinMode        string
+	AllowedOrigins string
 }
 
 func GetEnv(key, defaultVal string) string {
@@ -48,17 +55,24 @@ func LoadConfig() *config {
 	refreshTokenExpiry, _ := time.ParseDuration(refreshTokenExpiryStr)
 
 	return &config{
-		AppPort:            GetEnv("APP_PORT", "8080"),
-		GinMode:            GetEnv("GIN_MODE", "debug"),
-		DBHost:             GetEnv("DB_HOST", "localhost"),
-		DBPort:             GetEnv("DB_PORT", "5432"),
-		DBUser:             GetEnv("DB_USER", "postgres"),
-		DBPassword:         GetEnv("DB_PASSWORD", "postgres"),
-		DBName:             GetEnv("DB_NAME", "flight_booking"),
-		DBSSLMode:          GetEnv("DB_SSLMODE", "disable"),
+		AppPort: GetEnv("APP_PORT", "8080"),
+
+		DBHost:     GetEnv("DB_HOST", "localhost"),
+		DBPort:     GetEnv("DB_PORT", "5432"),
+		DBUser:     GetEnv("DB_USER", "postgres"),
+		DBPassword: GetEnv("DB_PASSWORD", "postgres"),
+		DBName:     GetEnv("DB_NAME", "flight_booking"),
+		DBSSLMode:  GetEnv("DB_SSLMODE", "disable"),
+
+		MidtransServerKey: GetEnv("MIDTRANS_SERVER_KEY", ""),
+		MidtransClientKey: GetEnv("MIDTRANS_CLIENT_KEY", ""),
+		MidtransIsProd:    GetEnv("MIDTRANS_IS_PRODUCTION", "false") == "true",
+
 		JWTSecret:          GetEnv("JWT_SECRET", "secret"),
 		AccessTokenExpiry:  accessTokenExpiry,
 		RefreshTokenExpiry: refreshTokenExpiry,
-		AllowedOrigins:     GetEnv("ALLOWED_ORIGINS", "*"),
+
+		GinMode:        GetEnv("GIN_MODE", "debug"),
+		AllowedOrigins: GetEnv("ALLOWED_ORIGINS", "*"),
 	}
 }

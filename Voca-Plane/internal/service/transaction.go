@@ -8,6 +8,7 @@ import (
 	"voca-plane/internal/domain/dto"
 	"voca-plane/internal/domain/models"
 	"voca-plane/internal/repository"
+	"voca-plane/pkg/helper"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -18,14 +19,16 @@ type TransactionService struct {
 	flightRepo repository.FlightRepository
 	promoRepo  repository.PromoRepository
 	db         *gorm.DB
+	midtrans *helper.MidTransClient
 }
 
-func NewTransactionService(txRepo repository.TransactionRepository, flightRepo repository.FlightRepository, promoRepo repository.PromoRepository, db *gorm.DB) *TransactionService {
+func NewTransactionService(txRepo repository.TransactionRepository, flightRepo repository.FlightRepository, promoRepo repository.PromoRepository, db *gorm.DB, midtrans *helper.MidTransClient) *TransactionService {
 	return &TransactionService{
 		txRepo:     txRepo,
 		flightRepo: flightRepo,
 		promoRepo:  promoRepo,
 		db:         db,
+		midtrans: midtrans,
 	}
 }
 
@@ -106,6 +109,24 @@ func (s *TransactionService) CreateTransaction(ctx context.Context, userID uint,
 	if err != nil {
 		return nil, err
 	}
+
+	if transaction.TotalPrice <= 0 {
+		transaction.PaymentStatus = "PAID"
+		return s.txRepo.GetByCode(ctx, transaction.Code)
+	}
+
+	res, err := s.midtrans.CreatePayment(
+		transaction.Code,
+		transaction.TotalPrice,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	transaction.PaymentURL = res.RedirectURL
+
+	s.db.Model(&transaction).Update("payment_url", res.RedirectURL)
 
 	return s.txRepo.GetByCode(ctx, transaction.Code)
 }

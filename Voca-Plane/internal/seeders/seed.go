@@ -124,7 +124,7 @@ func InitSeeders(db *gorm.DB) {
 		Name:     "Super Admin",
 		Email:    "admin@flightbooking.com",
 		Password: string(hashedPassword),
-		Role:     models.RoleSuperAdmin,
+		Role:     models.RoleAdmin,
 	}
 
 	db.FirstOrCreate(&admin, models.User{

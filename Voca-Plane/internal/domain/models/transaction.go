@@ -14,6 +14,7 @@ type Transaction struct {
 	FlightID      uint                   `gorm:"not null" json:"flight_id"`
 	Flight        Flight                 `gorm:"foreignKey:FlightID" json:"flight"`
 	TotalPrice    float64                `gorm:"not null" json:"total_price"`
+	PaymentURL    string                 `gorm:"size:255" json:"payment_url"`
 	PaymentStatus string                 `gorm:"size:20;default:'PENDING';index" json:"payment_status"`
 	PromoCode     *string                `gorm:"size:50" json:"promo_code"`
 	Discount      float64                `gorm:"default:0" json:"discount"`
@@ -25,13 +26,13 @@ type Transaction struct {
 }
 
 type TransactionPassenger struct {
-	ID            uint   `gorm:"primaryKey" json:"id"`
-	TransactionID uint   `gorm:"not null;index" json:"transaction_id"`
-	FullName      string `gorm:"size:100;not null" json:"full_name"`
-	Nationality   string `gorm:"size:50" json:"nationality"`
-	PassportNo    string `gorm:"size:50" json:"passport_no"`
-	SeatNumber    string `gorm:"size:10;not null" json:"seat_number"`
-	FlightClassID uint   `gorm:"not null" json:"flight_class_id"`
+	ID            uint      `gorm:"primaryKey" json:"id"`
+	TransactionID uint      `gorm:"not null;index" json:"transaction_id"`
+	FullName      string    `gorm:"size:100;not null" json:"full_name"`
+	Nationality   string    `gorm:"size:50" json:"nationality"`
+	PassportNo    string    `gorm:"size:50" json:"passport_no"`
+	SeatNumber    string    `gorm:"size:10;not null" json:"seat_number"`
+	FlightClassID uint      `gorm:"not null" json:"flight_class_id"`
 	CreatedAt     time.Time `json:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at"`
 }

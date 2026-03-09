@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"voca-plane/internal/domain/dto"
@@ -100,4 +101,50 @@ func (h *TransactionHandler) Cancel(c *gin.Context) {
 	}
 
 	response.Success(c, http.StatusOK, "transaction cancelled", nil)
+}
+
+func (h *TransactionHandler) MidtransCallback(c *gin.Context) {
+
+	var payload map[string]interface{}
+
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		fmt.Println("BIND ERROR:", err)
+		response.Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	fmt.Println("MIDTRANS CALLBACK RAW:", payload)
+
+	orderID, ok := payload["order_id"].(string)
+	if !ok {
+		fmt.Println("order_id missing")
+		response.Error(c, http.StatusBadRequest, "invalid order_id")
+		return
+	}
+
+	status, ok := payload["transaction_status"].(string)
+	if !ok {
+		fmt.Println("transaction_status missing")
+		response.Error(c, http.StatusBadRequest, "invalid transaction_status")
+		return
+	}
+
+	fmt.Println("ORDER:", orderID)
+	fmt.Println("STATUS:", status)
+
+	if status == "settlement" || status == "capture" {
+
+		err := h.service.PayTransaction(
+			c.Request.Context(),
+			orderID,
+		)
+
+		if err != nil {
+			fmt.Println("PAY ERROR:", err)
+			response.Error(c, http.StatusInternalServerError, err.Error())
+			return
+		}
+	}
+
+	response.Success(c, http.StatusOK, "callback received", nil)
 }
