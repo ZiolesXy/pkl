@@ -78,25 +78,35 @@ func (s *AdminService) GetAllTransactions(ctx context.Context, page, limit int) 
 	return s.adminRepo.GetAllTransactions(ctx, page, limit)
 }
 
-func (s *AdminService) GetAllFlights(ctx context.Context, page, limit int) ([]models.Flight, int64, error) {
-	return s.flightRepo.GetAll(ctx, page, limit)
+func (s *AdminService) GetAllFlights(ctx context.Context, page, limit int) ([]dto.FlightResponse, int64, error) {
+	flights, total, err := s.flightRepo.GetAll(ctx, page, limit)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	var flightResponses []dto.FlightResponse
+	for _, f := range flights {
+		flightResponses = append(flightResponses, dto.ToFlightResponse(f))
+	}
+
+	return flightResponses, total, nil
 }
 
-func (s *AdminService) CreateFlight(ctx context.Context, flight *models.Flight, classCount int, classPrices []dto.ClassPriceRequest) error {
+func (s *AdminService) CreateFlight(ctx context.Context, flight *models.Flight, classCount int, classPrices []dto.ClassPriceRequest) (*dto.FlightResponse, error) {
 	// Validate total_seats <= rows * columns
 	maxCapacity := flight.TotalRows * flight.TotalColumns
 	if flight.TotalSeats > maxCapacity {
-		return fmt.Errorf("total_seats (%d) exceeds rows × columns (%d × %d = %d)", flight.TotalSeats, flight.TotalRows, flight.TotalColumns, maxCapacity)
+		return nil, fmt.Errorf("total_seats (%d) exceeds rows × columns (%d × %d = %d)", flight.TotalSeats, flight.TotalRows, flight.TotalColumns, maxCapacity)
 	}
 
 	// Validate class_count
 	if classCount < 1 || classCount > 3 {
-		return errors.New("class_count must be 1, 2, or 3")
+		return nil, errors.New("class_count must be 1, 2, or 3")
 	}
 
 	// Validate class_prices count matches class_count
 	if len(classPrices) != classCount {
-		return fmt.Errorf("class_prices count (%d) must match class_count (%d)", len(classPrices), classCount)
+		return nil, fmt.Errorf("class_prices count (%d) must match class_count (%d)", len(classPrices), classCount)
 	}
 
 	// Determine seat distribution by class
@@ -147,7 +157,7 @@ func (s *AdminService) CreateFlight(ctx context.Context, flight *models.Flight, 
 	// Create the flight first
 	if err := tx.WithContext(ctx).Create(flight).Error; err != nil {
 		tx.Rollback()
-		return err
+		return nil, err
 	}
 
 	// Generate seats per class
@@ -162,7 +172,7 @@ func (s *AdminService) CreateFlight(ctx context.Context, flight *models.Flight, 
 		}
 		if err := tx.WithContext(ctx).Create(&fClass).Error; err != nil {
 			tx.Rollback()
-			return err
+			return nil, err
 		}
 
 		for i := 0; i < alloc.SeatCount; i++ {
@@ -178,13 +188,12 @@ func (s *AdminService) CreateFlight(ctx context.Context, flight *models.Flight, 
 			}
 			if err := tx.WithContext(ctx).Create(&seat).Error; err != nil {
 				tx.Rollback()
-				return err
+				return nil, err
 			}
 			seatIndex++
 		}
 	}
 
-	// Reload with preloads
 	if err := tx.WithContext(ctx).
 		Preload("Airline").
 		Preload("Origin").
@@ -192,13 +201,18 @@ func (s *AdminService) CreateFlight(ctx context.Context, flight *models.Flight, 
 		Preload("FlightClasses.Seats").
 		First(flight, flight.ID).Error; err != nil {
 		tx.Rollback()
-		return err
+		return nil, err
 	}
 
-	return tx.Commit().Error
+	if err := tx.Commit().Error; err != nil {
+		return nil, err
+	}
+
+	response := dto.ToFlightResponse(*flight)
+	return &response, nil
 }
 
-func (s *AdminService) UpdateFlight(ctx context.Context, flight *models.Flight) error {
+func (s *AdminService) UpdateFlight(ctx context.Context, flight *models.Flight) (*dto.FlightResponse, error) {
 	tx := s.db.Begin()
 	defer func() {
 		if r := recover(); r != nil {
@@ -212,7 +226,7 @@ func (s *AdminService) UpdateFlight(ctx context.Context, flight *models.Flight) 
 		Preload("FlightClasses.Seats").
 		First(&oldFlight, flight.ID).Error; err != nil {
 		tx.Rollback()
-		return err
+		return nil, err
 	}
 
 	// Validate new seat config
@@ -220,7 +234,7 @@ func (s *AdminService) UpdateFlight(ctx context.Context, flight *models.Flight) 
 		maxCapacity := flight.TotalRows * flight.TotalColumns
 		if flight.TotalSeats > maxCapacity {
 			tx.Rollback()
-			return fmt.Errorf("total_seats (%d) exceeds rows × columns (%d × %d = %d)", flight.TotalSeats, flight.TotalRows, flight.TotalColumns, maxCapacity)
+			return nil, fmt.Errorf("total_seats (%d) exceeds rows × columns (%d × %d = %d)", flight.TotalSeats, flight.TotalRows, flight.TotalColumns, maxCapacity)
 		}
 	}
 
@@ -237,7 +251,7 @@ func (s *AdminService) UpdateFlight(ctx context.Context, flight *models.Flight) 
 		"total_columns":   flight.TotalColumns,
 	}).Error; err != nil {
 		tx.Rollback()
-		return err
+		return nil, err
 	}
 
 	// Recalculate seats if total_seats, total_rows, or total_columns changed
@@ -281,7 +295,7 @@ func (s *AdminService) UpdateFlight(ctx context.Context, flight *models.Flight) 
 		for _, fc := range oldFlight.FlightClasses {
 			if err := tx.WithContext(ctx).Unscoped().Where("flight_class_id = ?", fc.ID).Delete(&models.FlightSeat{}).Error; err != nil {
 				tx.Rollback()
-				return err
+				return nil, err
 			}
 		}
 
@@ -302,7 +316,7 @@ func (s *AdminService) UpdateFlight(ctx context.Context, flight *models.Flight) 
 				}
 				if err := tx.WithContext(ctx).Create(&seat).Error; err != nil {
 					tx.Rollback()
-					return err
+					return nil, err
 				}
 				seatIndex++
 			}
@@ -317,10 +331,15 @@ func (s *AdminService) UpdateFlight(ctx context.Context, flight *models.Flight) 
 		Preload("FlightClasses.Seats").
 		First(flight, flight.ID).Error; err != nil {
 		tx.Rollback()
-		return err
+		return nil, err
 	}
 
-	return tx.Commit().Error
+	if err := tx.Commit().Error; err != nil {
+		return nil, err
+	}
+
+	response := dto.ToFlightResponse(*flight)
+	return &response, nil
 }
 
 func (s *AdminService) DeleteFlight(ctx context.Context, id uint) error {
@@ -495,7 +514,16 @@ func (s *AdminService) DeletePromo(ctx context.Context, id uint) error {
 	return tx.Commit().Error
 }
 
-func (s *AdminService) GetFlightByID(ctx context.Context, id uint) (*models.Flight, error) {
+func (s *AdminService) GetFlightByID(ctx context.Context, id uint) (*dto.FlightResponse, error) {
+	flight, err := s.flightRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	response := dto.ToFlightResponse(*flight)
+	return &response, nil
+}
+
+func (s *AdminService) GetFlightModelByID(ctx context.Context, id uint) (*models.Flight, error) {
 	return s.flightRepo.GetByID(ctx, id)
 }
 

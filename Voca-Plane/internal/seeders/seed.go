@@ -17,7 +17,7 @@ func SeedAll(db *gorm.DB) {
 	SeedUsers(db)
 	SeedAirlines(db)
 	SeedAirports(db)
-	// SeedFlights(db)
+	SeedFlights(db)
 	SeedPromos(db)
 	log.Println(">>> SEEDING COMPLETED")
 }
@@ -155,7 +155,7 @@ func SeedAirports(db *gorm.DB) {
 }
 
 func SeedFlights(db *gorm.DB) {
-	log.Println(">>> Seeding 20 Sample Flights with new seat system...")
+	log.Println(">>> Seeding 20 Sample Flights with Diverse Classes...")
 	var airlines []models.Airline
 	var airports []models.Airport
 
@@ -178,26 +178,27 @@ func SeedFlights(db *gorm.DB) {
 		origin := airports[i%len(airports)]
 		dest := airports[(i+1)%len(airports)]
 
-		// Vary class count: 1-7 = 1 class, 8-14 = 2 classes, 15-20 = 3 classes
-		var classes []classConfig
-		totalSeats := 120
-		totalRows := 20
-		totalColumns := 6
+		// Konfigurasi kursi per pesawat
+		totalSeats := 20
+		totalRows := 5
+		totalColumns := 4
 
+		// Logika Variasi Kelas:
+		// i 1-7   : Full Economy
+		// i 8-14  : Business & Economy
+		// i 15-20 : First, Business, & Economy
+		var classes []classConfig
 		switch {
-		case i <= 7:
-			// 1 class: Economy 100%
-			classes = []classConfig{
-				{"Economy", 1000000 + float64(i*50000), 1.0},
-			}
-		case i <= 14:
-			// 2 classes: Business 30%, Economy 70%
-			classes = []classConfig{
-				{"Business", 3000000 + float64(i*100000), 0.30},
-				{"Economy", 1000000 + float64(i*50000), 0.70},
-			}
+		// case i <= 7:
+		// 	classes = []classConfig{
+		// 		{"Economy", 1000000 + float64(i*50000), 1.0},
+		// 	}
+		// case i <= 14:
+		// 	classes = []classConfig{
+		// 		{"Business", 3000000 + float64(i*100000), 0.30},
+		// 		{"Economy", 1000000 + float64(i*50000), 0.70},
+		// 	}
 		default:
-			// 3 classes: First 20%, Business 30%, Economy 50%
 			classes = []classConfig{
 				{"First", 5000000 + float64(i*150000), 0.20},
 				{"Business", 3000000 + float64(i*100000), 0.30},
@@ -216,19 +217,22 @@ func SeedFlights(db *gorm.DB) {
 			TotalRows:     totalRows,
 			TotalColumns:  totalColumns,
 		}
-		db.FirstOrCreate(&flight, models.Flight{FlightNumber: flight.FlightNumber})
+
+		// Gunakan Where agar flight.ID terisi ke struct meskipun data sudah ada (FirstOrCreate)
+		if err := db.Where(models.Flight{FlightNumber: flight.FlightNumber}).FirstOrCreate(&flight).Error; err != nil {
+			log.Printf("Failed to seed flight %s: %v", flight.FlightNumber, err)
+			continue
+		}
 
 		// Generate classes and seats
 		seatIndex := 0
 		for _, c := range classes {
+			// Hitung jumlah kursi untuk kelas ini
 			seatCount := int(float64(totalSeats) * c.Percent)
-			// Last class gets remaining seats to avoid rounding issues
+			
+			// Penanganan pembulatan: jika ini kelas terakhir, ambil sisa kursi yang ada
 			if c.ClassType == classes[len(classes)-1].ClassType {
-				usedSeats := 0
-				for _, prev := range classes[:len(classes)-1] {
-					usedSeats += int(float64(totalSeats) * prev.Percent)
-				}
-				seatCount = totalSeats - usedSeats
+				seatCount = totalSeats - seatIndex
 			}
 
 			fClass := models.FlightClass{
@@ -236,7 +240,9 @@ func SeedFlights(db *gorm.DB) {
 				ClassType: c.ClassType,
 				Price:     c.Price,
 			}
-			db.FirstOrCreate(&fClass, models.FlightClass{FlightID: flight.ID, ClassType: fClass.ClassType})
+			
+			// Pastikan Class terbuat dan ID-nya didapat
+			db.Where(models.FlightClass{FlightID: flight.ID, ClassType: fClass.ClassType}).FirstOrCreate(&fClass)
 
 			for j := 0; j < seatCount; j++ {
 				row := seatIndex / totalColumns
@@ -249,7 +255,9 @@ func SeedFlights(db *gorm.DB) {
 					SeatNumber:    seatNumber,
 					IsAvailable:   true,
 				}
-				db.FirstOrCreate(&seat, models.FlightSeat{FlightClassID: fClass.ID, SeatNumber: seat.SeatNumber})
+				
+				// Simpan seat jika belum ada
+				db.Where(models.FlightSeat{FlightClassID: fClass.ID, SeatNumber: seat.SeatNumber}).FirstOrCreate(&seat)
 				seatIndex++
 			}
 		}

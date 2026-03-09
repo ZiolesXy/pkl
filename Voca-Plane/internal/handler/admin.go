@@ -116,13 +116,13 @@ func (h *AdminHandler) CreateFlight(c *gin.Context) {
 		TotalColumns:  req.TotalColumns,
 	}
 
-	err := h.service.CreateFlight(c.Request.Context(), flight, req.ClassCount, req.ClassPrices)
+	flightResponse, err := h.service.CreateFlight(c.Request.Context(), flight, req.ClassCount, req.ClassPrices)
 	if err != nil {
 		response.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	response.Success(c, http.StatusCreated, "flight created", flight)
+	response.Success(c, http.StatusCreated, "flight created", flightResponse)
 }
 
 func (h *AdminHandler) UpdateFlight(c *gin.Context) {
@@ -139,20 +139,20 @@ func (h *AdminHandler) UpdateFlight(c *gin.Context) {
 		return
 	}
 
-	flight, err := h.service.GetFlightByID(c.Request.Context(), uint(flightID))
+	flight, err := h.service.GetFlightModelByID(c.Request.Context(), uint(flightID))
 	if err != nil {
 		response.Error(c, http.StatusNotFound, "flight not found")
 		return
 	}
 
 	if req.AirlineID != nil {
-		flight.AirlineID = *req.AirlineID
+		flight.Airline.ID = *req.AirlineID
 	}
 	if req.OriginID != nil {
-		flight.OriginID = *req.OriginID
+		flight.Origin.ID = *req.OriginID
 	}
 	if req.DestinationID != nil {
-		flight.DestinationID = *req.DestinationID
+		flight.Destination.ID = *req.DestinationID
 	}
 	if req.DepartureTime != nil {
 		departureTime, _ := time.Parse(time.RFC3339, *req.DepartureTime)
@@ -175,13 +175,13 @@ func (h *AdminHandler) UpdateFlight(c *gin.Context) {
 		flight.TotalColumns = *req.TotalColumns
 	}
 
-	err = h.service.UpdateFlight(c.Request.Context(), flight)
+	flightResponse, err := h.service.UpdateFlight(c.Request.Context(), flight)
 	if err != nil {
 		response.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	response.Success(c, http.StatusOK, "flight updated", flight)
+	response.Success(c, http.StatusOK, "flight updated", flightResponse)
 }
 
 func (h *AdminHandler) DeleteFlight(c *gin.Context) {

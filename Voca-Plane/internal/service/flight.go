@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"voca-plane/internal/domain/dto"
 	"voca-plane/internal/domain/models"
 	"voca-plane/internal/repository"
 )
@@ -14,28 +15,53 @@ func NewFlightService(flightRepo repository.FlightRepository) *FlightService {
 	return &FlightService{flightRepo: flightRepo}
 }
 
-func (s *FlightService) SearchFlight(ctx context.Context, origin, destination, date, classType string, page, limit int) ([]models.Flight, int64, error) {
+func (s *FlightService) SearchFlight(ctx context.Context, origin, destination, date, classType string, page, limit int) ([]dto.FlightResponse, int64, error) {
 	if page < 1 {
 		page = 1
 	}
 	if limit < 1 || limit > 100 {
 		limit = 10
 	}
-	return s.flightRepo.Search(ctx, origin, destination, date, classType, page, limit)
+	flights, total, err := s.flightRepo.Search(ctx, origin, destination, date, classType, page, limit)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	var flightResponses []dto.FlightResponse
+	for _, f := range flights {
+		flightResponses = append(flightResponses, dto.ToFlightResponse(f))
+	}
+
+	return flightResponses, total, nil
 }
 
-func (s *FlightService) GetFlightByID(ctx context.Context, id uint) (*models.Flight, error) {
-	return s.flightRepo.GetByID(ctx, id)
+func (s *FlightService) GetFlightByID(ctx context.Context, id uint) (*dto.FlightResponse, error) {
+	flight, err := s.flightRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	response := dto.ToFlightResponse(*flight)
+	return &response, nil
 }
 
-func (s *FlightService) GetAllFlights(ctx context.Context, page, limit int) ([]models.Flight, int64, error) {
+func (s *FlightService) GetAllFlights(ctx context.Context, page, limit int) ([]dto.FlightResponse, int64, error) {
 	if page <  1 {
 		page = 1
 	}
-	if limit > 1 || limit > 100 {
+	if limit < 1 || limit > 100 {
 		limit = 10
 	}
-	return s.flightRepo.GetAll(ctx, page, limit)
+	flights, total, err := s.flightRepo.GetAll(ctx, page, limit)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	var flightResponses []dto.FlightResponse
+	for _, f := range flights {
+		flightResponses = append(flightResponses, dto.ToFlightResponse(f))
+	}
+
+	return flightResponses, total, nil
 }
 
 func (s *FlightService) CreateFlight(ctx context.Context, flight *models.Flight) error {

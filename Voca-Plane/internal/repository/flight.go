@@ -84,7 +84,8 @@ func (r *flightRepository) GetAll(ctx context.Context, page, limit int) ([]model
 		Preload("Airline").
 		Preload("Origin").
 		Preload("Destination").
-		Preload("FlightClasses")
+		Preload("FlightClasses").
+		Preload("FlightClasses.Seats")
 	
 	query.Count(&total)
 	offset := (page - 1) * limit
