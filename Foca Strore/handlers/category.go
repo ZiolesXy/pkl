@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 	"voca-store/helper"
 	"voca-store/models"
 	"voca-store/request"
@@ -35,11 +34,11 @@ func CreateCategory(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		ext := strings.ToLower(filepath.Ext(file.Filename))
-		if ext != ".svg" {
-			response.ErrorResponse(c, http.StatusBadRequest, "only svg files are allowed")
-			return
-		}
+		// ext := strings.ToLower(filepath.Ext(file.Filename))
+		// if ext != ".svg" {
+		// 	response.ErrorResponse(c, http.StatusBadRequest, "only svg files are allowed")
+		// 	return
+		// }
 
 		// Create temp directory
 		if err := os.MkdirAll("tmp", os.ModePerm); err != nil {
@@ -181,11 +180,11 @@ func UpdateCategory(db *gorm.DB) gin.HandlerFunc {
 		file, err := c.FormFile("icon")
 		if err == nil {
 
-			ext := strings.ToLower(filepath.Ext(file.Filename))
-			if ext != ".svg" {
-				response.ErrorResponse(c, http.StatusBadRequest, "only svg files are allowed")
-				return
-			}
+			// ext := strings.ToLower(filepath.Ext(file.Filename))
+			// if ext != ".svg" {
+			// 	response.ErrorResponse(c, http.StatusBadRequest, "only svg files are allowed")
+			// 	return
+			// }
 
 			if err := os.MkdirAll("tmp", os.ModePerm); err != nil {
 				response.ErrorResponse(c, http.StatusInternalServerError, "failed to create temp dir")

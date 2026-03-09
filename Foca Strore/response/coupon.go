@@ -13,6 +13,7 @@ type CouponResponse struct {
 	Quota           int        `json:"quota"`
 	UsedCount       int        `json:"used_count"`
 	MinimumPurchase float64    `json:"minimum_purchase"`
+	IsActive        bool       `json:"is_active"`
 	ExpiresAt       *time.Time `json:"expires_at"`
 }
 
@@ -29,6 +30,7 @@ func BuildCouponResponse(c models.Coupon) CouponResponse {
 		Quota:           c.Quota,
 		UsedCount:       c.UsedCount,
 		MinimumPurchase: c.MinimumPurchase,
+		IsActive:        *c.IsActive,
 		ExpiresAt:       c.ExpiresAt,
 	}
 }
@@ -54,6 +56,7 @@ type CouponWithRemainingResponse struct {
 	UsedCount       int        `json:"used_count"`
 	Remaining       int        `json:"remaining"`
 	MinimumPurchase float64    `json:"minimum_purchase"`
+	IsActive        bool       `json:"is_active"`
 	ExpiresAt       *time.Time `json:"expires_at"`
 }
 
@@ -76,6 +79,7 @@ func BuildCouponWithRemainingResponse(c models.Coupon) CouponWithRemainingRespon
 		UsedCount:       c.UsedCount,
 		Remaining:       remaining,
 		MinimumPurchase: c.MinimumPurchase,
+		IsActive:        *c.IsActive,
 		ExpiresAt:       c.ExpiresAt,
 	}
 }

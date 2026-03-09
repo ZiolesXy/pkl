@@ -24,6 +24,8 @@ func CreateCoupon(db *gorm.DB) gin.HandlerFunc {
 			Type: req.Type,
 			Value: req.Value,
 			Quota: req.Quota,
+			IsActive: &req.ISActive,
+			ExpiresAt: &req.ExpiresAt,
 		}
 
 		if err := db.Create(&coupon).Error; err != nil {
@@ -80,6 +82,12 @@ func UpdateCoupon(db *gorm.DB) gin.HandlerFunc {
 		}
 		if req.Quota != nil {
 			updates["quota"] = *req.Quota
+		}
+		if req.ISActive != nil {
+			updates["is_active"] = *req.ISActive
+		}
+		if req.ExpiresAt != nil {
+			updates["expire_at"] = *req.ExpiresAt
 		}
 
 		if len(updates) == 0 {

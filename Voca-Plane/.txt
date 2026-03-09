@@ -1,0 +1,33 @@
+Saya memiliki project backend Golang dengan struktur seperti berikut:
+
+* Framework: Gin
+* Database: PostgreSQL (GORM)
+* Architecture: handler → service → repository
+* Saat ini project menggunakan Redis untuk refresh token dan Docker untuk deployment.
+
+Saya ingin melakukan refactor project agar:
+
+1. Menghapus semua dependency Redis
+2. Menghapus semua konfigurasi Docker
+3. Auth system tetap menggunakan JWT access token dan refresh token
+4. Refresh token tidak lagi disimpan di Redis
+5. Logout dan LogoutAll boleh dihapus
+6. Project tetap bisa berjalan menggunakan PostgreSQL lokal
+
+Tolong lakukan hal berikut:
+
+1. Tunjukkan file mana saja yang harus dihapus
+2. Tunjukkan perubahan kode yang harus dilakukan pada:
+
+   * main.go
+   * config.go
+   * AuthService
+3. Hapus semua penggunaan:
+
+   * redis client
+   * redis import
+   * redis configuration
+4. Perbaiki constructor yang sebelumnya menerima redis client
+5. Pastikan kode masih clean dan bisa di-compile
+
+Berikan hasil akhir kode yang sudah diperbaiki.

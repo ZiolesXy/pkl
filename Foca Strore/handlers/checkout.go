@@ -163,20 +163,7 @@ func Checkout(db *gorm.DB) gin.HandlerFunc {
 			totalCents = subtotalCents - discountAmountCents
 
 			if totalCents < 0 {
-				totalCents = 1
-				discountAmountCents = subtotalCents
-			}
-
-			if coupon.Quota > 0 {
-				result := tx.Model(&models.Coupon{}).
-					Where("id = ? AND used_count < quota", coupon.ID).
-					Update("used_count", gorm.Expr("used_count + 1"))
-
-				if result.RowsAffected == 0 {
-					tx.Rollback()
-					response.ErrorResponse(c, 400, "coupon quota exceeded")
-					return
-				}
+				totalCents = 0
 			}
 
 			now := time.Now()
@@ -272,32 +259,47 @@ func Checkout(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		midtransOrderID := checkout.UID
-		midtransResp, err := helper.CreateSnapTransaction(
-			midtransOrderID,
-			totalCents,
-			discountAmountCents,
-			checkout.User.Name,
-			checkout.User.Email,
-			checkout.User.TelephoneNumber,
-			address,
-			items,
-		)
+		// midtransOrderID := checkout.UID
+		if totalCents == 0 {
+			checkout.PaymentStatus = "paid"
+			checkout.Status = "approved"
+			checkout.MidtransOrderID = "FREE-" + checkout.UID
+			checkout.SnapToken = ""
+			checkout.PaymentURL = ""
 
-		if err != nil {
-			tx.Rollback()
-			response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
-			return
-		}
+			if err := tx.Save(&checkout).Error; err != nil {
+				tx.Rollback()
+				response.ErrorResponse(c, http.StatusInternalServerError, "failed save free checkout")
+				return
+			}
+		} else {
+			midtransResp, err := helper.CreateSnapTransaction(
+				checkout.UID,
+				totalCents,
+				discountAmountCents,
+				checkout.User.Name,
+				checkout.User.Email,
+				checkout.User.TelephoneNumber,
+				address,
+				items,
+			)
 
-		checkout.MidtransOrderID = midtransResp.OrderID
-		checkout.SnapToken = midtransResp.Token
-		checkout.PaymentURL = midtransResp.RedirectURL
-		checkout.PaymentStatus = "pending"
-		if err := tx.Save(&checkout).Error; err != nil {
-			tx.Rollback()
-			response.ErrorResponse(c, http.StatusInternalServerError, "failed save midtrans data")
-			return
+			if err != nil {
+				tx.Rollback()
+				response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+				return
+			}
+
+			checkout.MidtransOrderID = midtransResp.OrderID
+			checkout.SnapToken = midtransResp.Token
+			checkout.PaymentURL = midtransResp.RedirectURL
+			checkout.PaymentStatus = "pending"
+
+			if err := tx.Save(&checkout).Error; err != nil {
+				tx.Rollback()
+				response.ErrorResponse(c, http.StatusInternalServerError, "failed save midtrans")
+				return
+			}
 		}
 
 		if err := tx.Commit().Error; err != nil {

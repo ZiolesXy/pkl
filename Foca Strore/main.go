@@ -25,6 +25,7 @@ func main() {
 	}
 
 	// Initialize Cloudinary
+	log.Println("starting cloudinary initialiized")
 	if err := helper.InitCloudinary(); err != nil {
 		log.Println("Warning: Cloudinary not initialized:", err)
 	} else {
