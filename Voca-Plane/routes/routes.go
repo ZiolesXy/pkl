@@ -14,7 +14,10 @@ func SetUpRoutes(r *gin.Engine,
 	transactionHandler *handler.TransactionHandler,
 	userHandler *handler.UserHandler,
 	adminHandler *handler.AdminHandler,
-	jwtSecret string) {
+	jwtSecret string,
+	allowedOrigins string) {
+	r.Use(middleware.CORS(allowedOrigins))
+
 	v1 := r.Group("/api/v1")
 	{
 		v1.GET("/health", func(c *gin.Context) {

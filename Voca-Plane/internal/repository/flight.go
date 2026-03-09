@@ -101,6 +101,7 @@ func (r *flightRepository) Create(ctx context.Context, tx *gorm.DB, flight *mode
 		Preload("Airline").
 		Preload("Origin").
 		Preload("Destination").
+		Preload("FlightClasses.Seats").
 		First(flight, flight.ID).Error
 }
 
@@ -113,6 +114,7 @@ func (r *flightRepository) Update(ctx context.Context, tx *gorm.DB, flight *mode
 		Preload("Airline").
 		Preload("Origin").
 		Preload("Destination").
+		Preload("FlightClasses.Seats").
 		First(flight, flight.ID).Error
 }
 

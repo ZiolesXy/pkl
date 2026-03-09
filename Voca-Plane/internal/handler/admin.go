@@ -1,13 +1,13 @@
 package handler
 
 import (
+	"net/http"
+	"strconv"
+	"time"
 	"voca-plane/internal/domain/dto"
 	"voca-plane/internal/domain/models"
 	"voca-plane/internal/service"
 	"voca-plane/pkg/response"
-	"net/http"
-	"strconv"
-	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -136,18 +136,31 @@ func (h *AdminHandler) UpdateFlight(c *gin.Context) {
 		return
 	}
 
-	flight := &models.Flight{ID: uint(flightID)}
-	if req.AirlineID > 0 {
-		flight.AirlineID = req.AirlineID
+	flight, err := h.service.GetFlightByID(c.Request.Context(), uint(flightID))
+	if err != nil {
+		response.Error(c, http.StatusNotFound, "flight not found")
+		return
 	}
-	if req.OriginID > 0 {
-		flight.OriginID = req.OriginID
+
+	if req.AirlineID != nil {
+		flight.AirlineID = *req.AirlineID
 	}
-	if req.DestinationID > 0 {
-		flight.DestinationID = req.DestinationID
+	if req.OriginID != nil {
+		flight.OriginID = *req.OriginID
 	}
-	if req.FlightNumber != "" {
-		flight.FlightNumber = req.FlightNumber
+	if req.DestinationID != nil {
+		flight.DestinationID = *req.DestinationID
+	}
+	if req.DepartureTime != nil {
+		departureTime, _ := time.Parse(time.RFC3339, *req.DepartureTime)
+		flight.DepartureTime = departureTime
+	}
+	if req.ArrivalTime != nil {
+		arrivalTime, _ := time.Parse(time.RFC3339, *req.ArrivalTime)
+		flight.ArrivalTime = arrivalTime
+	}
+	if req.FlightNumber != nil {
+		flight.FlightNumber = *req.FlightNumber
 	}
 
 	err = h.service.UpdateFlight(c.Request.Context(), flight)
@@ -226,15 +239,19 @@ func (h *AdminHandler) UpdateAirline(c *gin.Context) {
 		return
 	}
 
-	airline := &models.Airline{ID: uint(airlineID)}
-	if req.Name != "" {
-		airline.Name = req.Name
+	airline, err := h.service.GetAirlineByID(c.Request.Context(), uint(airlineID))
+	if err != nil {
+		response.Error(c, http.StatusNotFound, "airline not found")
+		return
 	}
-	if req.Code != "" {
-		airline.Code = req.Code
+	if req.Name != nil {
+		airline.Name = *req.Name
 	}
-	if req.LogoURL != "" {
-		airline.LogoURL = req.LogoURL
+	if req.Code != nil {
+		airline.Code = *req.Code
+	}
+	if req.LogoURL != nil {
+		airline.LogoURL = *req.LogoURL
 	}
 
 	err = h.service.UpdateAirline(c.Request.Context(), airline)
@@ -313,15 +330,19 @@ func (h *AdminHandler) UpdateAirport(c *gin.Context) {
 		return
 	}
 
-	airport := &models.Airport{ID: uint(airportID)}
-	if req.Code != "" {
-		airport.Code = req.Code
+	airport, err := h.service.GetAirportByID(c.Request.Context(), uint(airportID))
+	if err != nil {
+		response.Error(c, http.StatusNotFound, "airport not found")
+		return
 	}
-	if req.Name != "" {
-		airport.Name = req.Name
+	if req.Code != nil {
+		airport.Code = *req.Code
 	}
-	if req.City != "" {
-		airport.City = req.City
+	if req.Name != nil {
+		airport.Name = *req.Name
+	}
+	if req.City != nil {
+		airport.City = *req.City
 	}
 
 	err = h.service.UpdateAirport(c.Request.Context(), airport)
@@ -400,14 +421,20 @@ func (h *AdminHandler) UpdatePromo(c *gin.Context) {
 		return
 	}
 
-	promo := &models.PromoCode{ID: uint(promoID)}
-	if req.Code != "" {
-		promo.Code = req.Code
+	promo, err := h.service.GetPromoByID(c.Request.Context(), uint(promoID))
+	if err != nil {
+		response.Error(c, http.StatusNotFound, "promo not found")
+		return
 	}
-	if req.Discount > 0 {
-		promo.Discount = req.Discount
+	if req.Code != nil {
+		promo.Code = *req.Code
 	}
-	promo.IsActive = req.IsActive
+	if req.Discount != nil {
+		promo.Discount = *req.Discount
+	}
+	if req.IsActive != nil {
+		promo.IsActive = *req.IsActive
+	}
 
 	err = h.service.UpdatePromo(c.Request.Context(), promo)
 	if err != nil {

@@ -33,11 +33,17 @@ func (r *airportRepository) GetByID(ctx context.Context, id uint) (*models.Airpo
 }
 
 func (r *airportRepository) Create(ctx context.Context, tx *gorm.DB, airport *models.Airport) error {
-	return tx.WithContext(ctx).Create(airport).Error
+	if err := tx.WithContext(ctx).Create(airport).Error; err != nil {
+		return err
+	}
+	return tx.WithContext(ctx).First(airport, airport.ID).Error
 }
 
 func (r *airportRepository) Update(ctx context.Context, tx *gorm.DB, airport *models.Airport) error {
-	return tx.WithContext(ctx).Save(airport).Error
+	if err := tx.WithContext(ctx).Save(airport).Error; err != nil {
+		return err
+	}
+	return tx.WithContext(ctx).First(airport, airport.ID).Error
 }
 
 func (r *airportRepository) Delete(ctx context.Context, tx *gorm.DB, id uint) error {

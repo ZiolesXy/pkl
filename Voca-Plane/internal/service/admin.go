@@ -283,3 +283,18 @@ func (s *AdminService) DeletePromo(ctx context.Context, id uint) error {
 
 	return tx.Commit().Error
 }
+
+func (s *AdminService) GetFlightByID(ctx context.Context, id uint) (*models.Flight, error) {
+	return s.flightRepo.GetByID(ctx, id)
+}
+func (s *AdminService) GetAirlineByID(ctx context.Context, id uint) (*models.Airline, error) {
+return s.airlineRepo.GetByID(ctx, id)
+}
+
+func (s *AdminService) GetAirportByID(ctx context.Context, id uint) (*models.Airport, error) {
+return s.airportRepo.GetByID(ctx, id)
+}
+
+func (s *AdminService) GetPromoByID(ctx context.Context, id uint) (*models.PromoCode, error) {
+return s.promoRepo.GetByID(ctx, id)
+}

@@ -46,7 +46,7 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	err := h.service.UpdateProfile(c.Request.Context(), userID.(uint), req.Name, req.Email, req.Password)
+	err := h.service.UpdateProfile(c.Request.Context(), userID.(uint), req)
 	if err != nil {
 		response.Error(c, http.StatusBadRequest, err.Error())
 		return

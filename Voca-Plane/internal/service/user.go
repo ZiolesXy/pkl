@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"voca-plane/internal/domain/dto"
 	"voca-plane/internal/domain/models"
 	"voca-plane/internal/repository"
 
@@ -26,26 +27,26 @@ func (s *UserService) GetProfile(ctx context.Context, userID uint) (*models.User
 	return user, nil
 }
 
-func (s *UserService) UpdateProfile(ctx context.Context, userID uint, name, email, password string) error {
+func (s *UserService) UpdateProfile(ctx context.Context, userID uint, req dto.UpdateProfileRequest) error {
 	user, err := s.userRepo.FindByID(ctx, userID)
 	if err != nil {
 		return errors.New("user not found")
 	}
 
-	if name != "" {
-		user.Name = name
+	if req.Name != nil {
+		user.Name = *req.Name
 	}
 
-	if email != "" && email != user.Email {
-		_, err := s.userRepo.FindByEmail(ctx, email)
+	if req.Email != nil && *req.Email != user.Email {
+		_, err := s.userRepo.FindByEmail(ctx, *req.Email)
 		if err == nil {
 			return errors.New("email already registered")
 		}
-		user.Email = email
+		user.Email = *req.Email
 	}
 
-	if password != "" {
-		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if req.Password != nil && *req.Password != "" {
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(*req.Password), bcrypt.DefaultCost)
 		if err != nil {
 			return err
 		}

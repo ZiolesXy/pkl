@@ -20,6 +20,7 @@ type config struct {
 	JWTSecret          string
 	AccessTokenExpiry  time.Duration
 	RefreshTokenExpiry time.Duration
+	AllowedOrigins     string
 }
 
 func GetEnv(key, defaultVal string) string {
@@ -58,5 +59,6 @@ func LoadConfig() *config {
 		JWTSecret:          GetEnv("JWT_SECRET", "secret"),
 		AccessTokenExpiry:  accessTokenExpiry,
 		RefreshTokenExpiry: refreshTokenExpiry,
+		AllowedOrigins:     GetEnv("ALLOWED_ORIGINS", "*"),
 	}
 }

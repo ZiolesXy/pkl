@@ -38,12 +38,12 @@ type CreateFlightRequest struct {
 }
 
 type UpdateFlightRequest struct {
-	AirlineID     uint   `json:"airline_id"`
-	OriginID      uint   `json:"origin_id"`
-	DestinationID uint   `json:"destination_id"`
-	DepartureTime string `json:"departure_time"`
-	ArrivalTime   string `json:"arrival_time"`
-	FlightNumber  string `json:"flight_number"`
+	AirlineID     *uint   `json:"airline_id,omitempty"`
+	OriginID      *uint   `json:"origin_id,omitempty"`
+	DestinationID *uint   `json:"destination_id,omitempty"`
+	DepartureTime *string `json:"departure_time,omitempty"`
+	ArrivalTime   *string `json:"arrival_time,omitempty"`
+	FlightNumber  *string `json:"flight_number,omitempty"`
 }
 
 type CreateTransactionRequest struct {
@@ -61,9 +61,9 @@ type PassengerRequest struct {
 }
 
 type UpdateProfileRequest struct {
-	Name     string `json:"name"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Name     *string `json:"name,omitempty"`
+	Email    *string `json:"email,omitempty"`
+	Password *string `json:"password,omitempty"`
 }
 
 type UpdateUserRoleRequest struct {
@@ -77,9 +77,9 @@ type CreateAirlineRequest struct {
 }
 
 type UpdateAirlineRequest struct {
-	Name    string `json:"name"`
-	Code    string `json:"code"`
-	LogoURL string `json:"logo_url"`
+	Name    *string `json:"name,omitempty"`
+	Code    *string `json:"code,omitempty"`
+	LogoURL *string `json:"logo_url,omitempty"`
 }
 
 type CreateAirportRequest struct {
@@ -89,9 +89,9 @@ type CreateAirportRequest struct {
 }
 
 type UpdateAirportRequest struct {
-	Code string `json:"code"`
-	Name string `json:"name"`
-	City string `json:"city"`
+	Code *string `json:"code,omitempty"`
+	Name *string `json:"name,omitempty"`
+	City *string `json:"city,omitempty"`
 }
 
 type CreatePromoRequest struct {
@@ -101,7 +101,7 @@ type CreatePromoRequest struct {
 }
 
 type UpdatePromoRequest struct {
-	Code     string  `json:"code"`
-	Discount float64 `json:"discount"`
-	IsActive bool    `json:"is_active"`
+	Code     *string  `json:"code"`
+	Discount *float64 `json:"discount"`
+	IsActive *bool    `json:"is_active"`
 }

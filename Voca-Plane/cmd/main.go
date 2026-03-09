@@ -54,7 +54,7 @@ func main() {
 	r := gin.Default()
 	r.Use(middleware.Logger())
 
-	routes.SetUpRoutes(r, authHandler, flightHandler, transactionHandler, userHandler, adminHandler, cfg.JWTSecret)
+	routes.SetUpRoutes(r, authHandler, flightHandler, transactionHandler, userHandler, adminHandler, cfg.JWTSecret, cfg.AllowedOrigins)
 
 	srv := &http.Server{
 		Addr: ":" + cfg.AppPort,

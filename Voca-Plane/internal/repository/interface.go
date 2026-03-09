@@ -51,6 +51,7 @@ type TransactionRepository interface {
 }
 
 type PromoRepository interface {
+	GetByID(ctx context.Context, id uint) (*models.PromoCode, error)
 	GetByCode(ctx context.Context, code string) (*models.PromoCode, error)
 	GetAll(ctx context.Context, page, limit int) ([]models.PromoCode, int64, error)
 	Create(ctx context.Context, tx *gorm.DB, promo *models.PromoCode) error

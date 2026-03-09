@@ -15,6 +15,12 @@ func NewPromoRepository(db *gorm.DB) PromoRepository {
 	return &promoRepository{db: db}
 }
 
+func (r *promoRepository) GetByID(ctx context.Context, id uint) (*models.PromoCode, error) {
+	var promo models.PromoCode
+	err := r.db.WithContext(ctx).First(&promo, id).Error
+	return &promo, err
+}
+
 func (r *promoRepository) GetByCode(ctx context.Context, code string) (*models.PromoCode, error) {
 	var promo models.PromoCode
 	err := r.db.WithContext(ctx).Where("code = ? AND is_active = ?", code, true).First(&promo).Error

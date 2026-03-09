@@ -16,7 +16,17 @@ func NewTransactionRepository(db *gorm.DB) TransactionRepository {
 }
 
 func (r *transactionRepository) Create(ctx context.Context, tx *gorm.DB, t *models.Transaction) error {
-	return tx.WithContext(ctx).Create(t).Error
+	if err := tx.WithContext(ctx).Create(t).Error; err != nil {
+		return err
+	}
+
+	return tx.WithContext(ctx).
+		Preload("Passengers").
+		Preload("Flight").
+		Preload("Flight.Airline").
+		Preload("Flight.Origin").
+		Preload("Flight.Destination").
+		First(t, t.ID).Error
 }
 
 func (r *transactionRepository) GetByCode(ctx context.Context, code string) (*models.Transaction, error) {
