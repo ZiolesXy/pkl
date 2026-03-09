@@ -28,6 +28,7 @@ type config struct {
 
 	GinMode        string
 	AllowedOrigins string
+	AppPassword    string
 }
 
 func GetEnv(key, defaultVal string) string {
@@ -74,5 +75,6 @@ func LoadConfig() *config {
 
 		GinMode:        GetEnv("GIN_MODE", "debug"),
 		AllowedOrigins: GetEnv("ALLOWED_ORIGINS", "*"),
+		AppPassword:    GetEnv("APP_PASSWORD", ""),
 	}
 }

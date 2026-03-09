@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"voca-plane/internal/domain/dto"
 	"voca-plane/internal/service"
+	"voca-plane/pkg/helper"
 	"voca-plane/pkg/response"
 
 	"github.com/gin-gonic/gin"
@@ -53,4 +54,18 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 	}
 
 	response.Success(c, http.StatusOK, "profile updated", nil)
+}
+
+func (h *UserHandler) GetDeviceInfo(c *gin.Context) {
+
+	clientIP := c.ClientIP()
+	userAgent := c.GetHeader("User-Agent")
+
+	serverInfo := helper.GetServerInfo()
+	clientInfo := helper.GetClientInfo(clientIP, userAgent)
+
+	response.Success(c, http.StatusOK, "device retrieved successfully", helper.DeviceDetails{
+		Server: serverInfo,
+		Client: clientInfo,
+	})
 }

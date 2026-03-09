@@ -14,8 +14,10 @@ func SetUpRoutes(r *gin.Engine,
 	transactionHandler *handler.TransactionHandler,
 	userHandler *handler.UserHandler,
 	adminHandler *handler.AdminHandler,
+	systemHandler *handler.SystemHandler,
 	jwtSecret string,
-	allowedOrigins string) {
+	allowedOrigins string,
+	appPassword string) {
 	r.Use(middleware.CORS(allowedOrigins))
 
 	v1 := r.Group("/api/v1")
@@ -23,6 +25,15 @@ func SetUpRoutes(r *gin.Engine,
 		v1.GET("/health", func(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{"status": "ok"})
 		})
+
+		// System Routes
+		sys := v1.Group("/system")
+		sys.Use(middleware.JWTAuth(jwtSecret))
+		sys.Use(middleware.RequireSuperAdmin())
+		sys.Use(middleware.AppPassword(appPassword))
+		{
+			sys.POST("/seed", systemHandler.Seed)
+		}
 
 		// Public Auth
 		v1.POST("/auth/register", authHandler.Register)
@@ -41,6 +52,7 @@ func SetUpRoutes(r *gin.Engine,
 		{
 			userProtected.GET("/user/profile", userHandler.GetProfile)
 			userProtected.PATCH("/user/profile", userHandler.UpdateProfile)
+			v1.GET("/user/device-info", userHandler.GetDeviceInfo)
 
 			userProtected.GET("/transactions", transactionHandler.GetList)
 			userProtected.GET("/transactions/:code", transactionHandler.GetByCode)

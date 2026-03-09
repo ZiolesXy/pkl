@@ -111,9 +111,12 @@ func (h *AdminHandler) CreateFlight(c *gin.Context) {
 		DepartureTime: departureTime,
 		ArrivalTime:   arrivalTime,
 		FlightNumber:  req.FlightNumber,
+		TotalSeats:    req.TotalSeats,
+		TotalRows:     req.TotalRows,
+		TotalColumns:  req.TotalColumns,
 	}
 
-	err := h.service.CreateFlight(c.Request.Context(), flight)
+	err := h.service.CreateFlight(c.Request.Context(), flight, req.ClassCount, req.ClassPrices)
 	if err != nil {
 		response.Error(c, http.StatusBadRequest, err.Error())
 		return
@@ -161,6 +164,15 @@ func (h *AdminHandler) UpdateFlight(c *gin.Context) {
 	}
 	if req.FlightNumber != nil {
 		flight.FlightNumber = *req.FlightNumber
+	}
+	if req.TotalSeats != nil {
+		flight.TotalSeats = *req.TotalSeats
+	}
+	if req.TotalRows != nil {
+		flight.TotalRows = *req.TotalRows
+	}
+	if req.TotalColumns != nil {
+		flight.TotalColumns = *req.TotalColumns
 	}
 
 	err = h.service.UpdateFlight(c.Request.Context(), flight)

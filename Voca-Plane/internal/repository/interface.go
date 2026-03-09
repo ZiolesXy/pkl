@@ -74,3 +74,7 @@ type AdminRepository interface {
 	UpdateUserRole(ctx context.Context, tx *gorm.DB, userID uint, role string) error
 	GetAllTransactions(ctx context.Context, page, limit int) ([]models.Transaction, int64, error)
 }
+
+type SystemRepository interface {
+	ResetDatabase(ctx context.Context) error
+}

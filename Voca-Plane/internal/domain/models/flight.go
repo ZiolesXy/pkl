@@ -37,6 +37,9 @@ type Flight struct {
 	DepartureTime time.Time     `gorm:"not null;index" json:"departure_time"`
 	ArrivalTime   time.Time     `gorm:"not null" json:"arrival_time"`
 	FlightNumber  string        `gorm:"size:20;not null" json:"flight_number"`
+	TotalSeats    int           `gorm:"not null;default:0" json:"total_seats"`
+	TotalRows     int           `gorm:"not null;default:0" json:"total_rows"`
+	TotalColumns  int           `gorm:"not null;default:0" json:"total_columns"`
 	FlightClasses []FlightClass `gorm:"foreignKey:FlightID" json:"classes"`
 	CreatedAt     time.Time     `json:"created_at"`
 	UpdatedAt     time.Time     `json:"updated_at"`
@@ -49,8 +52,8 @@ type FlightClass struct {
 	ClassType   string      `gorm:"size:20;not null;index" json:"class_type"`
 	Price       float64     `gorm:"not null" json:"price"`
 	Seats       []FlightSeat `gorm:"foreignKey:FlightClassID" json:"seats"`
-	CreatedAt   time.Time   `json:"created_at"`
-	UpdatedAt   time.Time   `json:"updated_at"`
+	CreatedAt   time.Time   `json:"-"`
+	UpdatedAt   time.Time   `json:"-"`
 	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
 }
 

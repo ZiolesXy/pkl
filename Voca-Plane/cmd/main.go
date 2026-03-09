@@ -44,23 +44,26 @@ func main() {
 	adminRepo := repository.NewAdminRepository(db)
 	airlineRepo := repository.NewAirlineRepository(db)
 	airportRepo := repository.NewAirportRepository(db)
+	systemRepo := repository.NewSystemRepository(db)
 
 	authService := service.NewAuthService(userRepo, cfg.JWTSecret, cfg.AccessTokenExpiry, cfg.RefreshTokenExpiry)
 	flightService := service.NewFlightService(flightRepo)
 	transactionService := service.NewTransactionService(transactionRepo, flightRepo, promoRepo, db, midtransClient)
 	userService := service.NewUserService(userRepo)
 	adminService := service.NewAdminService(adminRepo, userRepo, flightRepo, airlineRepo, airportRepo, promoRepo, db)
+	systemService := service.NewSystemService(db, systemRepo)
 
 	authHandler := handler.NewAuthHandler(authService)
 	flightHandler := handler.NewFlightHandler(flightService)
 	transactionHandler := handler.NewTransactionHandler(transactionService)
 	userHandler := handler.NewUserHandler(userService)
 	adminHandler := handler.NewAdminHandler(adminService)
+	systemHandler := handler.NewSystemHandler(systemService)
 
 	r := gin.Default()
 	r.Use(middleware.Logger())
 
-	routes.SetUpRoutes(r, authHandler, flightHandler, transactionHandler, userHandler, adminHandler, cfg.JWTSecret, cfg.AllowedOrigins)
+	routes.SetUpRoutes(r, authHandler, flightHandler, transactionHandler, userHandler, adminHandler, systemHandler, cfg.JWTSecret, cfg.AllowedOrigins, cfg.AppPassword)
 
 	srv := &http.Server{
 		Addr: ":" + cfg.AppPort,

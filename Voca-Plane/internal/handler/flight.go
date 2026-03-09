@@ -80,7 +80,7 @@ func (h *FlightHandler) GetAll(c *gin.Context) {
 
 	flights, total, err := h.service.GetAllFlights(c.Request.Context(), page, limit)
 	if err != nil {
-		response.Error(c, http.StatusInternalServerError, err.Error())
+		response.Error(c, http.StatusInternalServerError, err.Error())	
 		return
 	}
 
