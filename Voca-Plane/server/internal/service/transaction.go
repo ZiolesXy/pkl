@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 	"voca-plane/internal/domain/dto/request"
+	"voca-plane/internal/domain/dto/response"
 	"voca-plane/internal/domain/models"
 	"voca-plane/internal/repository"
 	"voca-plane/pkg/helper"
@@ -32,7 +33,7 @@ func NewTransactionService(txRepo repository.TransactionRepository, flightRepo r
 	}
 }
 
-func (s *TransactionService) CreateTransaction(ctx context.Context, userID uint, req request.CreateTransactionRequest) (*models.Transaction, error) {
+func (s *TransactionService) CreateTransaction(ctx context.Context, userID uint, req request.CreateTransactionRequest) (*response.TransactionResponse, error) {
 	flightClass, err := s.flightRepo.GetClassByID(ctx, req.ClassID)
 	if err != nil || flightClass.FlightID != req.FlightID {
 		return nil, errors.New("invalid flight class")
@@ -123,7 +124,12 @@ func (s *TransactionService) CreateTransaction(ctx context.Context, userID uint,
 
 	if transaction.TotalPrice <= 0 {
 		transaction.PaymentStatus = "PAID"
-		return s.txRepo.GetByCode(ctx, transaction.Code)
+		transactionRes, err := s.txRepo.GetByCode(ctx, transaction.Code)
+		if err != nil {
+			return nil, err
+		}
+		resDto := response.ToTransactionResponse(*transactionRes)
+		return &resDto, nil
 	}
 
 	res, err := s.midtrans.CreatePayment(
@@ -141,7 +147,13 @@ func (s *TransactionService) CreateTransaction(ctx context.Context, userID uint,
 		return nil, err
 	}
 
-	return s.txRepo.GetByCode(ctx, transaction.Code)
+	transactionRes, err := s.txRepo.GetByCode(ctx, transaction.Code)
+	if err != nil {
+		return nil, err
+	}
+
+	resDto := response.ToTransactionResponse(*transactionRes)
+	return &resDto, nil
 }
 
 func (s *TransactionService) PayTransaction(ctx context.Context, code string) error {
@@ -171,18 +183,33 @@ func (s *TransactionService) PayTransaction(ctx context.Context, code string) er
 	return tx.Commit().Error
 }
 
-func (s *TransactionService) GetUserTransactions(ctx context.Context, userID uint, page, limit int) ([]models.Transaction, int64, error) {
+func (s *TransactionService) GetUserTransactions(ctx context.Context, userID uint, page, limit int) ([]response.TransactionResponse, int64, error) {
 	if page < 1 {
 		page = 1
 	}
 	if limit < 1 || limit > 100 {
 		limit = 10
 	}
-	return s.txRepo.GetByUserID(ctx, userID, page, limit)
+	transactions, total, err := s.txRepo.GetByUserID(ctx, userID, page, limit)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	var res []response.TransactionResponse
+	for _, t := range transactions {
+		res = append(res, response.ToTransactionResponse(t))
+	}
+
+	return res, total, nil
 }
 
-func (s *TransactionService) GetTransactionByCode(ctx context.Context, code string) (*models.Transaction, error) {
-	return s.txRepo.GetByCode(ctx, code)
+func (s *TransactionService) GetTransactionByCode(ctx context.Context, code string) (*response.TransactionResponse, error) {
+	transaction, err := s.txRepo.GetByCode(ctx, code)
+	if err != nil {
+		return nil, err
+	}
+	res := response.ToTransactionResponse(*transaction)
+	return &res, nil
 }
 
 func (s *TransactionService) CancelTransaction(ctx context.Context, userID uint, code string) error {

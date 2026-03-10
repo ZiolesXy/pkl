@@ -34,16 +34,6 @@ type FlightResponse struct {
 	FlightClasses  []FlightClassResponse `json:"classes,omitempty"`
 }
 
-type TransactionResponse struct {
-	Code          string    `json:"code"`
-	FlightNumber  string    `json:"flight_number"`
-	ClassType     string    `json:"class_type"`
-	TotalPrice    float64   `json:"total_price"`
-	PaymentStatus string    `json:"payment_status"`
-	PaymentURL    string    `json:"payment_url"`
-	ExpiresAt     time.Time `json:"expires_at"`
-}
-
 func ToFlightSeatResponse(s models.FlightSeat) FlightSeatResponse {
 	return FlightSeatResponse{
 		ID:          s.ID,
@@ -95,17 +85,5 @@ func ToFlightResponse(f models.Flight) FlightResponse {
 		TotalRows:      f.TotalRows,
 		TotalColumns:   f.TotalColumns,
 		FlightClasses:  classes,
-	}
-}
-
-func ToTransactionResponse(t models.Transaction) TransactionResponse {
-	return TransactionResponse{
-		Code:          t.Code,
-		FlightNumber:  t.Flight.FlightNumber,
-		ClassType:     t.FlightClass.ClassType,
-		TotalPrice:    t.TotalPrice,
-		PaymentStatus: t.PaymentStatus,
-		PaymentURL:    t.PaymentURL,
-		ExpiresAt:     t.ExpiresAt,
 	}
 }

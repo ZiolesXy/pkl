@@ -47,8 +47,17 @@ func (s *AdminService) GetDashboardStats(ctx context.Context) (*repository.Dashb
 	return s.adminRepo.GetDashboardStats(ctx)
 }
 
-func (s *AdminService) GetAllUsers(ctx context.Context, page, limit int) ([]models.User, int64, error) {
-	return s.adminRepo.GetAllUsers(ctx, page, limit)
+func (s *AdminService) GetAllUsers(ctx context.Context, page, limit int) ([]response.UserResponse, int64, error) {
+	users, total, err := s.adminRepo.GetAllUsers(ctx, page, limit)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	var res []response.UserResponse
+	for _, u := range users {
+		res = append(res, response.ToUserResponse(u))
+	}
+	return res, total, nil
 }
 
 func (s *AdminService) UpdateUserRole(ctx context.Context, userID uint, role string) error {
@@ -76,8 +85,17 @@ func (s *AdminService) UpdateUserRole(ctx context.Context, userID uint, role str
 	return tx.Commit().Error
 }
 
-func (s *AdminService) GetAllTransactions(ctx context.Context, page, limit int) ([]models.Transaction, int64, error) {
-	return s.adminRepo.GetAllTransactions(ctx, page, limit)
+func (s *AdminService) GetAllTransactions(ctx context.Context, page, limit int) ([]response.TransactionResponse, int64, error) {
+	transactions, total, err := s.adminRepo.GetAllTransactions(ctx, page, limit)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	var res []response.TransactionResponse
+	for _, t := range transactions {
+		res = append(res, response.ToTransactionResponse(t))
+	}
+	return res, total, nil
 }
 
 func (s *AdminService) GetAllFlights(ctx context.Context, page, limit int) ([]response.FlightResponse, int64, error) {
@@ -284,11 +302,20 @@ func (s *AdminService) DeleteFlight(ctx context.Context, id uint) error {
 	return tx.Commit().Error
 }
 
-func (s *AdminService) GetAllAirlines(ctx context.Context, page, limit int) ([]models.Airline, int64, error) {
-	return s.airlineRepo.GetAll(ctx, page, limit)
+func (s *AdminService) GetAllAirlines(ctx context.Context, page, limit int) ([]response.AirlineResponse, int64, error) {
+	airlines, total, err := s.airlineRepo.GetAll(ctx, page, limit)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	var res []response.AirlineResponse
+	for _, a := range airlines {
+		res = append(res, response.ToAirlineResponse(a))
+	}
+	return res, total, nil
 }
 
-func (s *AdminService) CreateAirline(ctx context.Context, airline *models.Airline) error {
+func (s *AdminService) CreateAirline(ctx context.Context, airline *models.Airline) (*response.AirlineResponse, error) {
 	tx := s.db.Begin()
 	defer func() {
 		if r := recover(); r != nil {
@@ -296,15 +323,15 @@ func (s *AdminService) CreateAirline(ctx context.Context, airline *models.Airlin
 		}
 	}()
 
-	if err := s.airlineRepo.Create(ctx, tx, airline); err != nil {
-		tx.Rollback()
-		return err
+	if err := tx.Commit().Error; err != nil {
+		return nil, err
 	}
 
-	return tx.Commit().Error
+	res := response.ToAirlineResponse(*airline)
+	return &res, nil
 }
 
-func (s *AdminService) UpdateAirline(ctx context.Context, airline *models.Airline) error {
+func (s *AdminService) UpdateAirline(ctx context.Context, airline *models.Airline) (*response.AirlineResponse, error) {
 	tx := s.db.Begin()
 	defer func() {
 		if r := recover(); r != nil {
@@ -314,10 +341,15 @@ func (s *AdminService) UpdateAirline(ctx context.Context, airline *models.Airlin
 
 	if err := s.airlineRepo.Update(ctx, tx, airline); err != nil {
 		tx.Rollback()
-		return err
+		return nil, err
 	}
 
-	return tx.Commit().Error
+	if err := tx.Commit().Error; err != nil {
+		return nil, err
+	}
+
+	res := response.ToAirlineResponse(*airline)
+	return &res, nil
 }
 
 func (s *AdminService) DeleteAirline(ctx context.Context, id uint) error {
@@ -336,11 +368,20 @@ func (s *AdminService) DeleteAirline(ctx context.Context, id uint) error {
 	return tx.Commit().Error
 }
 
-func (s *AdminService) GetAllAirports(ctx context.Context, page, limit int) ([]models.Airport, int64, error) {
-	return s.airportRepo.GetAll(ctx, page, limit)
+func (s *AdminService) GetAllAirports(ctx context.Context, page, limit int) ([]response.AirportResponse, int64, error) {
+	airports, total, err := s.airportRepo.GetAll(ctx, page, limit)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	var res []response.AirportResponse
+	for _, a := range airports {
+		res = append(res, response.ToAirportResponse(a))
+	}
+	return res, total, nil
 }
 
-func (s *AdminService) CreateAirport(ctx context.Context, airport *models.Airport) error {
+func (s *AdminService) CreateAirport(ctx context.Context, airport *models.Airport) (*response.AirportResponse, error) {
 	tx := s.db.Begin()
 	defer func() {
 		if r := recover(); r != nil {
@@ -350,13 +391,18 @@ func (s *AdminService) CreateAirport(ctx context.Context, airport *models.Airpor
 
 	if err := s.airportRepo.Create(ctx, tx, airport); err != nil {
 		tx.Rollback()
-		return err
+		return nil, err
 	}
 
-	return tx.Commit().Error
+	if err := tx.Commit().Error; err != nil {
+		return nil, err
+	}
+
+	res := response.ToAirportResponse(*airport)
+	return &res, nil
 }
 
-func (s *AdminService) UpdateAirport(ctx context.Context, airport *models.Airport) error {
+func (s *AdminService) UpdateAirport(ctx context.Context, airport *models.Airport) (*response.AirportResponse, error) {
 	tx := s.db.Begin()
 	defer func() {
 		if r := recover(); r != nil {
@@ -366,10 +412,15 @@ func (s *AdminService) UpdateAirport(ctx context.Context, airport *models.Airpor
 
 	if err := s.airportRepo.Update(ctx, tx, airport); err != nil {
 		tx.Rollback()
-		return err
+		return nil, err
 	}
 
-	return tx.Commit().Error
+	if err := tx.Commit().Error; err != nil {
+		return nil, err
+	}
+
+	res := response.ToAirportResponse(*airport)
+	return &res, nil
 }
 
 func (s *AdminService) DeleteAirport(ctx context.Context, id uint) error {
@@ -388,11 +439,20 @@ func (s *AdminService) DeleteAirport(ctx context.Context, id uint) error {
 	return tx.Commit().Error
 }
 
-func (s *AdminService) GetAllPromos(ctx context.Context, page, limit int) ([]models.PromoCode, int64, error) {
-	return s.promoRepo.GetAll(ctx, page, limit)
+func (s *AdminService) GetAllPromos(ctx context.Context, page, limit int) ([]response.PromoResponse, int64, error) {
+	promos, total, err := s.promoRepo.GetAll(ctx, page, limit)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	var res []response.PromoResponse
+	for _, p := range promos {
+		res = append(res, response.ToPromoResponse(p))
+	}
+	return res, total, nil
 }
 
-func (s *AdminService) CreatePromo(ctx context.Context, promo *models.PromoCode) error {
+func (s *AdminService) CreatePromo(ctx context.Context, promo *models.PromoCode) (*response.PromoResponse, error) {
 	tx := s.db.Begin()
 	defer func() {
 		if r := recover(); r != nil {
@@ -402,13 +462,18 @@ func (s *AdminService) CreatePromo(ctx context.Context, promo *models.PromoCode)
 
 	if err := s.promoRepo.Create(ctx, tx, promo); err != nil {
 		tx.Rollback()
-		return err
+		return nil, err
 	}
 
-	return tx.Commit().Error
+	if err := tx.Commit().Error; err != nil {
+		return nil, err
+	}
+
+	res := response.ToPromoResponse(*promo)
+	return &res, nil
 }
 
-func (s *AdminService) UpdatePromo(ctx context.Context, promo *models.PromoCode) error {
+func (s *AdminService) UpdatePromo(ctx context.Context, promo *models.PromoCode) (*response.PromoResponse, error) {
 	tx := s.db.Begin()
 	defer func() {
 		if r := recover(); r != nil {
@@ -418,10 +483,15 @@ func (s *AdminService) UpdatePromo(ctx context.Context, promo *models.PromoCode)
 
 	if err := s.promoRepo.Update(ctx, tx, promo); err != nil {
 		tx.Rollback()
-		return err
+		return nil, err
 	}
 
-	return tx.Commit().Error
+	if err := tx.Commit().Error; err != nil {
+		return nil, err
+	}
+
+	res := response.ToPromoResponse(*promo)
+	return &res, nil
 }
 
 func (s *AdminService) DeletePromo(ctx context.Context, id uint) error {

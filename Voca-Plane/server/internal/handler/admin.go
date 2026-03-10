@@ -228,13 +228,13 @@ func (h *AdminHandler) CreateAirline(c *gin.Context) {
 		LogoURL: req.LogoURL,
 	}
 
-	err := h.service.CreateAirline(c.Request.Context(), airline)
+	res, err := h.service.CreateAirline(c.Request.Context(), airline)
 	if err != nil {
 		response.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	response.Success(c, http.StatusCreated, "airline created", airline)
+	response.Success(c, http.StatusCreated, "airline created", res)
 }
 
 func (h *AdminHandler) UpdateAirline(c *gin.Context) {
@@ -266,13 +266,13 @@ func (h *AdminHandler) UpdateAirline(c *gin.Context) {
 		airline.LogoURL = *req.LogoURL
 	}
 
-	err = h.service.UpdateAirline(c.Request.Context(), airline)
+	res, err := h.service.UpdateAirline(c.Request.Context(), airline)
 	if err != nil {
 		response.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	response.Success(c, http.StatusOK, "airline updated", airline)
+	response.Success(c, http.StatusOK, "airline updated", res)
 }
 
 func (h *AdminHandler) DeleteAirline(c *gin.Context) {
@@ -319,13 +319,13 @@ func (h *AdminHandler) CreateAirport(c *gin.Context) {
 		City: req.City,
 	}
 
-	err := h.service.CreateAirport(c.Request.Context(), airport)
+	res, err := h.service.CreateAirport(c.Request.Context(), airport)
 	if err != nil {
 		response.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	response.Success(c, http.StatusCreated, "airport created", airport)
+	response.Success(c, http.StatusCreated, "airport created", res)
 }
 
 func (h *AdminHandler) UpdateAirport(c *gin.Context) {
@@ -357,13 +357,13 @@ func (h *AdminHandler) UpdateAirport(c *gin.Context) {
 		airport.City = *req.City
 	}
 
-	err = h.service.UpdateAirport(c.Request.Context(), airport)
+	res, err := h.service.UpdateAirport(c.Request.Context(), airport)
 	if err != nil {
 		response.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	response.Success(c, http.StatusOK, "airport updated", airport)
+	response.Success(c, http.StatusOK, "airport updated", res)
 }
 
 func (h *AdminHandler) DeleteAirport(c *gin.Context) {
@@ -410,13 +410,13 @@ func (h *AdminHandler) CreatePromo(c *gin.Context) {
 		IsActive: req.IsActive,
 	}
 
-	err := h.service.CreatePromo(c.Request.Context(), promo)
+	res, err := h.service.CreatePromo(c.Request.Context(), promo)
 	if err != nil {
 		response.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	response.Success(c, http.StatusCreated, "promo created", promo)
+	response.Success(c, http.StatusCreated, "promo created", res)
 }
 
 func (h *AdminHandler) UpdatePromo(c *gin.Context) {
@@ -448,13 +448,13 @@ func (h *AdminHandler) UpdatePromo(c *gin.Context) {
 		promo.IsActive = *req.IsActive
 	}
 
-	err = h.service.UpdatePromo(c.Request.Context(), promo)
+	res, err := h.service.UpdatePromo(c.Request.Context(), promo)
 	if err != nil {
 		response.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	response.Success(c, http.StatusOK, "promo updated", promo)
+	response.Success(c, http.StatusOK, "promo updated", res)
 }
 
 func (h *AdminHandler) DeletePromo(c *gin.Context) {
