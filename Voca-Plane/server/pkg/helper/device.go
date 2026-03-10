@@ -11,6 +11,7 @@ import (
 	"os"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/mileusna/useragent"
@@ -19,12 +20,6 @@ import (
 	"github.com/shirou/gopsutil/v3/host"
 	"github.com/shirou/gopsutil/v3/mem"
 )
-
-var appStartTime = time.Now()
-
-func GetAppUptime() string {
-	return time.Since(appStartTime).Truncate(time.Second).String()
-}
 
 // -------------------- Structs --------------------
 
@@ -66,6 +61,26 @@ type DeviceDetails struct {
 	Client ClientInfo `json:"client"`
 }
 
+// -------------------- Global Variables --------------------
+
+var (
+	appStartTime      = time.Now()
+	publicIPCache     = ""
+	publicIPCacheTime time.Time
+	internetCache     = ""
+	internetCacheTime time.Time
+	geoIPCache        = make(map[string]geoIPData)
+	geoIPCacheMutex   = sync.Mutex{}
+	cacheTTL          = 10 * time.Minute
+)
+
+type geoIPData struct {
+	Country string
+	City    string
+	ISP     string
+	Timestamp time.Time
+}
+
 // -------------------- Server Info --------------------
 
 func GetServerInfo() ServerInfo {
@@ -79,46 +94,52 @@ func GetServerInfo() ServerInfo {
 	}
 
 	cpuPercent, _ := cpu.Percent(0, false)
-	cpuUsage := "0%"
+	cpuVal := 0.0
 	if len(cpuPercent) > 0 {
-		cpuUsage = fmt.Sprintf("%.2f%%", cpuPercent[0])
+		cpuVal = cpuPercent[0]
 	}
+	cpuUsage := fmt.Sprintf("%.2f%%", cpuVal)
 
 	diskStat, _ := disk.Usage("/")
 	diskUsage := fmt.Sprintf("%.2f GB Free (%.1f%% used)", float64(diskStat.Free)/1e9, diskStat.UsedPercent)
 
 	uptimeSec, _ := host.Uptime()
 	systemUptime := (time.Duration(uptimeSec) * time.Second).Truncate(time.Second).String()
-	appUptime := GetAppUptime()
+	appUptime := time.Since(appStartTime).Truncate(time.Second).String()
 
-	// Internet check
-	start := time.Now()
-	client := http.Client{Timeout: 3 * time.Second}
-	var latency time.Duration
-	internetStatus := "Disconnected"
-	if resp, err := client.Get("https://google.com"); err == nil {
-		defer resp.Body.Close()
-		latency = time.Since(start)
-		internetStatus = fmt.Sprintf("Stable (%v)", latency.Truncate(time.Millisecond))
-	}
+	// Parallel fetch Public IP & Internet Status
+	var wg sync.WaitGroup
+	var publicIP string
+	var internetStatus string
 
-	publicIP := getPublicIP()
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		publicIP = getPublicIPCached()
+	}()
+	go func() {
+		defer wg.Done()
+		internetStatus = checkInternetCached()
+	}()
+	wg.Wait()
+
 	env := os.Getenv("APP_ENV")
 	if env == "" {
 		env = "development"
 	}
 
-	healthScore := calculateHealthScore(v.UsedPercent, cpuPercent[0], latency)
+	healthScore := calculateHealthScore(v.UsedPercent, cpuVal, parseLatency(internetStatus))
 	suggestion := "Server operating normally"
 	if v.UsedPercent > 85 {
 		suggestion = "High RAM usage detected"
-	} else if cpuPercent[0] > 80 {
+	} else if cpuVal > 80 {
 		suggestion = "High CPU usage detected"
-	} else if latency > 500*time.Millisecond {
+	} else if parseLatency(internetStatus) > 500*time.Millisecond {
 		suggestion = "High internet latency"
 	}
 
 	hostname, _ := os.Hostname()
+
 	return ServerInfo{
 		ServerName:     hostname,
 		ServerOS:       runtime.GOOS,
@@ -136,31 +157,11 @@ func GetServerInfo() ServerInfo {
 	}
 }
 
-func getPublicIP() string {
-	// Ambil GeoIP dari IP publik server
-	// Bisa pakai "checkip.amazonaws.com" dulu untuk mengetahui IP publik
-	client := http.Client{Timeout: 5 * time.Second}
-	resp, err := client.Get("https://checkip.amazonaws.com")
-	if err != nil {
-		return "unknown"
-	}
-	defer resp.Body.Close()
-	ipBytes, _ := io.ReadAll(resp.Body)
-	ip := strings.TrimSpace(string(ipBytes))
-
-	// Sekarang pakai fungsi GeoIP yang ada
-	country, city, isp := getGeoIP(ip)
-	if country == "Unknown" && city == "Unknown" && isp == "Unknown" {
-		return "unknown"
-	}
-
-	return ip
-}
-
 // -------------------- Client Info --------------------
 
 func GetClientInfo(clientIP, uaString string) ClientInfo {
 	ua := useragent.Parse(uaString)
+
 	deviceType := "desktop"
 	if ua.Mobile {
 		deviceType = "mobile"
@@ -173,9 +174,7 @@ func GetClientInfo(clientIP, uaString string) ClientInfo {
 		brand = manualBrandDetection(uaString)
 	}
 
-	// Panggil GeoIP untuk mendapatkan lokasi berdasarkan IP client
-	country, city, isp := getGeoIP(clientIP)
-
+	country, city, isp := getGeoIPCached(clientIP)
 	engine := detectBrowserEngine(uaString)
 	fingerprint := generateFingerprint(clientIP, uaString, ua.OS, ua.Name)
 
@@ -197,17 +196,72 @@ func GetClientInfo(clientIP, uaString string) ClientInfo {
 	}
 }
 
-func getGeoIP(ip string) (string, string, string) {
-	ip = strings.TrimSpace(ip)
+// -------------------- Cached Helpers --------------------
 
-	// Validasi IP dan cek apakah IP lokal/private
+func getPublicIPCached() string {
+	if time.Since(publicIPCacheTime) < cacheTTL && publicIPCache != "" {
+		return publicIPCache
+	}
+
+	client := http.Client{Timeout: 3 * time.Second}
+	resp, err := client.Get("https://checkip.amazonaws.com")
+	if err != nil {
+		return "unknown"
+	}
+	defer resp.Body.Close()
+
+	ipBytes, _ := io.ReadAll(resp.Body)
+	ip := strings.TrimSpace(string(ipBytes))
+	publicIPCache = ip
+	publicIPCacheTime = time.Now()
+	return ip
+}
+
+func checkInternetCached() string {
+	if time.Since(internetCacheTime) < 3*time.Second && internetCache != "" {
+		return internetCache
+	}
+
+	start := time.Now()
+	client := http.Client{Timeout: 3 * time.Second}
+	status := "Disconnected"
+	if resp, err := client.Get("https://google.com"); err == nil {
+		defer resp.Body.Close()
+		latency := time.Since(start)
+		status = fmt.Sprintf("Stable (%v)", latency.Truncate(time.Millisecond))
+	}
+
+	internetCache = status
+	internetCacheTime = time.Now()
+	return status
+}
+
+func getGeoIPCached(ip string) (string, string, string) {
+	ip = strings.TrimSpace(ip)
+	if ip == "" {
+		return "Unknown", "Unknown", "Unknown"
+	}
+
+	geoIPCacheMutex.Lock()
+	defer geoIPCacheMutex.Unlock()
+
+	if data, ok := geoIPCache[ip]; ok && time.Since(data.Timestamp) < cacheTTL {
+		return data.Country, data.City, data.ISP
+	}
+
+	country, city, isp := fetchGeoIP(ip)
+	geoIPCache[ip] = geoIPData{Country: country, City: city, ISP: isp, Timestamp: time.Now()}
+	return country, city, isp
+}
+
+func fetchGeoIP(ip string) (string, string, string) {
 	parsedIP := net.ParseIP(ip)
-	if ip == "" || parsedIP == nil || parsedIP.IsLoopback() || parsedIP.IsPrivate() {
+	if parsedIP == nil || parsedIP.IsLoopback() || parsedIP.IsPrivate() {
 		return "Local", "Local", "Internal Network"
 	}
 
 	url := fmt.Sprintf("http://ip-api.com/json/%s", ip)
-	client := http.Client{Timeout: 5 * time.Second}
+	client := http.Client{Timeout: 3 * time.Second}
 	resp, err := client.Get(url)
 	if err != nil {
 		return "Unknown", "Unknown", "Unknown"
@@ -265,6 +319,15 @@ func calculateHealthScore(ram float64, cpu float64, latency time.Duration) int {
 		score = 0
 	}
 	return score
+}
+
+func parseLatency(status string) time.Duration {
+	if strings.HasPrefix(status, "Stable") {
+		var d time.Duration
+		fmt.Sscanf(status, "Stable (%v)", &d)
+		return d
+	}
+	return 0
 }
 
 func manualBrandDetection(ua string) string {
