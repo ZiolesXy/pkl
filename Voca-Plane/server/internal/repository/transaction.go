@@ -68,6 +68,7 @@ func (r *transactionRepository) GetByUserIDAll(ctx context.Context, userID uint)
 		Preload("Flight").
 		Preload("Flight.Airline").
 		Preload("Flight.Origin").
+		Preload("FlightClass").
 		Preload("Flight.Destination").
 		Preload("Passengers")
 
