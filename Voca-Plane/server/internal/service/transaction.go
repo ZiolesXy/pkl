@@ -246,6 +246,19 @@ func (s *TransactionService) GetTransactionByCode(ctx context.Context, code stri
 	if err != nil {
 		return nil, err
 	}
+
+	if transaction.PaymentStatus == "PENDING" && time.Now().After(transaction.ExpiresAt) {
+		err := s.ExpireTransaction(ctx, code)
+		if err != nil {
+			return nil ,err
+		}
+
+		transaction, err = s.txRepo.GetByCode(ctx, code)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	res := response.ToTransactionResponse(*transaction)
 	return &res, nil
 }
@@ -281,6 +294,38 @@ func (s *TransactionService) CancelTransaction(ctx context.Context, userID uint,
 	}
 
 	if err := s.txRepo.Delete(ctx, tx, code); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit().Error
+}
+
+func (s *TransactionService) ExpireTransaction(ctx context.Context, code string) error {
+	tx := s.db.Begin()
+
+	transaction, err := s.txRepo.GetByCode(ctx, code)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if transaction.PaymentStatus != "PENDING" {
+		tx.Rollback()
+		return nil
+	}
+
+	if time.Now().Before(transaction.ExpiresAt) {
+		tx.Rollback()
+		return nil
+	}
+
+	if err := s.txRepo.UpdatePaymentStatus(ctx, tx, transaction.ID, "EXPIRED"); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := s.flightRepo.ReleaseSeats(ctx, tx, transaction.ID); err != nil {
 		tx.Rollback()
 		return err
 	}
