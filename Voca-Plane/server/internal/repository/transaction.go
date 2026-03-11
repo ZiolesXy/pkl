@@ -60,6 +60,21 @@ func (r *transactionRepository) GetByUserID(ctx context.Context, userID uint, pa
 	return transactions, total, err
 }
 
+func (r *transactionRepository) GetByUserIDAll(ctx context.Context, userID uint) ([]models.Transaction, error) {
+	var transactions []models.Transaction
+
+	query := r.db.WithContext(ctx).Model(&models.Transaction{}).
+		Where("user_id = ?", userID).
+		Preload("Flight").
+		Preload("Flight.Airline").
+		Preload("Flight.Origin").
+		Preload("Flight.Destination").
+		Preload("Passengers")
+
+	err := query.Order("created_at DESC").Find(&transactions).Error
+	return transactions, err
+}
+
 func (r *transactionRepository) UpdatePaymentStatus(ctx context.Context, tx *gorm.DB, id uint, status string) error {
 	return tx.WithContext(ctx).Model(&models.Transaction{}).Where("id = ?", id).Update("payment_status", status).Error
 }

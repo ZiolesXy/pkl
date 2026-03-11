@@ -58,7 +58,7 @@ func SetUpRoutes(r *gin.Engine,
 			userProtected.PATCH("/user/profile", userHandler.UpdateProfile)
 			v1.GET("/user/device-info", userHandler.GetDeviceInfo)
 
-			userProtected.GET("/transactions", transactionHandler.GetList)
+			userProtected.GET("/transactions", transactionHandler.GetListAll)
 			userProtected.GET("/transactions/:code", transactionHandler.GetByCode)
 			userProtected.POST("/transactions", transactionHandler.Create)
 			// userProtected.PATCH("/transactions/:code/pay", transactionHandler.Pay)

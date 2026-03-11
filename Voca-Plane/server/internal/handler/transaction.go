@@ -73,6 +73,22 @@ func (h *TransactionHandler) GetList(c *gin.Context) {
 	response.SuccessWithMeta(c, http.StatusOK, "transaction retrieved", transaction, meta)
 }
 
+func (h *TransactionHandler) GetListAll(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		response.Error(c, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	transaction, err := h.service.GetUserTransactionsAll(c.Request.Context(), userID.(uint))
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	response.Success(c, http.StatusOK, "transaction retrieved", transaction)
+}
+
 func(h *TransactionHandler) GetByCode(c *gin.Context) {
 	code := c.Param("code")
 

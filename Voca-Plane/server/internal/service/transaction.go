@@ -227,6 +227,20 @@ func (s *TransactionService) GetUserTransactions(ctx context.Context, userID uin
 	return res, total, nil
 }
 
+func (s *TransactionService) GetUserTransactionsAll(ctx context.Context, userID uint) ([]response.TransactionResponse, error) {
+	transactions, err := s.txRepo.GetByUserIDAll(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	var res []response.TransactionResponse
+	for _, t := range transactions {
+		res = append(res, response.ToTransactionResponse(t))
+	}
+
+	return res, nil
+}
+
 func (s *TransactionService) GetTransactionByCode(ctx context.Context, code string) (*response.TransactionResponse, error) {
 	transaction, err := s.txRepo.GetByCode(ctx, code)
 	if err != nil {
