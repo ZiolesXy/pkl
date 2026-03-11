@@ -20,6 +20,7 @@ type FlightRepository interface {
 	GetByID(ctx context.Context, id uint) (*models.Flight, error)
 	GetClassByID(ctx context.Context, id uint) (*models.FlightClass, error)
 	GetAll(ctx context.Context, page, limit int) ([]models.Flight, int64, error)
+	GetAllFull(ctx context.Context) ([]models.Flight, error)
 	Create(ctx context.Context, tx *gorm.DB, flight *models.Flight) error
 	Update(ctx context.Context, tx *gorm.DB, flight *models.Flight) error
 	Delete(ctx context.Context, tx *gorm.DB, id uint) error
@@ -28,11 +29,7 @@ type FlightRepository interface {
 	BulkCreateFlightSeats(ctx context.Context, tx *gorm.DB, seats []models.FlightSeat) error
 	DeleteFlightSeatsByFlightID(ctx context.Context, tx *gorm.DB, flightID uint) error
 	CreateClass(ctx context.Context, tx *gorm.DB, class *models.FlightClass) error
-
-	// Seat master table operations
 	GetOrCreateSeats(ctx context.Context, tx *gorm.DB, codes []string) ([]models.Seat, error)
-
-	// FlightSeat pivot queries
 	GetAvailableSeats(ctx context.Context, flightID uint, classType string) ([]models.FlightSeat, error)
 	GetFlightSeatsByIDs(ctx context.Context, tx *gorm.DB, ids []uint) ([]models.FlightSeat, error)
 	GetFlightSeatsByCodes(ctx context.Context, tx *gorm.DB, flightID uint, codes []string) ([]models.FlightSeat, error)

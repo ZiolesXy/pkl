@@ -43,6 +43,7 @@ func SetUpRoutes(r *gin.Engine,
 
 		// Public Flight Search
 		v1.GET("/flights", flightHandler.GetAll)
+		v1.GET("/flights/all", flightHandler.GetAllFull)
 		v1.GET("/flights/search", flightHandler.Search)
 		v1.GET("/flights/:id", flightHandler.GetByID)
 		v1.GET("/flights/:id/seats", flightHandler.GetSeats)
@@ -60,7 +61,7 @@ func SetUpRoutes(r *gin.Engine,
 			userProtected.GET("/transactions", transactionHandler.GetList)
 			userProtected.GET("/transactions/:code", transactionHandler.GetByCode)
 			userProtected.POST("/transactions", transactionHandler.Create)
-			userProtected.PATCH("/transactions/:code/pay", transactionHandler.Pay)
+			// userProtected.PATCH("/transactions/:code/pay", transactionHandler.Pay)
 			userProtected.DELETE("/transactions/:code", transactionHandler.Cancel)
 		}
 

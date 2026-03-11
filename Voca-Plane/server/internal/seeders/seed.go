@@ -158,7 +158,7 @@ func SeedAirports(db *gorm.DB) {
 }
 
 func SeedFlights(db *gorm.DB) {
-	log.Println(">>> Seeding 20 Sample Flights with Diverse Classes...")
+	i := 0
 	var airlines []models.Airline
 	var airports []models.Airport
 
@@ -176,7 +176,7 @@ func SeedFlights(db *gorm.DB) {
 		Percent   float64
 	}
 
-	for i := 1; i <= 20; i++ {
+	for i = 1; i <= 100; i++ {
 		airline := airlines[i%len(airlines)]
 		origin := airports[i%len(airports)]
 		dest := airports[(i+1)%len(airports)]
@@ -279,6 +279,7 @@ func SeedFlights(db *gorm.DB) {
 			db.Where(models.FlightSeat{FlightID: fs.FlightID, SeatID: fs.SeatID}).FirstOrCreate(&fs)
 		}
 	}
+	log.Printf(">>> Seeding %v Sample Flights with Diverse Classes...", i-1)
 }
 
 func SeedPromos(db *gorm.DB) {

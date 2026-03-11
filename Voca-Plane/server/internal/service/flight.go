@@ -64,6 +64,20 @@ func (s *FlightService) GetAllFlights(ctx context.Context, page, limit int) ([]r
 	return flightResponses, total, nil
 }
 
+func (s *FlightService) GetAllFlightsFull (ctx context.Context) ([]response.FlightResponse, error) {
+	flights, err := s.flightRepo.GetAllFull(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var res []response.FlightResponse
+	for _, f := range flights {
+		res = append(res, response.ToFlightResponse(f))
+	}
+
+	return res, nil
+}
+
 func (s *FlightService) CreateFlight(ctx context.Context, flight *models.Flight) error {
 	return s.flightRepo.Create(ctx, nil, flight)
 }

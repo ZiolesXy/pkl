@@ -88,6 +88,16 @@ func (h *FlightHandler) GetAll(c *gin.Context) {
 	response.SuccessWithMeta(c, http.StatusOK, "flights retrieved", flights, meta)
 }
 
+func (h *FlightHandler) GetAllFull(c *gin.Context) {
+	flights, err := h.service.GetAllFlightsFull(c.Request.Context())
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	response.Success(c, http.StatusOK, "all flights retrieved", flights)
+}
+
 func (h *FlightHandler) GetByID(c *gin.Context) {
 	id := c.Param("id")
 	flightID, err := strconv.Atoi(id)

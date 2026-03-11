@@ -1,8 +1,8 @@
 // scriptStatic.js
 document.addEventListener("DOMContentLoaded", () => {
-  // const API_URL = "https://undeliberatingly-decemviral-petronila.ngrok-free.dev/api/v1/user/device-info";
+  const API_URL = "https://undeliberatingly-decemviral-petronila.ngrok-free.dev/api/v1/user/device-info";
   // const API_URL = "http://172.16.17.123:8000/api/v1/user/device-info";
-  const API_URL = "http://localhost:8000/api/v1/user/device-info";
+  // const API_URL = "http://localhost:8000/api/v1/user/device-info";
   const UPDATE_INTERVAL = 3000; // 3 detik
 
   const ctx = document.getElementById("chart").getContext("2d");
@@ -69,7 +69,10 @@ document.addEventListener("DOMContentLoaded", () => {
   async function loadData() {
     try {
       const res = await fetch(API_URL, {
-        headers: { "Accept": "application/json" }
+        headers: {
+          "Accept": "application/json",
+          "ngrok-skip-browser-warning": "true"
+        }
       });
       const json = await res.json();
       const server = json.data.server;

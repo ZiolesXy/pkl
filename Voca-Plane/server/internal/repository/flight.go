@@ -77,13 +77,28 @@ func (r *flightRepository) GetAll(ctx context.Context, page, limit int) ([]model
 		Preload("Airline").
 		Preload("Origin").
 		Preload("Destination").
-		Preload("FlightClasses").
-		Preload("FlightSeats.Seat")
+		Preload("FlightClasses")
 	
 	query.Count(&total)
+
 	offset := (page - 1) * limit
 	err := query.Offset(offset).Limit(limit).Order("departure_time ASC").Find(&flights).Error
 	return flights, total, err
+}
+
+func(r *flightRepository) GetAllFull(ctx context.Context) ([]models.Flight, error) {
+	var flights []models.Flight
+
+	err := r.db.WithContext(ctx).
+		Model(&models.Flight{}).
+		Preload("Airline").
+		Preload("Origin").
+		Preload("Destination").
+		Preload("FlightClasses").
+		Order("departure_time ASC").
+		Find(&flights).Error
+
+	return flights, err
 }
 
 func (r *flightRepository) Create(ctx context.Context, tx *gorm.DB, flight *models.Flight) error {

@@ -57,9 +57,11 @@ func ToFlightClassResponse(fc models.FlightClass, seatCount int) FlightClassResp
 
 func ToFlightResponse(f models.Flight) FlightResponse {
 	available := 0
-	for _, seat := range f.FlightSeats {
-		if seat.IsAvailable {
-			available++
+	if len(f.FlightSeats) > 0 {
+		for _, seat := range f.FlightSeats {
+			if seat.IsAvailable {
+				available++
+			}
 		}
 	}
 
@@ -80,8 +82,10 @@ func ToFlightResponse(f models.Flight) FlightResponse {
 	}
 
 	var seats []FlightSeatResponse
-	for _, s := range f.FlightSeats {
-		seats = append(seats, ToFlightSeatResponse(s))
+	if len(f.FlightSeats) > 0 {
+		for _, s := range f.FlightSeats {
+			seats = append(seats, ToFlightSeatResponse(s))
+		}
 	}
 
 	return FlightResponse{
