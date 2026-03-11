@@ -62,7 +62,7 @@ type TransactionRepository interface {
 	GetByUserIDAll(ctx context.Context, userID uint) ([]models.Transaction, error)
 	UpdatePaymentStatus(ctx context.Context, tx *gorm.DB, id uint, status string) error
 	Delete(ctx context.Context, tx *gorm.DB, code string) error
-	CreatePassengers(ctx context.Context, tx *gorm.DB, passengers []models.TransactionPassenger) error
+	CreateTransactionItems(ctx context.Context, tx *gorm.DB, items []models.TransactionItem) error
 	UpdatePaymentURL(ctx context.Context, code string, url string) error
 }
 

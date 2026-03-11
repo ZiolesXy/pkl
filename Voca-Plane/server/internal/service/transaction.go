@@ -34,11 +34,6 @@ func NewTransactionService(txRepo repository.TransactionRepository, flightRepo r
 }
 
 func (s *TransactionService) CreateTransaction(ctx context.Context, userID uint, req request.CreateTransactionRequest) (*response.TransactionResponse, error) {
-	flightClass, err := s.flightRepo.GetClassByID(ctx, req.ClassID)
-	if err != nil || flightClass.FlightID != req.FlightID {
-		return nil, errors.New("invalid flight class")
-	}
-
 	lockDuration := 10 * time.Minute
 
 	// Validate no duplicate seat codes
@@ -52,20 +47,8 @@ func (s *TransactionService) CreateTransaction(ctx context.Context, userID uint,
 		seatCodes = append(seatCodes, p.SeatNumber)
 	}
 
-	subtotal := flightClass.Price * float64(len(req.Passengers))
-	discount := 0.0
-
-	if req.PromoCode != nil {
-		promo, err := s.promoRepo.GetByCode(ctx, *req.PromoCode)
-		if err == nil && promo.IsActive {
-			discount = subtotal * (promo.Discount / 100)
-		}
-	}
-
-	totalPrice := subtotal - discount
-
 	var transaction models.Transaction
-	err = s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// Fetch seats with FOR UPDATE lock by seat codes
 		lockedSeats, err := s.flightRepo.GetFlightSeatsByCodes(ctx, tx, req.FlightID, seatCodes)
 		if err != nil {
@@ -76,24 +59,70 @@ func (s *TransactionService) CreateTransaction(ctx context.Context, userID uint,
 			return errors.New("one or more seats not found in this flight")
 		}
 
-		seatIDs := make([]uint, 0, len(lockedSeats))
-		// Validate all seats belong to the same flight and class, and are available
-		for _, seat := range lockedSeats {
-			if seat.ClassType != flightClass.ClassType {
-				return fmt.Errorf("seat %s does not belong to class %s", seat.Seat.SeatCode, flightClass.ClassType)
-			}
-			if !seat.IsAvailable {
-				return fmt.Errorf("seat %s is already booked or locked", seat.Seat.SeatCode)
-			}
-			seatIDs = append(seatIDs, seat.ID)
+		// Pre-fetch all classes for this flight to get prices and IDs
+		flight, err := s.flightRepo.GetFlightWithClasses(ctx, tx, req.FlightID)
+		if err != nil {
+			return fmt.Errorf("failed to fetch flight classes: %w", err)
 		}
+
+		classMap := make(map[string]models.FlightClass)
+		for _, c := range flight.FlightClasses {
+			classMap[c.ClassType] = c
+		}
+
+		seatIDs := make([]uint, 0, len(lockedSeats))
+		items := make([]models.TransactionItem, len(req.Passengers))
+		subtotal := 0.0
+
+		for i, p := range req.Passengers {
+			var currentSeat models.FlightSeat
+			found := false
+			for _, ls := range lockedSeats {
+				if ls.Seat.SeatCode == p.SeatNumber {
+					currentSeat = ls
+					found = true
+					break
+				}
+			}
+
+			if !found || !currentSeat.IsAvailable {
+				return fmt.Errorf("seat %s is not available", p.SeatNumber)
+			}
+
+			class, ok := classMap[currentSeat.ClassType]
+			if !ok {
+				return fmt.Errorf("class %s not found for seat %s", currentSeat.ClassType, p.SeatNumber)
+			}
+
+			seatIDs = append(seatIDs, currentSeat.ID)
+			subtotal += class.Price
+
+			items[i] = models.TransactionItem{
+				PassengerName: p.FullName,
+				Nationality:   p.Nationality,
+				PassportNo:    p.PassportNo,
+				SeatNumber:    p.SeatNumber,
+				FlightSeatID:  currentSeat.ID,
+				FlightClassID: class.ID,
+				Price:         class.Price,
+			}
+		}
+
+		discount := 0.0
+		if req.PromoCode != nil {
+			promo, err := s.promoRepo.GetByCode(ctx, *req.PromoCode)
+			if err == nil && promo.IsActive {
+				discount = subtotal * (promo.Discount / 100)
+			}
+		}
+
+		totalPrice := subtotal - discount
 
 		code := uuid.New().String()
 		transaction = models.Transaction{
 			Code:          code,
 			UserID:        userID,
 			FlightID:      req.FlightID,
-			FlightClassID: req.ClassID,
 			TotalPrice:    totalPrice,
 			PaymentStatus: "PENDING",
 			PromoCode:     req.PromoCode,
@@ -110,32 +139,18 @@ func (s *TransactionService) CreateTransaction(ctx context.Context, userID uint,
 			return err
 		}
 
-		passengers := make([]models.TransactionPassenger, len(req.Passengers))
-		for i, p := range req.Passengers {
-			// Find the corresponding locked seat record to get its pivot ID
-			var currentFlightSeatID uint
-			for _, ls := range lockedSeats {
-				if ls.Seat.SeatCode == p.SeatNumber {
-					currentFlightSeatID = ls.ID
-					break
-				}
-			}
-
-			passengers[i] = models.TransactionPassenger{
-				TransactionID: transaction.ID,
-				FullName:      p.FullName,
-				Nationality:   p.Nationality,
-				PassportNo:    p.PassportNo,
-				SeatNumber:    p.SeatNumber,
-				FlightSeatID:  currentFlightSeatID,
-			}
+		// Set transaction ID for items
+		for i := range items {
+			items[i].TransactionID = transaction.ID
 		}
-		if err := s.txRepo.CreatePassengers(ctx, tx, passengers); err != nil {
+
+		if err := s.txRepo.CreateTransactionItems(ctx, tx, items); err != nil {
 			return err
 		}
 
 		return nil
 	})
+
 	if err != nil {
 		return nil, err
 	}

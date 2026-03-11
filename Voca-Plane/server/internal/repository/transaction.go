@@ -21,7 +21,8 @@ func (r *transactionRepository) Create(ctx context.Context, tx *gorm.DB, t *mode
 	}
 
 	return tx.WithContext(ctx).
-		Preload("Passengers").
+		Preload("Items").
+		Preload("Items.FlightClass").
 		Preload("Flight").
 		Preload("Flight.Airline").
 		Preload("Flight.Origin").
@@ -32,12 +33,12 @@ func (r *transactionRepository) Create(ctx context.Context, tx *gorm.DB, t *mode
 func (r *transactionRepository) GetByCode(ctx context.Context, code string) (*models.Transaction, error) {
 	var t models.Transaction
 	err := r.db.WithContext(ctx).
-		Preload("Passengers").
+		Preload("Items").
+		Preload("Items.FlightClass").
 		Preload("Flight").
 		Preload("Flight.Airline").
 		Preload("Flight.Origin").
 		Preload("Flight.Destination").
-		Preload("FlightClass").
 		First(&t, "code = ?", code).Error
 	return &t, err
 }
@@ -52,7 +53,8 @@ func (r *transactionRepository) GetByUserID(ctx context.Context, userID uint, pa
 		Preload("Flight.Airline").
 		Preload("Flight.Origin").
 		Preload("Flight.Destination").
-		Preload("Passengers")
+		Preload("Items").
+		Preload("Items.FlightClass")
 
 	query.Count(&total)
 	offset := (page - 1) * limit
@@ -68,9 +70,9 @@ func (r *transactionRepository) GetByUserIDAll(ctx context.Context, userID uint)
 		Preload("Flight").
 		Preload("Flight.Airline").
 		Preload("Flight.Origin").
-		Preload("FlightClass").
 		Preload("Flight.Destination").
-		Preload("Passengers")
+		Preload("Items").
+		Preload("Items.FlightClass")
 
 	err := query.Order("created_at DESC").Find(&transactions).Error
 	return transactions, err
@@ -84,8 +86,8 @@ func (r *transactionRepository) Delete(ctx context.Context, tx *gorm.DB, code st
 	return tx.WithContext(ctx).Where("code = ?", code).Delete(&models.Transaction{}).Error
 }
 
-func (r *transactionRepository) CreatePassengers(ctx context.Context, tx *gorm.DB, passengers []models.TransactionPassenger) error {
-	return tx.WithContext(ctx).Create(&passengers).Error
+func (r *transactionRepository) CreateTransactionItems(ctx context.Context, tx *gorm.DB, items []models.TransactionItem) error {
+	return tx.WithContext(ctx).Create(&items).Error
 }
 
 func (r *transactionRepository) UpdatePaymentURL(ctx context.Context, code string, url string) error {

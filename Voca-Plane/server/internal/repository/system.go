@@ -26,7 +26,7 @@ func (r *systemRepository) ResetDatabase(ctx context.Context) error {
 		&models.Seat{},
 		&models.FlightSeat{},
 		&models.Transaction{},
-		&models.TransactionPassenger{},
+		&models.TransactionItem{},
 		&models.PromoCode{},
 	)
 	if err != nil {
@@ -43,7 +43,7 @@ func (r *systemRepository) ResetDatabase(ctx context.Context) error {
 		&models.Seat{},
 		&models.FlightSeat{},
 		&models.Transaction{},
-		&models.TransactionPassenger{},
+		&models.TransactionItem{},
 		&models.PromoCode{},
 	)
 }

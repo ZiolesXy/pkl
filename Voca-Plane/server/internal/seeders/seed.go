@@ -33,7 +33,7 @@ func DropAll(db *gorm.DB) {
         &models.Flight{},
         &models.Airline{},
         &models.Airport{},
-        &models.TransactionPassenger{},
+        &models.TransactionItem{},
         &models.Transaction{},
         &models.PromoCode{},
         &models.User{},
@@ -59,7 +59,7 @@ func ResetDatabase(db *gorm.DB) {
         &models.Seat{},
         &models.FlightSeat{},
         &models.Transaction{},
-        &models.TransactionPassenger{},
+        &models.TransactionItem{},
         &models.PromoCode{},
     )
 

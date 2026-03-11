@@ -29,7 +29,7 @@ func NewDatabase(cfg *config) *gorm.DB {
 		&models.Seat{},
 		&models.FlightSeat{},
 		&models.Transaction{},
-		&models.TransactionPassenger{},
+		&models.TransactionItem{},
 		&models.PromoCode{},
 	)
 
