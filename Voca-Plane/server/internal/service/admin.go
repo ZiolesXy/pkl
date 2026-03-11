@@ -133,16 +133,14 @@ func (s *AdminService) CreateFlight(ctx context.Context, flight *models.Flight, 
 		}
 	}()
 
+	// 1. Create flight
 	if err := s.flightRepo.Create(ctx, tx, flight); err != nil {
 		tx.Rollback()
 		return nil, err
 	}
 
-	seatIndex := 0
-	columns := flight.TotalColumns
-
+	// 2. Create flight classes
 	for _, alloc := range allocations {
-
 		fClass := &models.FlightClass{
 			FlightID:  flight.ID,
 			ClassType: alloc.ClassType,
@@ -153,23 +151,39 @@ func (s *AdminService) CreateFlight(ctx context.Context, flight *models.Flight, 
 			tx.Rollback()
 			return nil, err
 		}
-
-		seats := helper.GenerateSeats(
-			fClass.ID,
-			alloc.SeatCount,
-			seatIndex,
-			columns,
-		)
-
-		if err := s.flightRepo.BulkCreateSeats(ctx, tx, seats); err != nil {
-			tx.Rollback()
-			return nil, err
-		}
-
-		seatIndex += alloc.SeatCount
 	}
 
-	flight, err := s.flightRepo.GetFlightWithRelations(ctx, tx, flight.ID)
+	// 3. Generate seat codes and upsert master Seat rows
+	seatCodes := helper.GenerateSeatCodes(flight.TotalRows, flight.TotalColumns)
+
+	seats, err := s.flightRepo.GetOrCreateSeats(ctx, tx, seatCodes)
+	if err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	// Sort seats to match the order of seatCodes
+	seatMap := make(map[string]models.Seat)
+	for _, s := range seats {
+		seatMap[s.SeatCode] = s
+	}
+	orderedSeats := make([]models.Seat, 0, len(seatCodes))
+	for _, code := range seatCodes {
+		if s, ok := seatMap[code]; ok {
+			orderedSeats = append(orderedSeats, s)
+		}
+	}
+
+	// 4. Generate FlightSeat pivot entries distributed across allocations
+	flightSeats := helper.GenerateFlightSeatModels(flight.ID, orderedSeats, allocations)
+
+	if err := s.flightRepo.BulkCreateFlightSeats(ctx, tx, flightSeats); err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	// 5. Reload flight with all relations
+	flight, err = s.flightRepo.GetFlightWithRelations(ctx, tx, flight.ID)
 	if err != nil {
 		tx.Rollback()
 		return nil, err
@@ -194,14 +208,14 @@ func (s *AdminService) UpdateFlight(ctx context.Context, flight *models.Flight) 
 		}
 	}()
 
-	// 1️⃣ Get existing flight
+	// 1. Get existing flight
 	oldFlight, err := s.flightRepo.GetFlightWithClasses(ctx, tx, flight.ID)
 	if err != nil {
 		tx.Rollback()
 		return nil, err
 	}
 
-	// 2️⃣ Validate seat capacity
+	// 2. Validate seat capacity
 	maxCapacity := flight.TotalRows * flight.TotalColumns
 	if flight.TotalSeats > maxCapacity {
 		tx.Rollback()
@@ -212,13 +226,13 @@ func (s *AdminService) UpdateFlight(ctx context.Context, flight *models.Flight) 
 		)
 	}
 
-	// 3️⃣ Update flight
+	// 3. Update flight
 	if err := s.flightRepo.Update(ctx, tx, flight); err != nil {
 		tx.Rollback()
 		return nil, err
 	}
 
-	// 4️⃣ Detect seat layout change
+	// 4. Detect seat layout change
 	seatsChanged :=
 		oldFlight.TotalSeats != flight.TotalSeats ||
 			oldFlight.TotalRows != flight.TotalRows ||
@@ -229,11 +243,8 @@ func (s *AdminService) UpdateFlight(ctx context.Context, flight *models.Flight) 
 		classCount := len(oldFlight.FlightClasses)
 
 		classMap := map[string]float64{}
-		classIDs := make([]uint, 0)
-
 		for _, fc := range oldFlight.FlightClasses {
 			classMap[fc.ClassType] = fc.Price
-			classIDs = append(classIDs, fc.ID)
 		}
 
 		allocations := helper.CalculateSeatAllocation(
@@ -242,35 +253,43 @@ func (s *AdminService) UpdateFlight(ctx context.Context, flight *models.Flight) 
 			classCount,
 		)
 
-		// 5️⃣ Delete old seats
-		if err := s.flightRepo.DeleteSeatsByClassIDs(ctx, tx, classIDs); err != nil {
+		// 5. Delete old flight seats
+		if err := s.flightRepo.DeleteFlightSeatsByFlightID(ctx, tx, flight.ID); err != nil {
 			tx.Rollback()
 			return nil, err
 		}
 
-		columns := flight.TotalColumns
-		seatIndex := 0
+		// 6. Generate new seat codes and upsert master Seat rows
+		seatCodes := helper.GenerateSeatCodes(flight.TotalRows, flight.TotalColumns)
 
-		// 6️⃣ Regenerate seats
-		for i, alloc := range allocations {
+		seats, err := s.flightRepo.GetOrCreateSeats(ctx, tx, seatCodes)
+		if err != nil {
+			tx.Rollback()
+			return nil, err
+		}
 
-			seats := helper.GenerateSeats(
-				oldFlight.FlightClasses[i].ID,
-				alloc.SeatCount,
-				seatIndex,
-				columns,
-			)
-
-			if err := s.flightRepo.BulkCreateSeats(ctx, tx, seats); err != nil {
-				tx.Rollback()
-				return nil, err
+		// Sort seats to match the order of seatCodes
+		seatMap := make(map[string]models.Seat)
+		for _, s := range seats {
+			seatMap[s.SeatCode] = s
+		}
+		orderedSeats := make([]models.Seat, 0, len(seatCodes))
+		for _, code := range seatCodes {
+			if s, ok := seatMap[code]; ok {
+				orderedSeats = append(orderedSeats, s)
 			}
+		}
 
-			seatIndex += alloc.SeatCount
+		// 7. Regenerate FlightSeat pivot entries
+		flightSeats := helper.GenerateFlightSeatModels(flight.ID, orderedSeats, allocations)
+
+		if err := s.flightRepo.BulkCreateFlightSeats(ctx, tx, flightSeats); err != nil {
+			tx.Rollback()
+			return nil, err
 		}
 	}
 
-	// 7️⃣ Reload flight
+	// 8. Reload flight
 	flight, err = s.flightRepo.GetFlightWithRelations(ctx, tx, flight.ID)
 	if err != nil {
 		tx.Rollback()

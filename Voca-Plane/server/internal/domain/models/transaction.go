@@ -34,7 +34,7 @@ type TransactionPassenger struct {
 	Nationality   string    `gorm:"size:50" json:"nationality"`
 	PassportNo    string    `gorm:"size:50" json:"passport_no"`
 	SeatNumber    string    `gorm:"size:10;not null" json:"seat_number"`
-	FlightClassID uint      `gorm:"not null" json:"flight_class_id"`
+	FlightSeatID  uint      `gorm:"not null;index" json:"flight_seat_id"`
 	CreatedAt     time.Time `json:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at"`
 }

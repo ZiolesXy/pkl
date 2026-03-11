@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"time"
 	"voca-plane/internal/domain/models"
 
 	"gorm.io/gorm"
@@ -18,17 +19,27 @@ type FlightRepository interface {
 	Search(ctx context.Context, origin, destination, date, classType string, page, limit int) ([]models.Flight, int64, error)
 	GetByID(ctx context.Context, id uint) (*models.Flight, error)
 	GetClassByID(ctx context.Context, id uint) (*models.FlightClass, error)
-	GetSeat(ctx context.Context, classID uint, seatNumber string) (*models.FlightSeat, error)
-	UpdateSeatAvailability(ctx context.Context, tx *gorm.DB, seatID uint, available bool) error
 	GetAll(ctx context.Context, page, limit int) ([]models.Flight, int64, error)
 	Create(ctx context.Context, tx *gorm.DB, flight *models.Flight) error
 	Update(ctx context.Context, tx *gorm.DB, flight *models.Flight) error
 	Delete(ctx context.Context, tx *gorm.DB, id uint) error
 	GetFlightWithClasses(ctx context.Context, tx *gorm.DB, id uint) (*models.Flight, error)
 	GetFlightWithRelations(ctx context.Context, tx *gorm.DB, id uint) (*models.Flight, error)
-	BulkCreateSeats(ctx context.Context, tx *gorm.DB, seats []models.FlightSeat) error
-	DeleteSeatsByClassIDs(ctx context.Context, tx *gorm.DB, classIDs []uint) error
+	BulkCreateFlightSeats(ctx context.Context, tx *gorm.DB, seats []models.FlightSeat) error
+	DeleteFlightSeatsByFlightID(ctx context.Context, tx *gorm.DB, flightID uint) error
 	CreateClass(ctx context.Context, tx *gorm.DB, class *models.FlightClass) error
+
+	// Seat master table operations
+	GetOrCreateSeats(ctx context.Context, tx *gorm.DB, codes []string) ([]models.Seat, error)
+
+	// FlightSeat pivot queries
+	GetAvailableSeats(ctx context.Context, flightID uint, classType string) ([]models.FlightSeat, error)
+	GetFlightSeatsByIDs(ctx context.Context, tx *gorm.DB, ids []uint) ([]models.FlightSeat, error)
+	GetFlightSeatsByCodes(ctx context.Context, tx *gorm.DB, flightID uint, codes []string) ([]models.FlightSeat, error)
+	LockSeats(ctx context.Context, tx *gorm.DB, seatIDs []uint, transactionID uint, until time.Time) error
+	UnlockExpiredSeats(ctx context.Context) error
+	ReleaseSeats(ctx context.Context, tx *gorm.DB, transactionID uint) error
+	FinalizeSeats(ctx context.Context, tx *gorm.DB, transactionID uint) error
 }
 
 type AirlineRepository interface {

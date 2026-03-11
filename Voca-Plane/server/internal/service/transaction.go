@@ -40,28 +40,16 @@ func (s *TransactionService) CreateTransaction(ctx context.Context, userID uint,
 	}
 
 	lockDuration := 10 * time.Minute
-	lockedSeats := make([]*models.FlightSeat, 0)
 
-	seatMap := map[string]bool{}
+	// Validate no duplicate seat codes
+	seatCodeMap := map[string]bool{}
+	seatCodes := make([]string, 0, len(req.Passengers))
 	for _, p := range req.Passengers {
-		if seatMap[p.SeatNumber] {
-			return nil, fmt.Errorf("duplicated seat %s", p.SeatNumber)
+		if seatCodeMap[p.SeatNumber] {
+			return nil, fmt.Errorf("duplicated seat_number %s", p.SeatNumber)
 		}
-
-		seatMap[p.SeatNumber] = true
-	}
-
-	for _, p := range req.Passengers {
-		seat, err := s.flightRepo.GetSeat(ctx, req.ClassID, p.SeatNumber)
-		if err != nil {
-			return nil, fmt.Errorf("seat %s not found", p.SeatNumber)
-		}
-
-		if !seat.IsAvailable {
-			return nil, fmt.Errorf("seat %s is already booked", p.SeatNumber)
-		}
-
-		lockedSeats = append(lockedSeats, seat)
+		seatCodeMap[p.SeatNumber] = true
+		seatCodes = append(seatCodes, p.SeatNumber)
 	}
 
 	subtotal := flightClass.Price * float64(len(req.Passengers))
@@ -78,10 +66,26 @@ func (s *TransactionService) CreateTransaction(ctx context.Context, userID uint,
 
 	var transaction models.Transaction
 	err = s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Fetch seats with FOR UPDATE lock by seat codes
+		lockedSeats, err := s.flightRepo.GetFlightSeatsByCodes(ctx, tx, req.FlightID, seatCodes)
+		if err != nil {
+			return fmt.Errorf("failed to fetch seats: %w", err)
+		}
+
+		if len(lockedSeats) != len(seatCodes) {
+			return errors.New("one or more seats not found in this flight")
+		}
+
+		seatIDs := make([]uint, 0, len(lockedSeats))
+		// Validate all seats belong to the same flight and class, and are available
 		for _, seat := range lockedSeats {
-			if err := s.flightRepo.UpdateSeatAvailability(ctx, tx, seat.ID, false); err != nil {
-				return err
+			if seat.ClassType != flightClass.ClassType {
+				return fmt.Errorf("seat %s does not belong to class %s", seat.Seat.SeatCode, flightClass.ClassType)
 			}
+			if !seat.IsAvailable {
+				return fmt.Errorf("seat %s is already booked or locked", seat.Seat.SeatCode)
+			}
+			seatIDs = append(seatIDs, seat.ID)
 		}
 
 		code := uuid.New().String()
@@ -101,15 +105,29 @@ func (s *TransactionService) CreateTransaction(ctx context.Context, userID uint,
 			return err
 		}
 
+		// Lock seats with transaction reference
+		if err := s.flightRepo.LockSeats(ctx, tx, seatIDs, transaction.ID, time.Now().Add(lockDuration)); err != nil {
+			return err
+		}
+
 		passengers := make([]models.TransactionPassenger, len(req.Passengers))
 		for i, p := range req.Passengers {
+			// Find the corresponding locked seat record to get its pivot ID
+			var currentFlightSeatID uint
+			for _, ls := range lockedSeats {
+				if ls.Seat.SeatCode == p.SeatNumber {
+					currentFlightSeatID = ls.ID
+					break
+				}
+			}
+
 			passengers[i] = models.TransactionPassenger{
 				TransactionID: transaction.ID,
 				FullName:      p.FullName,
 				Nationality:   p.Nationality,
 				PassportNo:    p.PassportNo,
 				SeatNumber:    p.SeatNumber,
-				FlightClassID: req.ClassID,
+				FlightSeatID:  currentFlightSeatID,
 			}
 		}
 		if err := s.txRepo.CreatePassengers(ctx, tx, passengers); err != nil {
@@ -180,6 +198,12 @@ func (s *TransactionService) PayTransaction(ctx context.Context, code string) er
 		return err
 	}
 
+	// Finalize seats: clear lock timer but keep them booked
+	if err := s.flightRepo.FinalizeSeats(ctx, tx, transaction.ID); err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	return tx.Commit().Error
 }
 
@@ -234,6 +258,12 @@ func (s *TransactionService) CancelTransaction(ctx context.Context, userID uint,
 	if transaction.PaymentStatus == "PAID" {
 		tx.Rollback()
 		return errors.New("cannot cancel paid transaction")
+	}
+
+	// Release locked seats back to available
+	if err := s.flightRepo.ReleaseSeats(ctx, tx, transaction.ID); err != nil {
+		tx.Rollback()
+		return err
 	}
 
 	if err := s.txRepo.Delete(ctx, tx, code); err != nil {

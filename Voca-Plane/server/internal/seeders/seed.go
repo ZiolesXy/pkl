@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 	"voca-plane/internal/domain/models"
+	"voca-plane/pkg/helper"
 
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -17,7 +18,7 @@ func SeedAll(db *gorm.DB) {
 	SeedUsers(db)
 	SeedAirlines(db)
 	SeedAirports(db)
-	SeedFlights(db)
+	// SeedFlights(db)
 	SeedPromos(db)
 	log.Println(">>> SEEDING COMPLETED")
 }
@@ -28,9 +29,12 @@ func DropAll(db *gorm.DB) {
     err := db.Migrator().DropTable(
         &models.FlightSeat{},
         &models.FlightClass{},
+        &models.Seat{},
         &models.Flight{},
         &models.Airline{},
         &models.Airport{},
+        &models.TransactionPassenger{},
+        &models.Transaction{},
         &models.PromoCode{},
         &models.User{},
     )
@@ -52,7 +56,10 @@ func ResetDatabase(db *gorm.DB) {
         &models.Airport{},
         &models.Flight{},
         &models.FlightClass{},
+        &models.Seat{},
         &models.FlightSeat{},
+        &models.Transaction{},
+        &models.TransactionPassenger{},
         &models.PromoCode{},
     )
 
@@ -185,15 +192,6 @@ func SeedFlights(db *gorm.DB) {
 		// i 15-20 : First, Business, & Economy
 		var classes []classConfig
 		switch {
-		// case i <= 7:
-		// 	classes = []classConfig{
-		// 		{"Economy", 1000000 + float64(i*50000), 1.0},
-		// 	}
-		// case i <= 14:
-		// 	classes = []classConfig{
-		// 		{"Business", 3000000 + float64(i*100000), 0.30},
-		// 		{"Economy", 1000000 + float64(i*50000), 0.70},
-		// 	}
 		default:
 			classes = []classConfig{
 				{"First", 5000000 + float64(i*150000), 0.20},
@@ -220,16 +218,12 @@ func SeedFlights(db *gorm.DB) {
 			continue
 		}
 
-		// Generate classes and seats
-		seatIndex := 0
+		// Build class allocations for seat generation
+		var allocations []helper.ClassAlloc
+
+		// Create flight classes and build allocations
 		for _, c := range classes {
-			// Hitung jumlah kursi untuk kelas ini
 			seatCount := int(float64(totalSeats) * c.Percent)
-			
-			// Penanganan pembulatan: jika ini kelas terakhir, ambil sisa kursi yang ada
-			if c.ClassType == classes[len(classes)-1].ClassType {
-				seatCount = totalSeats - seatIndex
-			}
 
 			fClass := models.FlightClass{
 				FlightID:  flight.ID,
@@ -240,22 +234,49 @@ func SeedFlights(db *gorm.DB) {
 			// Pastikan Class terbuat dan ID-nya didapat
 			db.Where(models.FlightClass{FlightID: flight.ID, ClassType: fClass.ClassType}).FirstOrCreate(&fClass)
 
-			for j := 0; j < seatCount; j++ {
-				row := seatIndex / totalColumns
-				col := (seatIndex % totalColumns) + 1
-				rowLetter := string(rune('A' + row))
-				seatNumber := fmt.Sprintf("%s%d", rowLetter, col)
+			allocations = append(allocations, helper.ClassAlloc{
+				ClassType: c.ClassType,
+				Price:     c.Price,
+				SeatCount: seatCount,
+			})
+		}
 
-				seat := models.FlightSeat{
-					FlightClassID: fClass.ID,
-					SeatNumber:    seatNumber,
-					IsAvailable:   true,
-				}
-				
-				// Simpan seat jika belum ada
-				db.Where(models.FlightSeat{FlightClassID: fClass.ID, SeatNumber: seat.SeatNumber}).FirstOrCreate(&seat)
-				seatIndex++
+		// Fix last class allocation to take remaining seats
+		if len(allocations) > 0 {
+			used := 0
+			for i := 0; i < len(allocations)-1; i++ {
+				used += allocations[i].SeatCount
 			}
+			allocations[len(allocations)-1].SeatCount = totalSeats - used
+		}
+
+		// Generate seat codes (e.g. "1A", "1B", ..., "5D")
+		seatCodes := helper.GenerateSeatCodes(totalRows, totalColumns)
+
+		// Upsert master Seat rows
+		seatModels := make([]models.Seat, len(seatCodes))
+		for j, code := range seatCodes {
+			seatModels[j] = models.Seat{SeatCode: code}
+			db.Where(models.Seat{SeatCode: code}).FirstOrCreate(&seatModels[j])
+		}
+
+		// Order seats by code to match seatCodes order
+		seatMap := make(map[string]models.Seat)
+		for _, s := range seatModels {
+			seatMap[s.SeatCode] = s
+		}
+		orderedSeats := make([]models.Seat, 0, len(seatCodes))
+		for _, code := range seatCodes {
+			if s, ok := seatMap[code]; ok {
+				orderedSeats = append(orderedSeats, s)
+			}
+		}
+
+		// Generate FlightSeat pivot entries distributed across allocations
+		flightSeats := helper.GenerateFlightSeatModels(flight.ID, orderedSeats, allocations)
+
+		for _, fs := range flightSeats {
+			db.Where(models.FlightSeat{FlightID: fs.FlightID, SeatID: fs.SeatID}).FirstOrCreate(&fs)
 		}
 	}
 }

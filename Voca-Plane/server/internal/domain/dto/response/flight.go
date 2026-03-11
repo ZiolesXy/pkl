@@ -6,17 +6,18 @@ import (
 )
 
 type FlightSeatResponse struct {
-	ID          uint   `json:"id"`
-	SeatNumber  string `json:"seat_number"`
-	IsAvailable bool   `json:"is_available"`
+	ID          uint       `json:"id"`
+	SeatCode    string     `json:"seat_code"`
+	ClassType   string     `json:"class_type"`
+	IsAvailable bool       `json:"is_available"`
+	LockedUntil *time.Time `json:"locked_until,omitempty"`
 }
 
 type FlightClassResponse struct {
-	ID         uint                 `json:"id"`
-	ClassType  string               `json:"class_type"`
-	Price      float64              `json:"price"`
-	TotalSeats int                  `json:"total_seats"`
-	Seats      []FlightSeatResponse `json:"seats,omitempty"`
+	ID         uint    `json:"id"`
+	ClassType  string  `json:"class_type"`
+	Price      float64 `json:"price"`
+	TotalSeats int     `json:"total_seats"`
 }
 
 type FlightResponse struct {
@@ -24,7 +25,7 @@ type FlightResponse struct {
 	Airline        AirlineResponse       `json:"airline"`
 	Origin         AirportResponse       `json:"origin"`
 	Destination    AirportResponse       `json:"destination"`
-	DepartureTime  time.Time              `json:"departure_time"`
+	DepartureTime  time.Time             `json:"departure_time"`
 	ArrivalTime    time.Time             `json:"arrival_time"`
 	FlightNumber   string                `json:"flight_number"`
 	TotalSeats     int                   `json:"total_seats"`
@@ -32,44 +33,55 @@ type FlightResponse struct {
 	TotalRows      int                   `json:"total_rows"`
 	TotalColumns   int                   `json:"total_columns"`
 	FlightClasses  []FlightClassResponse `json:"classes,omitempty"`
+	FlightSeats    []FlightSeatResponse  `json:"flight_seats,omitempty"`
 }
 
 func ToFlightSeatResponse(s models.FlightSeat) FlightSeatResponse {
 	return FlightSeatResponse{
 		ID:          s.ID,
-		SeatNumber:  s.SeatNumber,
+		SeatCode:    s.Seat.SeatCode,
+		ClassType:   s.ClassType,
 		IsAvailable: s.IsAvailable,
+		LockedUntil: s.LockedUntil,
 	}
 }
 
-func ToFlightClassResponse(fc models.FlightClass) FlightClassResponse {
-	var seats []FlightSeatResponse
-	for _, s := range fc.Seats {
-		seats = append(seats, ToFlightSeatResponse(s))
-	}
-
+func ToFlightClassResponse(fc models.FlightClass, seatCount int) FlightClassResponse {
 	return FlightClassResponse{
 		ID:         fc.ID,
 		ClassType:  fc.ClassType,
 		Price:      fc.Price,
-		TotalSeats: len(fc.Seats),
-		Seats:      seats,
+		TotalSeats: seatCount,
 	}
 }
 
 func ToFlightResponse(f models.Flight) FlightResponse {
 	available := 0
-	for _, class := range f.FlightClasses {
-		for _, seat := range class.Seats {
-			if seat.IsAvailable {
-				available++
+	for _, seat := range f.FlightSeats {
+		if seat.IsAvailable {
+			available++
+		}
+	}
+
+	// Count seats per class for the class response
+	classSeatsCount := make(map[uint]int)
+	for _, seat := range f.FlightSeats {
+		for _, fc := range f.FlightClasses {
+			if seat.ClassType == fc.ClassType {
+				classSeatsCount[fc.ID]++
+				break
 			}
 		}
 	}
 
 	var classes []FlightClassResponse
 	for _, c := range f.FlightClasses {
-		classes = append(classes, ToFlightClassResponse(c))
+		classes = append(classes, ToFlightClassResponse(c, classSeatsCount[c.ID]))
+	}
+
+	var seats []FlightSeatResponse
+	for _, s := range f.FlightSeats {
+		seats = append(seats, ToFlightSeatResponse(s))
 	}
 
 	return FlightResponse{
@@ -85,5 +97,6 @@ func ToFlightResponse(f models.Flight) FlightResponse {
 		TotalRows:      f.TotalRows,
 		TotalColumns:   f.TotalColumns,
 		FlightClasses:  classes,
+		FlightSeats:    seats,
 	}
 }

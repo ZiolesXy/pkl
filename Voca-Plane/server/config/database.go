@@ -26,6 +26,7 @@ func NewDatabase(cfg *config) *gorm.DB {
 		&models.Airport{},
 		&models.Flight{},
 		&models.FlightClass{},
+		&models.Seat{},
 		&models.FlightSeat{},
 		&models.Transaction{},
 		&models.TransactionPassenger{},

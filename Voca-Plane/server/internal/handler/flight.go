@@ -92,7 +92,7 @@ func (h *FlightHandler) GetByID(c *gin.Context) {
 	id := c.Param("id")
 	flightID, err := strconv.Atoi(id)
 	if err != nil {
-		response.Error(c, http.StatusBadRequest, "invallid flight id")
+		response.Error(c, http.StatusBadRequest, "invalid flight id")
 		return
 	}
 
@@ -103,4 +103,24 @@ func (h *FlightHandler) GetByID(c *gin.Context) {
 	}
 
 	response.Success(c, http.StatusOK, "flight found", flight)
+}
+
+// GetSeats returns available seats for a flight, optionally filtered by class_type.
+func (h *FlightHandler) GetSeats(c *gin.Context) {
+	id := c.Param("id")
+	flightID, err := strconv.Atoi(id)
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, "invalid flight id")
+		return
+	}
+
+	classType := c.Query("class_type")
+
+	seats, err := h.service.GetAvailableSeats(c.Request.Context(), uint(flightID), classType)
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	response.Success(c, http.StatusOK, "available seats retrieved", seats)
 }

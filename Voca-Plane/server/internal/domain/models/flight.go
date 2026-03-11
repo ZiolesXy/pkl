@@ -41,29 +41,40 @@ type Flight struct {
 	TotalRows     int           `gorm:"not null;default:0" json:"total_rows"`
 	TotalColumns  int           `gorm:"not null;default:0" json:"total_columns"`
 	FlightClasses []FlightClass `gorm:"foreignKey:FlightID" json:"classes"`
+	FlightSeats   []FlightSeat  `gorm:"foreignKey:FlightID" json:"flight_seats,omitempty"`
 	CreatedAt     time.Time     `json:"created_at"`
 	UpdatedAt     time.Time     `json:"updated_at"`
 	DeletedAt     gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
 type FlightClass struct {
-	ID          uint        `gorm:"primaryKey" json:"id"`
-	FlightID    uint        `gorm:"not null;index" json:"flight_id"`
-	ClassType   string      `gorm:"size:20;not null;index" json:"class_type"`
-	Price       float64     `gorm:"not null" json:"price"`
-	Seats       []FlightSeat `gorm:"foreignKey:FlightClassID" json:"seats"`
-	CreatedAt   time.Time   `json:"-"`
-	UpdatedAt   time.Time   `json:"-"`
-	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
+	ID        uint           `gorm:"primaryKey" json:"id"`
+	FlightID  uint           `gorm:"not null;index" json:"flight_id"`
+	ClassType string         `gorm:"size:20;not null;index" json:"class_type"`
+	Price     float64        `gorm:"not null" json:"price"`
+	CreatedAt time.Time      `json:"-"`
+	UpdatedAt time.Time      `json:"-"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
+// Seat is the master seat template table.
+type Seat struct {
+	ID       uint   `gorm:"primaryKey" json:"id"`
+	SeatCode string `gorm:"size:10;uniqueIndex;not null" json:"seat_code"` // e.g. "1A"
+}
+
+// FlightSeat is the pivot table linking flights to seats.
 type FlightSeat struct {
-	ID            uint        `gorm:"primaryKey" json:"id"`
-	FlightClassID uint        `gorm:"not null;index" json:"flight_class_id"`
-	SeatNumber    string      `gorm:"size:10;not null" json:"seat_number"`
-	IsAvailable   bool        `gorm:"not null;index" json:"is_available"`
-	FlightClass   FlightClass `gorm:"foreignKey:FlightClassID" json:"-"`
-	CreatedAt     time.Time   `json:"created_at"`
-	UpdatedAt     time.Time   `json:"updated_at"`
+	ID            uint         `gorm:"primaryKey" json:"id"`
+	FlightID      uint         `gorm:"not null;index;uniqueIndex:idx_flight_seat" json:"flight_id"`
+	Flight        Flight       `gorm:"foreignKey:FlightID" json:"-"`
+	SeatID        uint         `gorm:"not null;index;uniqueIndex:idx_flight_seat" json:"seat_id"`
+	Seat          Seat         `gorm:"foreignKey:SeatID" json:"seat"`
+	ClassType     string       `gorm:"size:20;not null;index" json:"class_type"`
+	IsAvailable   bool         `gorm:"not null;default:true;index" json:"is_available"`
+	LockedUntil   *time.Time   `json:"locked_until,omitempty"`
+	TransactionID *uint        `gorm:"index" json:"transaction_id,omitempty"`
+	CreatedAt     time.Time    `json:"created_at"`
+	UpdatedAt     time.Time    `json:"updated_at"`
 	DeletedAt     gorm.DeletedAt `gorm:"index" json:"-"`
 }

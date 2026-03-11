@@ -27,11 +27,11 @@ func ValidateFlightInput(flight *models.Flight, classCount int, classPrice []req
 	}
 
 	if classCount < 1 || classCount > 3 {
-		return errors.New("class_count must be 1, 2, ro 3")
+		return errors.New("class_count must be 1, 2, or 3")
 	}
 
 	if len(classPrice) != classCount {
-		return fmt.Errorf("class_pries count (%d) must match class_count (%d)", len(classPrice), classCount)
+		return fmt.Errorf("class_prices count (%d) must match class_count (%d)", len(classPrice), classCount)
 	}
 
 	return nil
@@ -81,24 +81,36 @@ func CalculateSeatAllocation(totalSeats int, classMap map[string]float64, classC
 	return allocations
 }
 
-func GenerateSeats(flightClassID uint, count int, startIndex int, columns int) []models.FlightSeat {
-	seats := make([]models.FlightSeat, 0, count)
+// GenerateSeatCodes generates seat codes using row numbers (1-based) and column letters (A-based).
+// Example: rows=9, columns=6 → ["1A","1B","1C","1D","1E","1F","2A",...,"9F"]
+func GenerateSeatCodes(rows, columns int) []string {
+	codes := make([]string, 0, rows*columns)
+	for r := 1; r <= rows; r++ {
+		for c := 0; c < columns; c++ {
+			letter := string(rune('A' + c))
+			codes = append(codes, fmt.Sprintf("%d%s", r, letter))
+		}
+	}
+	return codes
+}
 
-	for i := 0; i < count; i++ {
-		index := startIndex + i
+// GenerateFlightSeatModels creates FlightSeat pivot entries for a given flight,
+// distributing seats across class allocations in order.
+func GenerateFlightSeatModels(flightID uint, seats []models.Seat, allocations []ClassAlloc) []models.FlightSeat {
+	flightSeats := make([]models.FlightSeat, 0, len(seats))
 
-		row := index/columns
-		col := (index % columns) + 1
-
-		rowLetter := string(rune('A' + row))
-		seatNumber := fmt.Sprintf("%s%d", rowLetter, col)
-
-		seats = append(seats, models.FlightSeat{
-			FlightClassID: flightClassID,
-			SeatNumber: seatNumber,
-			IsAvailable: true,
-		})
+	seatIndex := 0
+	for _, alloc := range allocations {
+		for i := 0; i < alloc.SeatCount && seatIndex < len(seats); i++ {
+			flightSeats = append(flightSeats, models.FlightSeat{
+				FlightID:    flightID,
+				SeatID:      seats[seatIndex].ID,
+				ClassType:   alloc.ClassType,
+				IsAvailable: true,
+			})
+			seatIndex++
+		}
 	}
 
-	return seats
+	return flightSeats
 }

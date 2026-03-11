@@ -40,12 +40,12 @@ func (s *FlightService) GetFlightByID(ctx context.Context, id uint) (*response.F
 	if err != nil {
 		return nil, err
 	}
-	response := response.ToFlightResponse(*flight)
-	return &response, nil
+	res := response.ToFlightResponse(*flight)
+	return &res, nil
 }
 
 func (s *FlightService) GetAllFlights(ctx context.Context, page, limit int) ([]response.FlightResponse, int64, error) {
-	if page <  1 {
+	if page < 1 {
 		page = 1
 	}
 	if limit < 1 || limit > 100 {
@@ -74,4 +74,19 @@ func (s *FlightService) UpdateFlight(ctx context.Context, flight *models.Flight)
 
 func (s *FlightService) DeleteFlight(ctx context.Context, id uint) error {
 	return s.flightRepo.Delete(ctx, nil, id)
+}
+
+// GetAvailableSeats returns available seats for a flight, optionally filtered by class type.
+func (s *FlightService) GetAvailableSeats(ctx context.Context, flightID uint, classType string) ([]response.FlightSeatResponse, error) {
+	seats, err := s.flightRepo.GetAvailableSeats(ctx, flightID, classType)
+	if err != nil {
+		return nil, err
+	}
+
+	var res []response.FlightSeatResponse
+	for _, s := range seats {
+		res = append(res, response.ToFlightSeatResponse(s))
+	}
+
+	return res, nil
 }
