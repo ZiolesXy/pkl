@@ -54,16 +54,26 @@ func CalculateSeatAllocation(totalSeats int, classMap map[string]float64, classC
 	switch classCount {
 
 	case 1:
-		allocations = append(allocations, 
-		ClassAlloc{"economy", classMap["economy"], totalSeats})
+		for classType, price := range classMap {
+			allocations = append(allocations, ClassAlloc{
+				ClassType: classType,
+				Price: price,
+				SeatCount: totalSeats,
+			})
+		}
 	
 	case 2:
-		businessSeats := int(float64(totalSeats) * BusinessClassRatio)
-		economySeats := totalSeats - businessSeats
+		var types []string
+		for classType := range classMap {
+			types = append(types, classType)
+		}
+
+		seatsA := int(float64(totalSeats) * BusinessClassRatio)
+		seatsB := totalSeats - seatsA
 
 		allocations = append(allocations, 
-			ClassAlloc{"business", classMap["business"], businessSeats},
-			ClassAlloc{"economy", classMap["economy"], economySeats},
+			ClassAlloc{types[0], classMap[types[0]], seatsA},
+			ClassAlloc{types[1], classMap[types[1]], seatsB},
 		)
 
 	case 3:
