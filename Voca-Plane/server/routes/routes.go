@@ -25,6 +25,7 @@ func SetUpRoutes(r *gin.Engine,
 		v1.GET("/health", func(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{"status": "ok"})
 		})
+		v1.GET("/info", userHandler.GetDeviceInfo)
 
 		// System Routes
 		sys := v1.Group("/system")
@@ -56,7 +57,6 @@ func SetUpRoutes(r *gin.Engine,
 		{
 			userProtected.GET("/user/profile", userHandler.GetProfile)
 			userProtected.PATCH("/user/profile", userHandler.UpdateProfile)
-			v1.GET("/user/device-info", userHandler.GetDeviceInfo)
 
 			userProtected.GET("/transactions", transactionHandler.GetListAll)
 			userProtected.GET("/transactions/:code", transactionHandler.GetByCode)

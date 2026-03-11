@@ -14,9 +14,19 @@ type TransactionItemResponse struct {
 	Price         float64 `json:"price"`
 }
 
+type SimpleFlightResponse struct {
+	FlightNumber  string          `json:"flight_number"`
+	DepartureTime time.Time       `json:"departure_time"`
+	ArrivalTime   time.Time       `json:"arrival_time"`
+	Airline       AirlineResponse `json:"airline"`
+	Origin        AirportResponse `json:"origin"`
+	Destination   AirportResponse `json:"destination"`
+}
+
 type TransactionResponse struct {
+	ID            uint                      `json:"id"`
 	Code          string                    `json:"code"`
-	FlightNumber  string                    `json:"flight_number"`
+	Flight        SimpleFlightResponse      `json:"flight"`
 	TotalPrice    float64                   `json:"total_price"`
 	PaymentStatus string                    `json:"payment_status"`
 	PaymentURL    string                    `json:"payment_url"`
@@ -24,7 +34,7 @@ type TransactionResponse struct {
 	Discount      float64                   `json:"discount"`
 	ExpiresAt     time.Time                 `json:"expires_at"`
 	CreatedAt     time.Time                 `json:"created_at"`
-	Items         []TransactionItemResponse `json:"items,omitempty"`
+	Items         []TransactionItemResponse `json:"transactions_passangers,omitempty"`
 }
 
 func ToTransactionItemResponse(p models.TransactionItem) TransactionItemResponse {
@@ -38,6 +48,17 @@ func ToTransactionItemResponse(p models.TransactionItem) TransactionItemResponse
 	}
 }
 
+func ToSimpleFlightResponse(f models.Flight) SimpleFlightResponse {
+	return SimpleFlightResponse{
+		FlightNumber:  f.FlightNumber,
+		DepartureTime: f.DepartureTime,
+		ArrivalTime:   f.ArrivalTime,
+		Airline:       ToAirlineResponse(f.Airline),
+		Origin:        ToAirportResponse(f.Origin),
+		Destination:   ToAirportResponse(f.Destination),
+	}
+}
+
 func ToTransactionResponse(t models.Transaction) TransactionResponse {
 	var items []TransactionItemResponse
 	for _, p := range t.Items {
@@ -45,8 +66,9 @@ func ToTransactionResponse(t models.Transaction) TransactionResponse {
 	}
 
 	return TransactionResponse{
+		ID:            t.ID,
 		Code:          t.Code,
-		FlightNumber:  t.Flight.FlightNumber,
+		Flight:        ToSimpleFlightResponse(t.Flight),
 		TotalPrice:    t.TotalPrice,
 		PaymentStatus: t.PaymentStatus,
 		PaymentURL:    t.PaymentURL,
