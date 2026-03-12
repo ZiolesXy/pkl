@@ -2,8 +2,8 @@ package repository
 
 import (
 	"context"
-	"fmt"
 	"voca-plane/internal/domain/models"
+	"voca-plane/pkg/helper"
 
 	"gorm.io/gorm"
 )
@@ -55,14 +55,7 @@ func (r *adminRepository) GetAllUsers(ctx context.Context, page, limit int, sort
 		"updated_at": true,
 	}
 
-	if sortBy != "" && allowedColumns[sortBy] {
-		if order != "asc" && order != "desc" {
-			order = "asc"
-		}
-		query = query.Order(fmt.Sprintf("%s %s", sortBy, order))
-	} else {
-		query = query.Order("id ASC")
-	}
+	query = helper.ApplySorting(query, sortBy, order, allowedColumns, "id ASC")
 
 	offset := (page - 1) * limit
 	err := query.Offset(offset).Limit(limit).Find(&users).Error
@@ -96,14 +89,7 @@ func (r *adminRepository) GetAllTransactions(ctx context.Context, page, limit in
 		"created_at":     true,
 	}
 
-	if sortBy != "" && allowedColumns[sortBy] {
-		if order != "asc" && order != "desc" {
-			order = "asc"
-		}
-		query = query.Order(fmt.Sprintf("%s %s", sortBy, order))
-	} else {
-		query = query.Order("created_at DESC")
-	}
+	query = helper.ApplySorting(query, sortBy, order, allowedColumns, "id ASC")
 
 	offset := (page - 1) * limit
 	err := query.Offset(offset).Limit(limit).Find(&transactions).Error

@@ -2,8 +2,8 @@ package repository
 
 import (
 	"context"
-	"fmt"
 	"voca-plane/internal/domain/models"
+	"voca-plane/pkg/helper"
 
 	"gorm.io/gorm"
 )
@@ -31,14 +31,7 @@ func (r *airportRepository) GetAll(ctx context.Context, page, limit int, sortBy,
 		"city": true,
 	}
 
-	if sortBy != "" && allowedColumns[sortBy] {
-		if order != "asc" && order != "desc" {
-			order = "asc"
-		}
-		query = query.Order(fmt.Sprintf("%s %s", sortBy, order))
-	} else {
-		query = query.Order("id ASC")
-	}
+	query = helper.ApplySorting(query, sortBy, order, allowedColumns, "id ASC")
 
 	offset := (page - 1) * limit
 	err := query.Offset(offset).Limit(limit).Find(&airports).Error
