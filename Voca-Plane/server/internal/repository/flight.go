@@ -79,6 +79,8 @@ func (r *flightRepository) GetAll(ctx context.Context, page, limit int, sortBy, 
 	var scannedFlights []flightScan
 	var total int64
 
+	available := true
+	now := time.Now()
 	query := r.db.WithContext(ctx).Model(&models.Flight{}).
 		Select(`
 			flights.*,
@@ -86,10 +88,10 @@ func (r *flightRepository) GetAll(ctx context.Context, page, limit int, sortBy, 
 				SELECT COUNT(*)
 				FROM flight_seats
 				WHERE flight_seats.flight_id = flights.id
-				AND flight_seats.is_available = true
-				AND (flight_seats.locked_until IS NULL OR flight_seats.locked_until < NOW())
+				AND flight_seats.is_available = ?
+				AND (flight_seats.locked_until IS NULL OR flight_seats.locked_until < ?)
 			) AS available_seats
-		`).
+		`, available, now).
 		Preload("Airline").
 		Preload("Origin").
 		Preload("Destination").
@@ -130,6 +132,8 @@ func(r *flightRepository) GetAllFull(ctx context.Context) ([]models.Flight, erro
 
 	var scannedFlights []flightScan
 
+	available := true
+	now := time.Now()
 	err := r.db.WithContext(ctx).
 		Model(&models.Flight{}).
 		Select(`
@@ -138,10 +142,10 @@ func(r *flightRepository) GetAllFull(ctx context.Context) ([]models.Flight, erro
 				SELECT COUNT(*)
 				FROM flight_seats
 				WHERE flight_seats.flight_id = flights.id
-				AND flight_seats.is_available = true
-				AND (flight_seats.locked_until IS NULL OR flight_seats.locked_until < NOW())
+				AND flight_seats.is_available = ?
+				AND (flight_seats.locked_until IS NULL OR flight_seats.locked_until < ?)
 			) AS available_seats
-		`).
+		`, available, now).
 		Preload("Airline").
 		Preload("Origin").
 		Preload("Destination").
