@@ -57,6 +57,14 @@ func (s *AuthService) Login(ctx context.Context, req request.LoginRequest) (*mod
 		return nil, errors.New("invalid email or password")
 	}
 
+	if user.IsBanned != false {
+		return nil, errors.New("you are banned")
+	}
+
+	if user.DeletedAt.Valid {
+		return nil, errors.New("this account was deleted")
+	}
+
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password))
 	if err != nil {
 		return nil, errors.New("invalid email or password")

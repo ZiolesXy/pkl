@@ -9,3 +9,7 @@ type UpdateProfileRequest struct {
 type UpdateUserRoleRequest struct {
 	Role string `json:"role" binding:"required"`
 }
+
+type BanUserRequest struct {
+	Reason string `json:"reason" binding:"required"`
+}

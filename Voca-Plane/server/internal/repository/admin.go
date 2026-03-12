@@ -41,7 +41,7 @@ func (r *adminRepository) GetAllUsers(ctx context.Context, page, limit int) ([]m
 	var users []models.User
 	var total int64
 
-	query := r.db.WithContext(ctx).Model(&models.User{})
+	query := r.db.WithContext(ctx).Unscoped().Model(&models.User{})
 	query.Count(&total)
 	offset := (page - 1) * limit
 	err := query.Offset(offset).Limit(limit).Find(&users).Error
@@ -62,7 +62,8 @@ func (r *adminRepository) GetAllTransactions(ctx context.Context, page, limit in
 		Preload("Flight.Airline").
 		Preload("Flight.Origin").
 		Preload("Flight.Destination").
-		Preload("Passengers")
+		Preload("Items").
+		Preload("Items.FlightClass")
 
 	query.Count(&total)
 	offset := (page - 1) * limit

@@ -85,6 +85,22 @@ func (s *AdminService) UpdateUserRole(ctx context.Context, userID uint, role str
 	return tx.Commit().Error
 }
 
+func (s *AdminService) DeleteUser(ctx context.Context, id uint) error {
+	return s.userRepo.Delete(ctx, id)
+}
+
+func (s *AdminService) RestoreUser(ctx context.Context, id uint) error {
+	return s.userRepo.Restore(ctx, id)
+}
+
+func (s *AdminService) BanUser(ctx context.Context, id uint, reason string) error {
+	return s.userRepo.Ban(ctx, id, reason)
+}
+
+func (s *AdminService) UnbanUser(ctx context.Context, id uint) error {
+	return s.userRepo.Unban(ctx, id)
+}
+
 func (s *AdminService) GetAllTransactions(ctx context.Context, page, limit int) ([]response.TransactionResponse, int64, error) {
 	transactions, total, err := s.adminRepo.GetAllTransactions(ctx, page, limit)
 	if err != nil {

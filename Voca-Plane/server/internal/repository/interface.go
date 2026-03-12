@@ -13,6 +13,11 @@ type UserRepository interface {
 	Update(ctx context.Context, user *models.User) error
 	FindByEmail(ctx context.Context, email string) (*models.User, error)
 	FindByID(ctx context.Context, id uint) (*models.User, error)
+
+	Delete(ctx context.Context, id uint) error
+	Restore(ctx context.Context, id uint) error
+	Ban(ctx context.Context, id uint, reason string) error
+	Unban(ctx context.Context, id uint) error
 }
 
 type FlightRepository interface {

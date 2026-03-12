@@ -22,6 +22,7 @@ import (
 )
 
 func main() {
+	log.Printf("⚙️  Starting Server...")
 	godotenv.Load()
 	cfg := config.LoadConfig()
     if cfg.GinMode == "release" {
@@ -63,7 +64,7 @@ func main() {
 	r := gin.Default()
 	r.Use(middleware.Logger())
 
-	routes.SetUpRoutes(r, authHandler, flightHandler, transactionHandler, userHandler, adminHandler, systemHandler, cfg.JWTSecret, cfg.AllowedOrigins, cfg.AppPassword)
+	routes.SetUpRoutes(r, authHandler, flightHandler, transactionHandler, userHandler, adminHandler, systemHandler, userRepo, cfg.JWTSecret, cfg.AllowedOrigins, cfg.AppPassword)
 
 	srv := &http.Server{
 		Addr: ":" + cfg.AppPort,

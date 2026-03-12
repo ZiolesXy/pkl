@@ -34,3 +34,36 @@ func (r *userRepository) FindByID(ctx context.Context, id uint) (*models.User, e
 	err := r.db.WithContext(ctx).First(&user, id).Error
 	return &user, err
 }
+
+func (r *userRepository) Delete(ctx context.Context, id uint) error {
+	return r.db.WithContext(ctx).Delete(&models.User{}, id).Error
+}
+
+func (r *userRepository) Restore(ctx context.Context, id uint) error {
+	return r.db.WithContext(ctx).
+		Model(&models.User{}).
+		Unscoped().
+		Where("id = ?", id).
+		Update("deleted_at", nil).Error
+}
+
+func (r *userRepository) Ban(ctx context.Context, id uint, reason string) error {
+	return r.db.WithContext(ctx).
+		Model(&models.User{}).
+		Where("id = ?", id).
+		Updates(map[string]interface{}{
+			"is_banned": true,
+			"ban_reason": reason,
+		}).Error
+}
+
+func (r *userRepository) Unban(ctx context.Context, id uint) error {
+	return r.db.WithContext(ctx).
+	Model(&models.User{}).
+	Where("id = ?", id).
+	Updates(map[string]interface{}{
+		"is_banned": false,
+		"ban_reason": "",
+	}).
+	Error
+}

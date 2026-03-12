@@ -4,14 +4,16 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+	"voca-plane/internal/repository"
 	"voca-plane/pkg/response"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func JWTAuth(secret string) gin.HandlerFunc{
+func JWTAuth(secret string, userRepo repository.UserRepository) gin.HandlerFunc {
 	return func(c *gin.Context) {
+
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
 			response.Error(c, http.StatusUnauthorized, "missing authorization header")
@@ -30,9 +32,8 @@ func JWTAuth(secret string) gin.HandlerFunc{
 
 		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, errors.New("unexcpected signing method")
+				return nil, errors.New("unexpected signing method")
 			}
-
 			return []byte(secret), nil
 		})
 
@@ -55,16 +56,33 @@ func JWTAuth(secret string) gin.HandlerFunc{
 			return
 		}
 
-		userID, ok := claims["id"].(float64)
+		userIDFloat, ok := claims["id"].(float64)
 		if !ok {
 			response.Error(c, http.StatusUnauthorized, "invalid user id")
 			c.Abort()
 			return
 		}
+
+		userID := uint(userIDFloat)
+
+		// 🔥 cek database user
+		user, err := userRepo.FindByID(c.Request.Context(), userID)
+		if err != nil {
+			response.Error(c, http.StatusUnauthorized, "user not found")
+			c.Abort()
+			return
+		}
+
+		if user.IsBanned {
+			response.Error(c, http.StatusForbidden, "account banned")
+			c.Abort()
+			return
+		}
+
 		email, _ := claims["email"].(string)
 		role, _ := claims["role"].(string)
 
-		c.Set("userID", uint(userID))
+		c.Set("userID", userID)
 		c.Set("userRole", role)
 		c.Set("userEmail", email)
 

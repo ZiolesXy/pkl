@@ -22,7 +22,7 @@ func (r *airlineRepository) GetAll(ctx context.Context, page, limit int) ([]mode
 	query := r.db.WithContext(ctx).Model(&models.Airline{})
 	query.Count(&total)
 	offset := (page - 1) * limit
-	err := query.Offset(offset).Limit(limit).Find(&airlines).Error
+	err := query.Offset(offset).Limit(limit).Order("id ASC").Find(&airlines).Error
 	return airlines, total, err
 }
 

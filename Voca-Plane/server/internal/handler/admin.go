@@ -66,6 +66,58 @@ func (h *AdminHandler) UpdateUserRole(c *gin.Context) {
 	response.Success(c, http.StatusOK, "user role updated", nil)
 }
 
+func (h *AdminHandler) DeleteUser(c *gin.Context) {
+	id, _ := strconv.Atoi(c.Param("id"))
+
+	err := h.service.DeleteUser(c.Request.Context(), uint(id))
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	response.Success(c, http.StatusOK, "user deleted", nil)
+}
+
+func (h *AdminHandler) RestoreUser(c *gin.Context) {
+	id, _ := strconv.Atoi(c.Param("id"))
+
+	err := h.service.RestoreUser(c.Request.Context(), uint(id))
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	response.Success(c, http.StatusOK, "user restored", nil)
+}
+
+func (h *AdminHandler) BanUser(c *gin.Context) {
+	id, _ := strconv.Atoi(c.Param("id"))
+
+	var req request.BanUserRequest
+
+	c.ShouldBindJSON(&req)
+
+	err := h.service.BanUser(c.Request.Context(), uint(id), req.Reason)
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	response.Success(c, http.StatusOK, "user banned", nil)
+}
+
+func (h *AdminHandler) UnbanUser(c *gin.Context) {
+	id, _ := strconv.Atoi(c.Param("id"))
+
+	err := h.service.UnbanUser(c.Request.Context(), uint(id))
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	response.Success(c, http.StatusOK, "user unbanned", nil)
+}
+
 func (h *AdminHandler) GetTransactions(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))

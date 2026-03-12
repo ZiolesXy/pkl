@@ -3,6 +3,7 @@ package routes
 import (
 	"net/http"
 	"voca-plane/internal/handler"
+	"voca-plane/internal/repository"
 	"voca-plane/middleware"
 
 	"github.com/gin-gonic/gin"
@@ -15,6 +16,7 @@ func SetUpRoutes(r *gin.Engine,
 	userHandler *handler.UserHandler,
 	adminHandler *handler.AdminHandler,
 	systemHandler *handler.SystemHandler,
+	userRepo repository.UserRepository,
 	jwtSecret string,
 	allowedOrigins string,
 	appPassword string) {
@@ -29,7 +31,7 @@ func SetUpRoutes(r *gin.Engine,
 
 		// System Routes
 		sys := v1.Group("/system")
-		sys.Use(middleware.JWTAuth(jwtSecret))
+		sys.Use(middleware.JWTAuth(jwtSecret, userRepo))
 		sys.Use(middleware.RequireSuperAdmin())
 		sys.Use(middleware.AppPassword(appPassword))
 		{
@@ -53,7 +55,7 @@ func SetUpRoutes(r *gin.Engine,
 
 		// Protected User Routes
 		userProtected := v1.Group("")
-		userProtected.Use(middleware.JWTAuth(jwtSecret))
+		userProtected.Use(middleware.JWTAuth(jwtSecret, userRepo))
 		{
 			userProtected.GET("/user/profile", userHandler.GetProfile)
 			userProtected.PATCH("/user/profile", userHandler.UpdateProfile)
@@ -67,13 +69,17 @@ func SetUpRoutes(r *gin.Engine,
 
 		// Protected Admin Routes
 		adminProtected := v1.Group("/admin")
-		adminProtected.Use(middleware.JWTAuth(jwtSecret))
+		adminProtected.Use(middleware.JWTAuth(jwtSecret, userRepo))
 		adminProtected.Use(middleware.RequireAdmin())
 		{
 			adminProtected.GET("/dashboard", adminHandler.GetDashboard)
 
 			adminProtected.GET("/users", adminHandler.GetUsers)
 			adminProtected.PATCH("/users/:id/role", adminHandler.UpdateUserRole)
+			adminProtected.DELETE("/users/:id", adminHandler.DeleteUser)
+			adminProtected.PATCH("/users/:id/restore", adminHandler.RestoreUser)
+			adminProtected.PATCH("/users/:id/ban", adminHandler.BanUser)
+			adminProtected.PATCH("/users/:id/unban", adminHandler.UnbanUser)
 
 			adminProtected.GET("/transactions", adminHandler.GetTransactions)
 
