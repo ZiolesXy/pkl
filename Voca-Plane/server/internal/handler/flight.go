@@ -77,8 +77,10 @@ func (h *FlightHandler) Search(c *gin.Context) {
 func (h *FlightHandler) GetAll(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	sortBy := c.Query("sort_by")
+	order := c.Query("order")
 
-	flights, total, err := h.service.GetAllFlights(c.Request.Context(), page, limit)
+	flights, total, err := h.service.GetAllFlights(c.Request.Context(), page, limit, sortBy, order)
 	if err != nil {
 		response.Error(c, http.StatusInternalServerError, err.Error())	
 		return

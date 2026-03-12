@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 	"voca-plane/internal/domain/models"
 
 	"gorm.io/gorm"
@@ -37,12 +38,32 @@ func (r *adminRepository) GetDashboardStats(ctx context.Context) (*DashboardStat
 	return &stats, nil
 }
 
-func (r *adminRepository) GetAllUsers(ctx context.Context, page, limit int) ([]models.User, int64, error) {
+func (r *adminRepository) GetAllUsers(ctx context.Context, page, limit int, sortBy, order string) ([]models.User, int64, error) {
 	var users []models.User
 	var total int64
 
 	query := r.db.WithContext(ctx).Unscoped().Model(&models.User{})
 	query.Count(&total)
+
+	// Admin Users Whitelist
+	allowedColumns := map[string]bool{
+		"id":         true,
+		"name":       true,
+		"email":      true,
+		"role":       true,
+		"created_at": true,
+		"updated_at": true,
+	}
+
+	if sortBy != "" && allowedColumns[sortBy] {
+		if order != "asc" && order != "desc" {
+			order = "asc"
+		}
+		query = query.Order(fmt.Sprintf("%s %s", sortBy, order))
+	} else {
+		query = query.Order("id ASC")
+	}
+
 	offset := (page - 1) * limit
 	err := query.Offset(offset).Limit(limit).Find(&users).Error
 	return users, total, err
@@ -52,7 +73,7 @@ func (r *adminRepository) UpdateUserRole(ctx context.Context, tx *gorm.DB, userI
 	return tx.WithContext(ctx).Model(&models.User{}).Where("id = ?", userID).Update("role", role).Error
 }
 
-func (r *adminRepository) GetAllTransactions(ctx context.Context, page, limit int) ([]models.Transaction, int64, error) {
+func (r *adminRepository) GetAllTransactions(ctx context.Context, page, limit int, sortBy, order string) ([]models.Transaction, int64, error) {
 	var transactions []models.Transaction
 	var total int64
 
@@ -66,7 +87,25 @@ func (r *adminRepository) GetAllTransactions(ctx context.Context, page, limit in
 		Preload("Items.FlightClass")
 
 	query.Count(&total)
+
+	// Transactions Whitelist
+	allowedColumns := map[string]bool{
+		"id":             true,
+		"total_price":    true,
+		"payment_status": true,
+		"created_at":     true,
+	}
+
+	if sortBy != "" && allowedColumns[sortBy] {
+		if order != "asc" && order != "desc" {
+			order = "asc"
+		}
+		query = query.Order(fmt.Sprintf("%s %s", sortBy, order))
+	} else {
+		query = query.Order("created_at DESC")
+	}
+
 	offset := (page - 1) * limit
-	err := query.Order("created_at DESC").Offset(offset).Limit(limit).Find(&transactions).Error
+	err := query.Offset(offset).Limit(limit).Find(&transactions).Error
 	return transactions, total, err
 }

@@ -32,8 +32,10 @@ func (h *AdminHandler) GetDashboard(c *gin.Context) {
 func (h *AdminHandler) GetUsers(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	sortBy := c.Query("sort_by")
+	order := c.Query("order")
 
-	users, total, err := h.service.GetAllUsers(c.Request.Context(), page, limit)
+	users, total, err := h.service.GetAllUsers(c.Request.Context(), page, limit, sortBy, order)
 	if err != nil {
 		response.Error(c, http.StatusInternalServerError, err.Error())
 		return
@@ -121,8 +123,10 @@ func (h *AdminHandler) UnbanUser(c *gin.Context) {
 func (h *AdminHandler) GetTransactions(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	sortBy := c.Query("sort_by")
+	order := c.Query("order")
 
-	transactions, total, err := h.service.GetAllTransactions(c.Request.Context(), page, limit)
+	transactions, total, err := h.service.GetAllTransactions(c.Request.Context(), page, limit, sortBy, order)
 	if err != nil {
 		response.Error(c, http.StatusInternalServerError, err.Error())
 		return
@@ -135,8 +139,10 @@ func (h *AdminHandler) GetTransactions(c *gin.Context) {
 func (h *AdminHandler) GetFlights(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	sortBy := c.Query("sort_by")
+	order := c.Query("order")
 
-	flights, total, err := h.service.GetAllFlights(c.Request.Context(), page, limit)
+	flights, total, err := h.service.GetAllFlights(c.Request.Context(), page, limit, sortBy, order)
 	if err != nil {
 		response.Error(c, http.StatusInternalServerError, err.Error())
 		return
@@ -256,8 +262,10 @@ func (h *AdminHandler) DeleteFlight(c *gin.Context) {
 func (h *AdminHandler) GetAirlines(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	sortBy := c.Query("sort_by")
+	order := c.Query("order")
 
-	airlines, total, err := h.service.GetAllAirlines(c.Request.Context(), page, limit)
+	airlines, total, err := h.service.GetAllAirlines(c.Request.Context(), page, limit, sortBy, order)
 	if err != nil {
 		response.Error(c, http.StatusInternalServerError, err.Error())
 		return
@@ -347,8 +355,10 @@ func (h *AdminHandler) DeleteAirline(c *gin.Context) {
 func (h *AdminHandler) GetAirports(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	sortBy := c.Query("sort_by")
+	order := c.Query("order")
 
-	airports, total, err := h.service.GetAllAirports(c.Request.Context(), page, limit)
+	airports, total, err := h.service.GetAllAirports(c.Request.Context(), page, limit, sortBy, order)
 	if err != nil {
 		response.Error(c, http.StatusInternalServerError, err.Error())
 		return
@@ -438,8 +448,10 @@ func (h *AdminHandler) DeleteAirport(c *gin.Context) {
 func (h *AdminHandler) GetPromos(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	sortBy := c.Query("sort_by")
+	order := c.Query("order")
 
-	promos, total, err := h.service.GetAllPromos(c.Request.Context(), page, limit)
+	promos, total, err := h.service.GetAllPromos(c.Request.Context(), page, limit, sortBy, order)
 	if err != nil {
 		response.Error(c, http.StatusInternalServerError, err.Error())
 		return

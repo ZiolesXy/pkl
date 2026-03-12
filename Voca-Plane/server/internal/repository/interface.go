@@ -24,7 +24,7 @@ type FlightRepository interface {
 	Search(ctx context.Context, origin, destination, date, classType string, page, limit int) ([]models.Flight, int64, error)
 	GetByID(ctx context.Context, id uint) (*models.Flight, error)
 	GetClassByID(ctx context.Context, id uint) (*models.FlightClass, error)
-	GetAll(ctx context.Context, page, limit int) ([]models.Flight, int64, error)
+	GetAll(ctx context.Context, page, limit int, sortBy, order string) ([]models.Flight, int64, error)
 	GetAllFull(ctx context.Context) ([]models.Flight, error)
 	Create(ctx context.Context, tx *gorm.DB, flight *models.Flight) error
 	Update(ctx context.Context, tx *gorm.DB, flight *models.Flight) error
@@ -45,7 +45,7 @@ type FlightRepository interface {
 }
 
 type AirlineRepository interface {
-	GetAll(ctx context.Context, page, limit int) ([]models.Airline, int64, error)
+	GetAll(ctx context.Context, page, limit int, sortBy, order string) ([]models.Airline, int64, error)
 	GetByID(ctx context.Context, id uint) (*models.Airline, error)
 	Create(ctx context.Context, tx *gorm.DB, airline *models.Airline) error
 	Update(ctx context.Context, tx *gorm.DB, airline *models.Airline) error
@@ -53,7 +53,7 @@ type AirlineRepository interface {
 }
 
 type AirportRepository interface {
-	GetAll(ctx context.Context, page, limit int) ([]models.Airport, int64, error)
+	GetAll(ctx context.Context, page, limit int, sortBy, order string) ([]models.Airport, int64, error)
 	GetByID(ctx context.Context, id uint) (*models.Airport, error)
 	Create(ctx context.Context, tx *gorm.DB, airport *models.Airport) error
 	Update(ctx context.Context, tx *gorm.DB, airport *models.Airport) error
@@ -74,7 +74,7 @@ type TransactionRepository interface {
 type PromoRepository interface {
 	GetByID(ctx context.Context, id uint) (*models.PromoCode, error)
 	GetByCode(ctx context.Context, code string) (*models.PromoCode, error)
-	GetAll(ctx context.Context, page, limit int) ([]models.PromoCode, int64, error)
+	GetAll(ctx context.Context, page, limit int, sortBy, order string) ([]models.PromoCode, int64, error)
 	Create(ctx context.Context, tx *gorm.DB, promo *models.PromoCode) error
 	Update(ctx context.Context, tx *gorm.DB, promo *models.PromoCode) error
 	Delete(ctx context.Context, tx *gorm.DB, id uint) error
@@ -91,9 +91,9 @@ type DashboardStats struct {
 
 type AdminRepository interface {
 	GetDashboardStats(ctx context.Context) (*DashboardStats, error)
-	GetAllUsers(ctx context.Context, page, limit int) ([]models.User, int64, error)
+	GetAllUsers(ctx context.Context, page, limit int, sortBy, order string) ([]models.User, int64, error)
 	UpdateUserRole(ctx context.Context, tx *gorm.DB, userID uint, role string) error
-	GetAllTransactions(ctx context.Context, page, limit int) ([]models.Transaction, int64, error)
+	GetAllTransactions(ctx context.Context, page, limit int, sortBy, order string) ([]models.Transaction, int64, error)
 }
 
 type SystemRepository interface {

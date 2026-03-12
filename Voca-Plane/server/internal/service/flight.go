@@ -44,14 +44,14 @@ func (s *FlightService) GetFlightByID(ctx context.Context, id uint) (*response.F
 	return &res, nil
 }
 
-func (s *FlightService) GetAllFlights(ctx context.Context, page, limit int) ([]response.FlightResponse, int64, error) {
+func (s *FlightService) GetAllFlights(ctx context.Context, page, limit int, sortBy, order string) ([]response.FlightResponse, int64, error) {
 	if page < 1 {
 		page = 1
 	}
 	if limit < 1 || limit > 100 {
 		limit = 10
 	}
-	flights, total, err := s.flightRepo.GetAll(ctx, page, limit)
+	flights, total, err := s.flightRepo.GetAll(ctx, page, limit, sortBy, order)
 	if err != nil {
 		return nil, 0, err
 	}

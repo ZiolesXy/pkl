@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 	"voca-plane/internal/domain/models"
 
 	"gorm.io/gorm"
@@ -27,12 +28,30 @@ func (r *promoRepository) GetByCode(ctx context.Context, code string) (*models.P
 	return &promo, err
 }
 
-func (r *promoRepository) GetAll(ctx context.Context, page, limit int) ([]models.PromoCode, int64, error) {
+func (r *promoRepository) GetAll(ctx context.Context, page, limit int, sortBy, order string) ([]models.PromoCode, int64, error) {
 	var promos []models.PromoCode
 	var total int64
 
 	query := r.db.WithContext(ctx).Model(&models.PromoCode{})
 	query.Count(&total)
+
+	// Promos Whitelist
+	allowedColumns := map[string]bool{
+		"id":        true,
+		"code":      true,
+		"discount":  true,
+		"is_active": true,
+	}
+
+	if sortBy != "" && allowedColumns[sortBy] {
+		if order != "asc" && order != "desc" {
+			order = "asc"
+		}
+		query = query.Order(fmt.Sprintf("%s %s", sortBy, order))
+	} else {
+		query = query.Order("id ASC")
+	}
+
 	offset := (page - 1) * limit
 	err := query.Offset(offset).Limit(limit).Find(&promos).Error
 	return promos, total, err

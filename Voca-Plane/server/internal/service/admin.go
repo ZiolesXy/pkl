@@ -47,8 +47,8 @@ func (s *AdminService) GetDashboardStats(ctx context.Context) (*repository.Dashb
 	return s.adminRepo.GetDashboardStats(ctx)
 }
 
-func (s *AdminService) GetAllUsers(ctx context.Context, page, limit int) ([]response.UserResponse, int64, error) {
-	users, total, err := s.adminRepo.GetAllUsers(ctx, page, limit)
+func (s *AdminService) GetAllUsers(ctx context.Context, page, limit int, sortBy, order string) ([]response.UserResponse, int64, error) {
+	users, total, err := s.adminRepo.GetAllUsers(ctx, page, limit, sortBy, order)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -101,8 +101,8 @@ func (s *AdminService) UnbanUser(ctx context.Context, id uint) error {
 	return s.userRepo.Unban(ctx, id)
 }
 
-func (s *AdminService) GetAllTransactions(ctx context.Context, page, limit int) ([]response.TransactionResponse, int64, error) {
-	transactions, total, err := s.adminRepo.GetAllTransactions(ctx, page, limit)
+func (s *AdminService) GetAllTransactions(ctx context.Context, page, limit int, sortBy, order string) ([]response.TransactionResponse, int64, error) {
+	transactions, total, err := s.adminRepo.GetAllTransactions(ctx, page, limit, sortBy, order)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -114,8 +114,8 @@ func (s *AdminService) GetAllTransactions(ctx context.Context, page, limit int) 
 	return res, total, nil
 }
 
-func (s *AdminService) GetAllFlights(ctx context.Context, page, limit int) ([]response.FlightResponse, int64, error) {
-	flights, total, err := s.flightRepo.GetAll(ctx, page, limit)
+func (s *AdminService) GetAllFlights(ctx context.Context, page, limit int, sortBy, order string) ([]response.FlightResponse, int64, error) {
+	flights, total, err := s.flightRepo.GetAll(ctx, page, limit, sortBy, order)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -337,8 +337,8 @@ func (s *AdminService) DeleteFlight(ctx context.Context, id uint) error {
 	return tx.Commit().Error
 }
 
-func (s *AdminService) GetAllAirlines(ctx context.Context, page, limit int) ([]response.AirlineResponse, int64, error) {
-	airlines, total, err := s.airlineRepo.GetAll(ctx, page, limit)
+func (s *AdminService) GetAllAirlines(ctx context.Context, page, limit int, sortBy, order string) ([]response.AirlineResponse, int64, error) {
+	airlines, total, err := s.airlineRepo.GetAll(ctx, page, limit, sortBy, order)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -403,8 +403,8 @@ func (s *AdminService) DeleteAirline(ctx context.Context, id uint) error {
 	return tx.Commit().Error
 }
 
-func (s *AdminService) GetAllAirports(ctx context.Context, page, limit int) ([]response.AirportResponse, int64, error) {
-	airports, total, err := s.airportRepo.GetAll(ctx, page, limit)
+func (s *AdminService) GetAllAirports(ctx context.Context, page, limit int, sortBy, order string) ([]response.AirportResponse, int64, error) {
+	airports, total, err := s.airportRepo.GetAll(ctx, page, limit, sortBy, order)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -474,8 +474,8 @@ func (s *AdminService) DeleteAirport(ctx context.Context, id uint) error {
 	return tx.Commit().Error
 }
 
-func (s *AdminService) GetAllPromos(ctx context.Context, page, limit int) ([]response.PromoResponse, int64, error) {
-	promos, total, err := s.promoRepo.GetAll(ctx, page, limit)
+func (s *AdminService) GetAllPromos(ctx context.Context, page, limit int, sortBy, order string) ([]response.PromoResponse, int64, error) {
+	promos, total, err := s.promoRepo.GetAll(ctx, page, limit, sortBy, order)
 	if err != nil {
 		return nil, 0, err
 	}

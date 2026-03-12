@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 	"voca-plane/internal/domain/models"
 
 	"gorm.io/gorm"
@@ -15,14 +16,32 @@ func NewAirportRepository(db *gorm.DB) AirportRepository {
 	return &airportRepository{db: db}
 }
 
-func (r *airportRepository) GetAll(ctx context.Context, page, limit int) ([]models.Airport, int64, error) {
+func (r *airportRepository) GetAll(ctx context.Context, page, limit int, sortBy, order string) ([]models.Airport, int64, error) {
 	var airports []models.Airport
 	var total int64
 
 	query := r.db.WithContext(ctx).Model(&models.Airport{})
 	query.Count(&total)
+
+	// Airports Whitelist
+	allowedColumns := map[string]bool{
+		"id":   true,
+		"name": true,
+		"code": true,
+		"city": true,
+	}
+
+	if sortBy != "" && allowedColumns[sortBy] {
+		if order != "asc" && order != "desc" {
+			order = "asc"
+		}
+		query = query.Order(fmt.Sprintf("%s %s", sortBy, order))
+	} else {
+		query = query.Order("id ASC")
+	}
+
 	offset := (page - 1) * limit
-	err := query.Offset(offset).Limit(limit).Order("id ASC").Find(&airports).Error
+	err := query.Offset(offset).Limit(limit).Find(&airports).Error
 	return airports, total, err
 }
 

@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 	"time"
 	"voca-plane/internal/domain/models"
 
@@ -69,7 +70,7 @@ func (r *flightRepository) GetClassByID(ctx context.Context, id uint) (*models.F
 	return &class, err
 }
 
-func (r *flightRepository) GetAll(ctx context.Context, page, limit int) ([]models.Flight, int64, error) {
+func (r *flightRepository) GetAll(ctx context.Context, page, limit int, sortBy, order string) ([]models.Flight, int64, error) {
 	type flightScan struct {
 		models.Flight
 		AvailableSeats int `gorm:"column:available_seats"`
@@ -96,8 +97,25 @@ func (r *flightRepository) GetAll(ctx context.Context, page, limit int) ([]model
 	
 	query.Count(&total)
 
+	// Flights Whitelist
+	allowedColumns := map[string]bool{
+		"id":             true,
+		"departure_time": true,
+		"arrival_time":   true,
+		"total_seats":    true,
+	}
+
+	if sortBy != "" && allowedColumns[sortBy] {
+		if order != "asc" && order != "desc" {
+			order = "asc"
+		}
+		query = query.Order(fmt.Sprintf("%s %s", sortBy, order))
+	} else {
+		query = query.Order("departure_time ASC")
+	}
+
 	offset := (page - 1) * limit
-	err := query.Offset(offset).Limit(limit).Order("departure_time ASC").Find(&scannedFlights).Error
+	err := query.Offset(offset).Limit(limit).Find(&scannedFlights).Error
 	if err != nil {
 		return nil, 0, err
 	}
