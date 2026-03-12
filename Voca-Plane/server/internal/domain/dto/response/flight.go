@@ -17,7 +17,7 @@ type FlightClassResponse struct {
 	ID         uint    `json:"id"`
 	ClassType  string  `json:"class_type"`
 	Price      float64 `json:"price"`
-	TotalSeats int     `json:"total_seats"`
+	TotalSeats int     `json:"total_seats,omitempty"`
 }
 
 type FlightResponse struct {
@@ -56,8 +56,8 @@ func ToFlightClassResponse(fc models.FlightClass, seatCount int) FlightClassResp
 }
 
 func ToFlightResponse(f models.Flight) FlightResponse {
-	available := 0
-	if len(f.FlightSeats) > 0 {
+	available := f.AvailableSeats
+	if available == 0 && len(f.FlightSeats) > 0 {
 		for _, seat := range f.FlightSeats {
 			if seat.IsAvailable {
 				available++

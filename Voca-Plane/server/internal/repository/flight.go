@@ -70,55 +70,85 @@ func (r *flightRepository) GetClassByID(ctx context.Context, id uint) (*models.F
 }
 
 func (r *flightRepository) GetAll(ctx context.Context, page, limit int) ([]models.Flight, int64, error) {
-	var flights []models.Flight
+	type flightScan struct {
+		models.Flight
+		AvailableSeats int `gorm:"column:available_seats"`
+	}
+
+	var scannedFlights []flightScan
 	var total int64
 
 	query := r.db.WithContext(ctx).Model(&models.Flight{}).
 		Select(`
 			flights.*,
-			COUNT(CASE 
-				WHEN flight_seats.is_available = true 
-				AND (flight_seats.locked_until IS NULL OR flight_seats.locked_until < NOW()) 
-				THEN 1 
-			END) as available_seats
+			(
+				SELECT COUNT(*)
+				FROM flight_seats
+				WHERE flight_seats.flight_id = flights.id
+				AND flight_seats.is_available = true
+				AND (flight_seats.locked_until IS NULL OR flight_seats.locked_until < NOW())
+			) AS available_seats
 		`).
-		Joins("LEFT JOIN flight_seats ON flight_seats.flight_id = flights.id").
 		Preload("Airline").
 		Preload("Origin").
 		Preload("Destination").
-		Preload("FlightClasses").
-		Group("flights.id")
+		Preload("FlightClasses")
 	
 	query.Count(&total)
 
 	offset := (page - 1) * limit
-	err := query.Offset(offset).Limit(limit).Order("departure_time ASC").Find(&flights).Error
-	return flights, total, err
+	err := query.Offset(offset).Limit(limit).Order("departure_time ASC").Find(&scannedFlights).Error
+	if err != nil {
+		return nil, 0, err
+	}
+
+	flights := make([]models.Flight, len(scannedFlights))
+	for i, s := range scannedFlights {
+		flights[i] = s.Flight
+		flights[i].AvailableSeats = s.AvailableSeats
+	}
+
+	return flights, total, nil
 }
 
 func(r *flightRepository) GetAllFull(ctx context.Context) ([]models.Flight, error) {
-	var flights []models.Flight
+	type flightScan struct {
+		models.Flight
+		AvailableSeats int `gorm:"column:available_seats"`
+	}
+
+	var scannedFlights []flightScan
 
 	err := r.db.WithContext(ctx).
 		Model(&models.Flight{}).
 		Select(`
 			flights.*,
-			COUNT(CASE 
-				WHEN flight_seats.is_available = true 
-				AND (flight_seats.locked_until IS NULL OR flight_seats.locked_until < NOW()) 
-				THEN 1 
-			END) as available_seats
+			(
+				SELECT COUNT(*)
+				FROM flight_seats
+				WHERE flight_seats.flight_id = flights.id
+				AND flight_seats.is_available = true
+				AND (flight_seats.locked_until IS NULL OR flight_seats.locked_until < NOW())
+			) AS available_seats
 		`).
-		Joins("LEFT JOIN flight_seats ON flight_seats.flight_id = flights.id").
 		Preload("Airline").
 		Preload("Origin").
 		Preload("Destination").
 		Preload("FlightClasses").
-		Group("flights.id").
 		Order("departure_time ASC").
-		Find(&flights).Error
+		Find(&scannedFlights).Error
 
-	return flights, err
+	if err != nil {
+		return nil, err
+	}
+
+	flights := make([]models.Flight, len(scannedFlights))
+	for i, s := range scannedFlights {
+		flights[i] = s.Flight
+		flights[i].AvailableSeats = s.AvailableSeats
+	}
+
+	return flights, nil
 }
 
 func (r *flightRepository) Create(ctx context.Context, tx *gorm.DB, flight *models.Flight) error {

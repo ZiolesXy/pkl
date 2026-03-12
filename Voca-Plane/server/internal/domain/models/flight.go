@@ -40,6 +40,7 @@ type Flight struct {
 	TotalSeats    int           `gorm:"not null;default:0" json:"total_seats"`
 	TotalRows     int           `gorm:"not null;default:0" json:"total_rows"`
 	TotalColumns  int           `gorm:"not null;default:0" json:"total_columns"`
+	AvailableSeats int `json:"available_seats" gorm:"column:available_seats"`
 	FlightClasses []FlightClass `gorm:"foreignKey:FlightID" json:"classes"`
 	FlightSeats   []FlightSeat  `gorm:"foreignKey:FlightID" json:"flight_seats,omitempty"`
 	CreatedAt     time.Time     `json:"created_at"`
