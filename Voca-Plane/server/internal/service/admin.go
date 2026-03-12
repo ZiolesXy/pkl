@@ -358,6 +358,11 @@ func (s *AdminService) CreateAirline(ctx context.Context, airline *models.Airlin
 		}
 	}()
 
+	if err := s.airlineRepo.Create(ctx, tx, airline); err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
 	if err := tx.Commit().Error; err != nil {
 		return nil, err
 	}
