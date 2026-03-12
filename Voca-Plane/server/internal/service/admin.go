@@ -400,6 +400,16 @@ func (s *AdminService) DeleteAirline(ctx context.Context, id uint) error {
 		}
 	}()
 
+	airline, err := s.airlineRepo.GetByID(ctx, id)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if airline.LogoPublicID != "" {
+		helper.DeleteImage(airline.LogoPublicID)
+	}
+
 	if err := s.airlineRepo.Delete(ctx, tx, id); err != nil {
 		tx.Rollback()
 		return err

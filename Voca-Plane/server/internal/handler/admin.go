@@ -7,6 +7,7 @@ import (
 	"voca-plane/internal/domain/dto/request"
 	"voca-plane/internal/domain/models"
 	"voca-plane/internal/service"
+	"voca-plane/pkg/helper"
 	"voca-plane/pkg/response"
 
 	"github.com/gin-gonic/gin"
@@ -277,15 +278,35 @@ func (h *AdminHandler) GetAirlines(c *gin.Context) {
 
 func (h *AdminHandler) CreateAirline(c *gin.Context) {
 	var req request.CreateAirlineRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+
+	if err := c.ShouldBind(&req); err != nil {
 		response.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
+	var logoURL string
+	var publicID string
+
+	file, err := c.FormFile("logo")
+
+	if err == nil {
+		url, pid, err := helper.UploadImage(file)
+		if err != nil {
+			response.Error(c, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		logoURL = url
+		publicID = pid
+	} else {
+		logoURL = req.LogoURL
+	}
+
 	airline := &models.Airline{
-		Name:    req.Name,
-		Code:    req.Code,
-		LogoURL: req.LogoURL,
+		Name:         req.Name,
+		Code:         req.Code,
+		LogoURL:      logoURL,
+		LogoPublicID: publicID,
 	}
 
 	res, err := h.service.CreateAirline(c.Request.Context(), airline)
@@ -306,7 +327,7 @@ func (h *AdminHandler) UpdateAirline(c *gin.Context) {
 	}
 
 	var req request.UpdateAirlineRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := c.ShouldBind(&req); err != nil {
 		response.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -324,6 +345,23 @@ func (h *AdminHandler) UpdateAirline(c *gin.Context) {
 	}
 	if req.LogoURL != nil {
 		airline.LogoURL = *req.LogoURL
+	}
+
+	file, err := c.FormFile("logo")
+	if err == nil {
+
+		url, pid, err := helper.UploadImage(file)
+		if err != nil {
+			response.Error(c, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		if airline.LogoPublicID != "" {
+			helper.DeleteImage(airline.LogoPublicID)
+		}
+
+		airline.LogoURL = url
+		airline.LogoPublicID = pid
 	}
 
 	res, err := h.service.UpdateAirline(c.Request.Context(), airline)
