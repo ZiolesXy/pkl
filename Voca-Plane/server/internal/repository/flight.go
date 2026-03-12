@@ -74,10 +74,20 @@ func (r *flightRepository) GetAll(ctx context.Context, page, limit int) ([]model
 	var total int64
 
 	query := r.db.WithContext(ctx).Model(&models.Flight{}).
+		Select(`
+			flights.*,
+			COUNT(CASE 
+				WHEN flight_seats.is_available = true 
+				AND (flight_seats.locked_until IS NULL OR flight_seats.locked_until < NOW()) 
+				THEN 1 
+			END) as available_seats
+		`).
+		Joins("LEFT JOIN flight_seats ON flight_seats.flight_id = flights.id").
 		Preload("Airline").
 		Preload("Origin").
 		Preload("Destination").
-		Preload("FlightClasses")
+		Preload("FlightClasses").
+		Group("flights.id")
 	
 	query.Count(&total)
 
@@ -91,10 +101,20 @@ func(r *flightRepository) GetAllFull(ctx context.Context) ([]models.Flight, erro
 
 	err := r.db.WithContext(ctx).
 		Model(&models.Flight{}).
+		Select(`
+			flights.*,
+			COUNT(CASE 
+				WHEN flight_seats.is_available = true 
+				AND (flight_seats.locked_until IS NULL OR flight_seats.locked_until < NOW()) 
+				THEN 1 
+			END) as available_seats
+		`).
+		Joins("LEFT JOIN flight_seats ON flight_seats.flight_id = flights.id").
 		Preload("Airline").
 		Preload("Origin").
 		Preload("Destination").
 		Preload("FlightClasses").
+		Group("flights.id").
 		Order("departure_time ASC").
 		Find(&flights).Error
 
