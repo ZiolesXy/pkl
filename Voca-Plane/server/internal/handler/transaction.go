@@ -149,18 +149,7 @@ func (h *TransactionHandler) MidtransCallback(c *gin.Context) {
 	fmt.Println("STATUS:", status)
 
 	switch status{
-	case "settlement":
-		err := h.service.PayTransaction(
-			c.Request.Context(),
-			orderID,
-		)
-
-		if err != nil {
-			response.Error(c, http.StatusInternalServerError, err.Error())
-			return
-		}
-
-	case "capture":
+	case "settlement", "capture":
 		err := h.service.PayTransaction(
 			c.Request.Context(),
 			orderID,
@@ -171,27 +160,7 @@ func (h *TransactionHandler) MidtransCallback(c *gin.Context) {
 			return
 		}
 	
-	case "expired":
-		err := h.service.ExpireTransaction(
-			c.Request.Context(),
-			orderID,
-		)
-
-		if err != nil {
-			response.Error(c, http.StatusInternalServerError, err.Error())
-		}
-
-	case "cancelled":
-		err := h.service.ExpireTransaction(
-			c.Request.Context(),
-			orderID,
-		)
-
-		if err != nil {
-			response.Error(c, http.StatusInternalServerError, err.Error())
-		}
-
-	case "deny":
+	case "expire", "cancel", "deny":
 		err := h.service.ExpireTransaction(
 			c.Request.Context(),
 			orderID,

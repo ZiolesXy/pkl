@@ -330,10 +330,10 @@ func (s *TransactionService) ExpireTransaction(ctx context.Context, code string)
 		return nil
 	}
 
-	if time.Now().Before(transaction.ExpiresAt) {
-		tx.Rollback()
-		return nil
-	}
+	// if time.Now().Before(transaction.ExpiresAt) {
+	// 	tx.Rollback()
+	// 	return nil
+	// }
 
 	if err := s.txRepo.UpdatePaymentStatus(ctx, tx, transaction.ID, "EXPIRED"); err != nil {
 		tx.Rollback()
