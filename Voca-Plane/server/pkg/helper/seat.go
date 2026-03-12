@@ -20,10 +20,15 @@ type ClassAlloc struct {
 }
 
 func ValidateFlightInput(flight *models.Flight, classCount int, classPrice []request.ClassPriceRequest) error {
+	const MaxSeatRows = 7
 	maxCapacity := flight.TotalRows * flight.TotalColumns
 
-	if flight.TotalSeats > maxCapacity {
-		return fmt.Errorf("total_seats (%d) exceeds row x columns (%d)", flight.TotalSeats, maxCapacity)
+	if flight.TotalRows > MaxSeatRows {
+		return fmt.Errorf("total_rows cannot exceed 8")
+	}
+
+	if flight.TotalSeats != maxCapacity {
+		return fmt.Errorf("total_seats must equal rows × columns (%d), got %d", maxCapacity, flight.TotalSeats,)
 	}
 
 	if classCount < 1 || classCount > 3 {
@@ -57,11 +62,11 @@ func CalculateSeatAllocation(totalSeats int, classMap map[string]float64, classC
 		for classType, price := range classMap {
 			allocations = append(allocations, ClassAlloc{
 				ClassType: classType,
-				Price: price,
+				Price:     price,
 				SeatCount: totalSeats,
 			})
 		}
-	
+
 	case 2:
 		var types []string
 		for classType := range classMap {
@@ -71,7 +76,7 @@ func CalculateSeatAllocation(totalSeats int, classMap map[string]float64, classC
 		seatsA := int(float64(totalSeats) * BusinessClassRatio)
 		seatsB := totalSeats - seatsA
 
-		allocations = append(allocations, 
+		allocations = append(allocations,
 			ClassAlloc{types[0], classMap[types[0]], seatsA},
 			ClassAlloc{types[1], classMap[types[1]], seatsB},
 		)

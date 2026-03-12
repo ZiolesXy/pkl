@@ -231,7 +231,22 @@ func (s *AdminService) UpdateFlight(ctx context.Context, flight *models.Flight) 
 		return nil, err
 	}
 
-	// 2. Validate seat capacity
+	// 1a. Prepare classPrices dari oldFlight untuk validasi
+	classPrices := []request.ClassPriceRequest{}
+	for _, fc := range oldFlight.FlightClasses {
+		classPrices = append(classPrices, request.ClassPriceRequest{
+			ClassType: fc.ClassType,
+			Price:     fc.Price,
+		})
+	}
+
+	// 1b. Validasi flight input (rows, seats, classCount, classPrices)
+	if err := helper.ValidateFlightInput(flight, len(oldFlight.FlightClasses), classPrices); err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	// 2. Validate seat capacity masih optional tambahan
 	maxCapacity := flight.TotalRows * flight.TotalColumns
 	if flight.TotalSeats > maxCapacity {
 		tx.Rollback()
@@ -275,7 +290,7 @@ func (s *AdminService) UpdateFlight(ctx context.Context, flight *models.Flight) 
 			return nil, err
 		}
 
-		// 6. Generate new seat codes and upsert master Seat rows
+		// 6. Generate new seat codes dan upsert master Seat rows
 		seatCodes := helper.GenerateSeatCodes(flight.TotalRows, flight.TotalColumns)
 
 		seats, err := s.flightRepo.GetOrCreateSeats(ctx, tx, seatCodes)
@@ -284,7 +299,7 @@ func (s *AdminService) UpdateFlight(ctx context.Context, flight *models.Flight) 
 			return nil, err
 		}
 
-		// Sort seats to match the order of seatCodes
+		// Sort seats untuk match order seatCodes
 		seatMap := make(map[string]models.Seat)
 		for _, s := range seats {
 			seatMap[s.SeatCode] = s

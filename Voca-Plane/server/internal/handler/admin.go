@@ -205,13 +205,13 @@ func (h *AdminHandler) UpdateFlight(c *gin.Context) {
 	}
 
 	if req.AirlineID != nil {
-		flight.Airline.ID = *req.AirlineID
+		flight.AirlineID = *req.AirlineID
 	}
 	if req.OriginID != nil {
-		flight.Origin.ID = *req.OriginID
+		flight.OriginID = *req.OriginID
 	}
 	if req.DestinationID != nil {
-		flight.Destination.ID = *req.DestinationID
+		flight.DestinationID = *req.DestinationID
 	}
 	if req.DepartureTime != nil {
 		departureTime, _ := time.Parse(time.RFC3339, *req.DepartureTime)

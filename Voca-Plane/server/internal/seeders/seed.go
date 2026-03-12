@@ -18,7 +18,7 @@ func SeedAll(db *gorm.DB) {
 	SeedUsers(db)
 	SeedAirlines(db)
 	SeedAirports(db)
-	SeedFlights(db)
+	// SeedFlights(db)
 	SeedPromos(db)
 	log.Println(">>> SEEDING COMPLETED")
 }
