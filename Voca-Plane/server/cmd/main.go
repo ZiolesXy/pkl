@@ -22,7 +22,7 @@ import (
 )
 
 func main() {
-	log.Printf("⚙️  Starting Server...")
+	log.Println("⚙️  Starting Server...")
 	godotenv.Load()
 	cfg := config.LoadConfig()
     if cfg.GinMode == "release" {
@@ -34,7 +34,7 @@ func main() {
 		cfg.MidtransIsProd,
 	)
 	
-	db := config.MySQLDatabase(cfg)
+	db := config.PostgresDatabase(cfg)
 
 	seeders.InitSeeders(db)
 
